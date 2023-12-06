@@ -2626,7 +2626,6 @@ def GetConf(var=None,scriptpath=None):
               else:
                   return(script_path+"/local_sounds/saved_answer/")
        else:
-              conf.trinity
            with open(script_path+"conf.trinity","a+") as f:
                  data = '\nAlt_Saved_Answers_Folder = "default"'
                  f.write(data)
