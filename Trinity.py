@@ -235,7 +235,7 @@ def wake_up():
                         input=True,
                         frames_per_buffer=porcupine.frame_length)
 
-        PRINT("Listening for 'Trinity'...")
+        print("\nListening for 'Trinity'...")
 
         while True:
             pcm = audio_stream.read(porcupine.frame_length)
@@ -2604,9 +2604,9 @@ def Trinity(fname = "WakeMe"):
 
 
 def GetConf(var=None,scriptpath=None):
-
    folder = False
    dbg = False
+   
    if var == "answer":
 
        if os.path.exists(script_path+"conf.trinity"):
@@ -2649,7 +2649,6 @@ def GetConf(var=None,scriptpath=None):
                          return(True)
               return(False)
        else:
-              conf.trinity
            with open(script_path+"conf.trinity","a+") as f:
                  data = '\nDEBUG = "False"'
                  f.write(data)
@@ -2673,6 +2672,7 @@ if __name__ == "__main__":
 
     PICO_KEY = LoadKeys()
     SAVED_ANSWER = GetConf(var="answer",scriptpath=script_path)
+
     record_on = Queue()
     chunks = Queue()
     last_sentence = Queue()
