@@ -323,7 +323,7 @@ def Check_Silence():
     PRINT("-Checksilence")
     buffer = b""
     lock = True
-    threshold = 1
+    threshold = 1.5
     silence = 0
     no_input = 0
     time_cnt = 0
@@ -403,9 +403,14 @@ def Commandes(txt):
 
     trinity_help = ["affiche-moi ton aide","quelles sont tes fonction","a quoi sers-tu","quelles sont tes commande","parle-moi de toi"]
 
+
+
+    show_words = ["affiche","montre","trouve","cherche","regarde","donne","racconte","parle"]
+
+
     prompt_request = ['moi le prompt', "que je t'ecrive", " t'ecrire ", "je te l'ecris", "vais l'ecrire", "va l'ecrire", "va te l'ecrire", "vais te l'ecrire", 'affiche le prompt', 'ouvre le prompt', 'active le prompt', "moi l'invite de commande", "affiche l'invite de commande", "active l'invite de commande", "ouvre l'invite de commande", 'moi le clavier', 'affiche le clavier', 'ouvre le clavier', "j'ai besoin de t'ecrire","tu peux m'ouvrir le clavier","interprete"]
 
-    trinity_source_request = ["ton code source","script trinity"]
+    trinity_source_request = ["affiche ton code source","script trinity"]
 
     rnd_request = ["choix aleatoire","entre oui et non"]
 
@@ -416,7 +421,7 @@ def Commandes(txt):
     read_link_request = ["donne moi","donne-moi","le contenu","du lien","d'un lien","de ce lien","peux me dire","fais moi","fais-moi","lis-moi","lis moi","tu peux me lire","que tu me lise","que tu lise","que tu regarde","regarde pour moi","racconte-moi","racconte moi","dis moi","dis-moi","ce qu'il y a","ce qu'il ya","ce que contient","dans ce lien","dans cette page","sur ce site","dans ce site","tu peux me racconter","que tu me racconte"]
 
 
-    play_wav_request = ["lecture fichier audio","lire fichier audio","ouvrir fichier audio","jouer fichier audio","lire un fichier audio","ouvrir un fichier audio","jouer un fichier audio","lis-moi un fichier audio","ouvre-moi un fichier audio","joue-moi un fichier audio"]
+    play_wav_request = ["fichier audio","lire fichier audio","ouvrir fichier audio","jouer fichier audio","lire un fichier audio","ouvrir un fichier audio","jouer un fichier audio","lis-moi un fichier audio","ouvre-moi un fichier audio","joue-moi un fichier audio"]
 
     google_request = ["tu peux afficher","tu peux m'afficher","affiche moi","affiche-moi","montre moi","montre-moi","recherche wikipedia","que tu me fasse","fais une recherche","faire une recherche","recherche google","recherche internet","rechercher sur","rechercher dans","recherche sur","regarder sur","regarder dans","regarde dans","regarde sur","trouver sur","trouver dans","me trouver","trouve sur","trouve moi","trouve-moi","une page qui concerne","une page google","une page concernant","une page parlant","une page qui parle ","une page sur","infos qui parles","info qui parle","infos parlant","infos sur","info sur","infos concernant","info concernant","infos qui concernent","info qui concerne","infos qui parlent","info qui parle","parle moi","parle-moi","quelque chose sur","quelque chose concernant","quelque chose qui concerne","quelque chose qui parle","quelque chose parlant","truc qui parle","trucs qui parlent","truc parlant","truc concernant","trucs concernant","truc qui concerne","trucs qui concernent","un article qui concerne","un article wikipedia","un article concernant","un article parlant","un article qui parle ","un article sur"]
 
@@ -441,6 +446,8 @@ def Commandes(txt):
     ask_for_help = any(element in decoded for element in trinity_help)
 
     ask_for_prompt = any(element in decoded for element in prompt_request)
+
+    ask_to_show = any(element in decoded for element in show_words)
 
     ask_for_rnd = any(element in decoded for element in rnd_request)
 
@@ -521,111 +528,112 @@ def Commandes(txt):
          os.system("aplay %s"%script_path+"tmp/current_answer.wav")
          return(True)
 
+    if ask_to_show:
 
-    if ask_to_play_wav:
-         for element in play_wav_request: 
-              if element in decoded:
-                   PRINT("Found play sound match cmd :",element)
-                   decoded = decoded.replace(element," ")
-         os.system("aplay %s"%script_path+"local_sounds/question/sound_file.wav")
-         sound_input = input("Entrez le chemin du fichier à lire:")
-         if sound_input.endswith(".wav"):
-             Play_Response(sound_input,stayawake=False,savehistory=False)
-             return(True)
-         else:
-             return(True)
+         if ask_to_play_wav:
+              for element in play_wav_request: 
+                   if element in decoded:
+                        PRINT("Found play sound match cmd :",element)
+                        decoded = decoded.replace(element," ")
+              os.system("aplay %s"%script_path+"local_sounds/question/sound_file.wav")
+              sound_input = input("Entrez le chemin du fichier à lire:")
+              if sound_input.endswith(".wav"):
+                  Play_Response(sound_input,stayawake=False,savehistory=False)
+                  return(True)
+              else:
+                  return(True)
 
-    if "historique" in decoded:
-       if ask_for_history:
-          for element in search_history_request: 
-              if element in decoded:
-                   PRINT("Found historique match cmd :",element)
-                   decoded = decoded.replace(element," ")
+         if "historique" in decoded:
+            if ask_for_history:
+               for element in search_history_request: 
+                   if element in decoded:
+                        PRINT("Found historique match cmd :",element)
+                        decoded = decoded.replace(element," ")
 
-          for element in to_remove:
-             if element in decoded:
-                 decoded = decoded.replace(element," ")
-
-
-          decoded = decoded.replace("  ","")
-
-
-          SearchHistory(decoded)
-          return(True)
-
-
-
-
-
-    if (" lien" in decoded) or ("page web" in decoded):
-        if ask_to_read_link: 
-             for element in read_link_request: 
-                if element in decoded:
-                     PRINT("Found read link match cmd :",element)
-             ReadLink(txt=decoded)
-
-             return(True)
-
-
-    if "google" in decoded:
-
-       if ask_for_google:
-          for element in google_request: 
-              if element in decoded:
-                   PRINT("Found google match cmd :",element)
-                   decoded = decoded.replace(element," ")
-
-          for element in to_remove:
-             if element in decoded:
-                 decoded = decoded.replace(element," ")
-
-
-          decoded = decoded.replace("  ","")
-
-
-          Google(decoded)
-          return(True)
-
-
-
-    if "wikipedia" in decoded:
-
-         if ask_for_wiki:
-
-             for element in wikipedia_request: 
-                 if element in decoded:
-                      PRINT("Found wiki match cmd :",element)
-
-             for element in wikipedia_request: 
-                 if element in decoded:
+               for element in to_remove:
+                  if element in decoded:
                       decoded = decoded.replace(element," ")
-             decoded = decoded.replace("wikipedia"," ")
-             os.system("aplay %s"%script_path+"local_sounds/server/wikipedia.wav")
 
-             if ask_for_full_wiki:
-                 for element in wikipedia_full_request: 
+
+               decoded = decoded.replace("  ","")
+
+
+               SearchHistory(decoded)
+               return(True)
+
+
+
+
+
+         if (" lien" in decoded) or ("page web" in decoded):
+             if ask_to_read_link: 
+                  for element in read_link_request: 
                      if element in decoded:
-                          decoded = decoded.replace(element," ")
-                 for element in to_remove:
+                          PRINT("Found read link match cmd :",element)
+                  ReadLink(txt=decoded)
+
+                  return(True)
+
+
+         if "google" in decoded:
+
+            if ask_for_google:
+               for element in google_request: 
+                   if element in decoded:
+                        PRINT("Found google match cmd :",element)
+                        decoded = decoded.replace(element," ")
+
+               for element in to_remove:
+                  if element in decoded:
+                      decoded = decoded.replace(element," ")
+
+
+               decoded = decoded.replace("  ","")
+
+
+               Google(decoded)
+               return(True)
+
+
+
+         if "wikipedia" in decoded:
+
+              if ask_for_wiki:
+
+                  for element in wikipedia_request: 
                       if element in decoded:
-                          decoded = decoded.replace(element," ")
+                           PRINT("Found wiki match cmd :",element)
 
-                 decoded = decoded.replace("  ","")
-
-                 Wikipedia(decoded,FULL=True)
-             else:
-                 for element in to_remove:
+                  for element in wikipedia_request: 
                       if element in decoded:
-                          decoded = decoded.replace(element," ")
+                           decoded = decoded.replace(element," ")
+                  decoded = decoded.replace("wikipedia"," ")
+                  os.system("aplay %s"%script_path+"local_sounds/server/wikipedia.wav")
 
-                 decoded = decoded.replace("  ","")
+                  if ask_for_full_wiki:
+                      for element in wikipedia_full_request: 
+                          if element in decoded:
+                               decoded = decoded.replace(element," ")
+                      for element in to_remove:
+                           if element in decoded:
+                               decoded = decoded.replace(element," ")
+
+                      decoded = decoded.replace("  ","")
+
+                      Wikipedia(decoded,FULL=True)
+                  else:
+                      for element in to_remove:
+                           if element in decoded:
+                               decoded = decoded.replace(element," ")
+
+                      decoded = decoded.replace("  ","")
 
 
-                 Wikipedia(decoded)
-             return(True)
-    else:
-         PRINT("-Found no cmd match")
-         return(False)
+                      Wikipedia(decoded)
+                  return(True)
+         else:
+              PRINT("-Found no cmd match")
+              return(False)
 
 
 def GetTitleLink(txt,site=None):
@@ -844,10 +852,10 @@ def Google(tosearch,rnbr=50): #,tstmode = True):
 
 
 
-                   if "non" in txt:
+                   if "non" in txt and not "oui" in txt:
                          os.system("aplay %s"%script_path+"/local_sounds/ok/1.wav")
                          return(False)
-                   elif "oui" in txt:
+                   elif "oui" in txt and not "non" in txt:
                          os.system("aplay %s"%script_path+"/local_sounds/ok/1.wav")
                          return([description,title,url])
 
@@ -998,7 +1006,107 @@ def Google(tosearch,rnbr=50): #,tstmode = True):
     "le quatre-vingt-dix-septieme": 96,
     "le quatre-vingt-dix-huitieme": 97,
     "le quatre-vingt-dix-neuvieme": 98,
-    "le quatre-vingt-dixieme": 99,
+    "le centieme": 99,
+    '1e': 0,
+     '2e': 1,
+     '3e': 2,
+     '4e': 3,
+     '5e': 4,
+     '6e': 5,
+     '7e': 6,
+     '8e': 7,
+     '9e': 8,
+     '10e': 9,
+     '11e': 10,
+     '12e': 11,
+     '13e': 12,
+     '14e': 13,
+     '15e': 14,
+     '16e': 15,
+     '17e': 16,
+     '18e': 17,
+     '19e': 18,
+     '20e': 19,
+     '21e': 20,
+     '22e': 21,
+     '23e': 22,
+     '24e': 23,
+     '25e': 24,
+     '26e': 25,
+     '27e': 26,
+     '28e': 27,
+     '29e': 28,
+     '30e': 29,
+     '31e': 30,
+     '32e': 31,
+     '33e': 32,
+     '34e': 33,
+     '35e': 34,
+     '36e': 35,
+     '37e': 36,
+     '38e': 37,
+     '39e': 38,
+     '40e': 39,
+     '41e': 40,
+     '42e': 41,
+     '43e': 42,
+     '44e': 43,
+     '45e': 44,
+     '46e': 45,
+     '47e': 46,
+     '48e': 47,
+     '49e': 48,
+     '50e': 49,
+     '51e': 50,
+     '52e': 51,
+     '53e': 52,
+     '54e': 53,
+     '55e': 54,
+     '56e': 55,
+     '57e': 56,
+     '58e': 57,
+     '59e': 58,
+     '60e': 59,
+     '61e': 60,
+     '62e': 61,
+     '63e': 62,
+     '64e': 63,
+     '65e': 64,
+     '66e': 65,
+     '67e': 66,
+     '68e': 67,
+     '69e': 68,
+     '70e': 69,
+     '71e': 70,
+     '72e': 71,
+     '73e': 72,
+     '74e': 73,
+     '75e': 74,
+     '76e': 75,
+     '77e': 76,
+     '78e': 77,
+     '79e': 78,
+     '80e': 79,
+     '81e': 80,
+     '82e': 81,
+     '83e': 82,
+     '84e': 83,
+     '85e': 84,
+     '86e': 85,
+     '87e': 86,
+     '88e': 87,
+     '89e': 88,
+     '90e': 89,
+     '91e': 90,
+     '92e': 91,
+     '93e': 92,
+     '94e': 93,
+     '95e': 94,
+     '96e': 95,
+     '97e': 96,
+     '98e': 97,
+     '99e': 98,
+     '100e': 99,
     "hasard":"",
     "pif":"",
     "importe":"",
@@ -1208,19 +1316,20 @@ def Wikipedia(tosearch,Title= None ,FULL=None):
                                    audio = audio_datas.get()
                                    transcripts,transcripts_confidence,words,words_confidence,Err_msg = Speech_To_Text(audio)
                                    txt,fconf =Check_Transcript(transcripts,transcripts_confidence,words,words_confidence,Err_msg)
-                                   if len(txt) > 0:
-                                       Question(txt)
-                                       Wait_for("question")
-                                   else:
-                                        score_sentiment.put(False)
 
 
-                    if "non" in txt.lower():
-                         opinion = False
-                    elif "oui" in txt.lower():
-                          opinion = True
+
+                    if  len(txt) > 0:
+                         if "non" in txt.lower() and not "oui" in txt.lower():
+                               opinion = False
+                         elif "oui" in txt.lower() and not "non" in txt.lower():
+                               opinion = True
+                         else:
+                              Question(txt)
+                              Wait_for("question")
+                              opinion = score_sentiment.get()
                     else:
-                         opinion = score_sentiment.get()
+                         opinion = False
 
                     if opinion == None:
                              choice = random.choice(["summary", "full"])
@@ -1413,9 +1522,15 @@ def Repeat(txt):
     negation = ["laisse tomber","c'est pas grave","non c'est bon","j'ai pas envie","j'ai plus envie","non merci"]
     prompt_request = ["affiche moi le prompt","préfère l'écrire","préfère écrire","vais l'écrire","va l'écrire","vais te l'écrire","t'as rien compris","tu n'as rien compris"]
 
-    Question(txt)
-    Wait_for("question")
-    opinion = score_sentiment.get()
+    if "oui" in txt.lower() and not "non" in txt.lower():
+           opinion = True
+    elif "non" in txt.lower() and not "oui" in txt.lower():
+           opinion = False
+    else:
+        Question(txt)
+        Wait_for("question")
+        opinion = score_sentiment.get()
+
     if opinion == False :
        no = any(element in txt.lower() for element in negation)
        if no:
@@ -2144,7 +2259,7 @@ def SearchHistory(tosearch):
 
                                        hist_bingo = args[4]
 
-                                       print("\n-(Résultat numéro %s)\n    Categories:%s\n    Texte utilisateur synthétisé:%s\n    Réponse:%s\nScore:%s"%(str(n+1),hist_cats,hist_txt,hist_answer,hist_bingo))
+                                       print("\n-(Résultat numéro %s)\n    Categories:%s\n    Texte utilisateur synthétisé:%s\n    Réponse:%s\n    Score:%s"%(str(n+1),hist_cats,hist_txt,hist_answer,hist_bingo))
 
 
                                    except Exception as e:
@@ -2302,7 +2417,7 @@ def SearchHistory(tosearch):
 
                 hist_bingo = args[4]
 
-                print("\n-(Result number %s)\n    Categories:%s\n    Synthetised user input:%s\n    Wav path:%s\n    Score:%s\n"%(str(n+1),hist_cats,hist_txt,hist_answer,hist_wav,hist_bingo))
+                print("\n-(Résultat %s)\n    Catégories:%s\n    Texte utilisateur Synthétisé:%s\n    Réponse:%s\n    Fichier audio:%s\n    Score:%s\n"%(str(n+1),hist_cats,hist_txt,hist_answer,hist_wav,hist_bingo))
 
             except Exception as e:
                 print("Error:",str(e))
