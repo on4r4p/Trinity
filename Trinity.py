@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import g4f,pyaudio,pvporcupine,os,time,sys,struct,random,webrtcvad,subprocess,re,string,wikipedia,googlesearch,requests
+import g4f,pyaudio,pvporcupine,os,time,sys,struct,random,webrtcvad,subprocess,re,string,wikipedia,googlesearch,requests,signal
 import google.cloud.texttospeech as tts
 
 from nltk.corpus import stopwords
@@ -39,14 +39,23 @@ def ignoreStderr():
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = 'keys/google_adc.json'
 
 
+
+def signal_handler(sig, frame):
+    Xcb_Fix("set")
+    sys.exit(0)
+
+
+
 def PRINT(txt,other=None):
    tmp_txt = txt
-   if DBG:
-       if other:
-           tmp_txt = str(txt) + " " +str(other)
-       else:
-           print(tmp_txt)
-
+   try:
+       if DEBUG:
+            if other:
+                tmp_txt = str(txt) + " " +str(other)
+            else:
+                print(tmp_txt)
+   except:
+         pass
 def LoadKeys():
    PRINT("-LoadKeys")
    if os.path.exists(script_path+"/keys/pico.key"):
@@ -2551,7 +2560,7 @@ def Classify(text_content):
 
 def Trinity(fname = "WakeMe"):
 
-        PRINT("\nTrinity\n")
+        PRINT("\n-Trinity\n")
         PRINT("fname:",fname)
 
         if fname == "WakeMe":
@@ -2602,63 +2611,87 @@ def Trinity(fname = "WakeMe"):
 
 
 
-def GetConf(var=None,scriptpath=None):
+def GetConf():
+   global DEBUG
+   global XCB_ERROR_FIX
+   global SAVED_ANSWER
+
+   options = ["DEBUG","XCB_ERROR_FIX","SAVED_ANSWER"]
    folder = False
-   dbg = False
-   print("var:",var)
-   if var == "answer":
+   conf = False
 
-       if os.path.exists(script_path+"conf.trinity"):
-
+   if os.path.exists(script_path+"conf.trinity"):
            with open(script_path+"conf.trinity","r") as f:
-
               f = f.readlines()
-           for l in f:
 
-              if "Alt_Saved_Answers_Folder" in l:
-                  if '"' in l:
-                      folder = l.split('"')[1].replace("'","")
+           for l in f:
+              l = l.strip()
+              option = next((r for r in options if r in l),"")
+              if option == "SAVED_ANSWER":
+                  if '=' in l:
+
+
+                      folder = l.split('=')[1]
+
+                      while folder.startswith(" "):
+                         folder = folder[1:]
+                      while folder.endswith(" "):
+                         folder = folder[:-1]
+
+                      folder = folder.replace("'","").replace('"',"")
+
                       if folder == "default":
-                         return(script_path+"/local_sounds/saved_answer/")
-              if folder:
-                  return(folder)
-              else:
-                  return(script_path+"/local_sounds/saved_answer/")
-       else:
-           with open(script_path+"conf.trinity","a+") as f:
-                 data = '\nAlt_Saved_Answers_Folder = "default"'
-                 f.write(data)
-           return(script_path+"/local_sounds/saved_answer/")
+                         SAVED_ANSWER = script_path+"/local_sounds/saved_answer/"
+                      else:
+                          SAVED_ANSWER = folder
+              elif option in options:
+                      conf = l.split('=')[1]
 
-   if var == "debug":
+                      while conf.startswith(" "):
+                         conf = conf[1:]
+                      while conf.endswith(" "):
+                         conf = conf[:-1]
 
+                      conf = conf.replace("'","").replace('"',"")
 
-       if os.path.exists(script_path+"conf.trinity"):
+                      conf = conf.lower()
+                      if conf == "true":
+                           if option == "DEBUG":
+                                DEBUG = True
+                           elif option == "XCB_ERROR_FIX":
+                                XCB_ERROR_FIX = True
+                      else:
+                          if option == "DEBUG":
+                                DEBUG = False
+                          elif option == "XCB_ERROR_FIX":
+                               XCB_ERROR_FIX = False
 
-           with open(script_path+"conf.trinity","r") as f:
+   else:
+           with open(script_path+"conf.trinity","w") as f:
+                data = """Saved_Answers = default
+DEBUG = False
+XCB_ERROR_FIX = False"""
+                f.write(data)
 
-              f = f.readlines()
-           for l in f:
-              print("line:",l)
+           DEBUG = False
+           SAVED_ANSWER = script_path+"/local_sounds/saved_answer/"
+           XCB_ERROR_FIX = False
 
-              if "DEBUG" in l:
-                  if '"' in l:
-                      dbg = l.split('"')[1].replace("'","")
+def Xcb_Fix(mode):
+   global DISPLAY
 
-           if dbg == "False":
-                  return(False)
-           elif not dbg:
-                  return(False) 
-           else:
-                  return(True)
-
-       else:
-           with open(script_path+"conf.trinity","a+") as f:
-                 data = '\nDEBUG = "False"'
-                 f.write(data)
-           return(False)
-
-
+   if mode == "unset":
+         DISPLAY = os.getenv('DISPLAY')
+         try:
+             del os.environ['DISPLAY']
+         except:
+              DISPLAY = ""
+   if mode == "set":
+        if len("DISPLAY") > 0:
+            try:
+                os.environ['DISPLAY'] = DISPLAY
+            except:
+                pass
 
 if __name__ == "__main__":
 
@@ -2666,7 +2699,18 @@ if __name__ == "__main__":
     if script_path.endswith("."):
        script_path = script_path[:-1]
 
-    DBG = GetConf(var="debug")
+
+
+    DISPLAY = ""
+#    DEBUG = False
+#    XCB_ERROR_FIX = False
+#    SAVED_ANSWER = script_path +"/local_sounds/saved_answer/"
+
+    GetConf()
+
+    print("DEBUG:",DEBUG)
+    print("XCB_ERROR_FIX:",XCB_ERROR_FIX)
+    print("SAVED_ANSWER:",SAVED_ANSWER)
 
     FRAME_DURATION = 480
     FRAME_RATE = 16000
@@ -2675,9 +2719,6 @@ if __name__ == "__main__":
     Blacklisted = []
 
     PICO_KEY = LoadKeys()
-    SAVED_ANSWER = GetConf(var="answer",scriptpath=script_path)
-
-
     record_on = Queue()
     chunks = Queue()
     last_sentence = Queue()
@@ -2690,8 +2731,12 @@ if __name__ == "__main__":
     wake_me_up.put(True)
     Current_Provider_Id = 0
     Repeat_Last_One=""
+    
 
+    if XCB_ERROR_FIX:
+         Xcb_Fix("unset")
 
+    signal.signal(signal.SIGINT, signal_handler)
 #####
     Trinity()
 #####
