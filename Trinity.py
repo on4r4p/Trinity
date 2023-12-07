@@ -567,7 +567,7 @@ def Commandes(txt):
              return(True)
 
 
-    if "google" in decoded or "recherche internet":
+    if "google" in decoded:
 
        if ask_for_google:
           for element in google_request: 
@@ -1213,8 +1213,15 @@ def Wikipedia(tosearch,Title= None ,FULL=None):
                                        Wait_for("question")
                                    else:
                                         score_sentiment.put(False)
-                    opinion = score_sentiment.get()
-    
+
+
+                    if "non" in txt.lower():
+                         opinion = False
+                    elif "oui" in txt.lower():
+                          opinion = True
+                    else:
+                         opinion = score_sentiment.get()
+
                     if opinion == None:
                              choice = random.choice(["summary", "full"])
                              if choice == "summary":
