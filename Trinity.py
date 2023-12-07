@@ -703,6 +703,7 @@ def ReadLink(txtinput=None,titleinput=None,urlinput=None):
                        os.system("aplay %s"%script_path+"/local_sounds/ok/reading_link.wav")
                        last_sentence.put(txtinput+" %s"%urlinput)
                        Text_To_Speech(text_data,stayawake=True)
+                       return()
                     else:
                         os.system("aplay %s"%script_path+"local_sounds/errors/err_read_link_no_txt.wav")
                         return()
@@ -754,6 +755,7 @@ def ReadLink(txtinput=None,titleinput=None,urlinput=None):
                        os.system("aplay %s"%script_path+"/local_sounds/ok/reading_link.wav")
                        last_sentence.put(txtinput+" %s"%urlinput)
                        Text_To_Speech(text_data,stayawake=True)
+                       return()
                     else:
                         os.system("aplay %s"%script_path+"local_sounds/errors/err_read_link_no_txt.wav")
                         return()
@@ -784,7 +786,7 @@ def Google(tosearch,rnbr=50): #,tstmode = True):
                title = result[0]
                description = result[1]
                url = result[2]
-               print("\n-Résultat %s\nTitle:%s\nDescription:%s\nUrl:%s"%(n+1,title,description,url))
+               print("\n-Résultat %s\nTitle:%s\nDescription:%s\nUrl:%s\n"%(n+1,title,description,url))
 
 #                totts = "Catégories:%s Texte utilisateur synthétisé:%s Score:%s"%(hist_cats,hist_txt,hist_bingo)
 #                Text_To_Speech(totts,stayawake=True,savehistory=False)
@@ -805,7 +807,7 @@ def Google(tosearch,rnbr=50): #,tstmode = True):
                title = result[0]
                description = result[1]
                url = result[2]
-               print("\n-Résultat %s\nTitle:%s\nDescription:%s\nUrl:%s"%(resnbr,title,description,url))
+               print("\n-Résultat %s\nTitle:%s\nDescription:%s\nUrl:%s\n"%(resnbr,title,description,url))
 
 #                totts = "Catégories:%s Texte utilisateur synthétisé:%s Score:%s"%(hist_cats,hist_txt,hist_bingo)
 #                Text_To_Speech(totts,stayawake=True,savehistory=False)
@@ -838,7 +840,6 @@ def Google(tosearch,rnbr=50): #,tstmode = True):
                          return(False)
                    elif "oui" in txt:
                          os.system("aplay %s"%script_path+"/local_sounds/ok/1.wav")
-#                         ReadLink(txtinput=description,titleinput=title,urlinput=url)
                          return([description,title,url])
 
 
@@ -859,7 +860,6 @@ def Google(tosearch,rnbr=50): #,tstmode = True):
                          return(False)
                    elif opinion == True:
                          os.system("aplay %s"%script_path+"/local_sounds/ok/1.wav")
-#                         ReadLink(txtinput=description,titleinput=title,urlinput=url)
                          return([description,title,url])
 
 
@@ -1076,7 +1076,7 @@ def Google(tosearch,rnbr=50): #,tstmode = True):
                                  continue
                    if chosen_one:
                        os.system("aplay %s"%script_path+"/local_sounds/ok/printed_google.wav")
-                       readres(full,chosen_one)
+                       quit = readres(full,chosen_one)
                        return(quit)
                    else:
                       os.system("aplay %s"%script_path+"/local_sounds/errors/err_number_notfound.wav")
@@ -1120,7 +1120,7 @@ def Google(tosearch,rnbr=50): #,tstmode = True):
           title = result[0]
           description = result[1]
           url = result[2]
-          PRINT("\n-Résultat %s\nTitle:%s\nDescription:%s\nUrl:%s"%(n+1,title,description,url))
+          print("\n-Résultat %s\nTitle:%s\nDescription:%s\nUrl:%s"%(n+1,title,description,url))
 
 
     Standing_By(self_launched=True)
@@ -1140,19 +1140,16 @@ def Google(tosearch,rnbr=50): #,tstmode = True):
                Exit = minicmd(txt,full)
 
          if Exit:
-             if type(Exit) == list:
-                 ReadLink(txtinput=Exit[0],titleinput=Exit[1],urlinput=Exit[1])
-                 Go_Back_To_Sleep(go_trinity=True)
-                 return()                
-             else:
-                 Go_Back_To_Sleep(go_trinity=True)
-                 return()
-
+                 Go_Back_To_Sleep(go_trinity=False)
+                 break
          else:
-             Go_Back_To_Sleep(go_trinity=False)
+                 Go_Back_To_Sleep(go_trinity=False)
 
+    if type(Exit) == list:
+            return(ReadLink(txtinput=Exit[0],titleinput=Exit[1],urlinput=Exit[2]))
 
-
+    Go_Back_To_Sleep(go_trinity=True)
+    return
 
 def Wikipedia(tosearch,Title= None ,FULL=None):
 
@@ -1633,6 +1630,8 @@ def Speech_To_Text(audio):
         except Exception as e:
             PRINT("Error:%s"%str(e))
 
+    if len(transcripts) > 0:
+         print("\n-User said:",transcripts)
 
     return(transcripts,transcripts_confidence,words,words_confidence,Err_msg)
 
@@ -2606,7 +2605,7 @@ def Trinity(fname = "WakeMe"):
 def GetConf(var=None,scriptpath=None):
    folder = False
    dbg = False
-   
+   print("var:",var)
    if var == "answer":
 
        if os.path.exists(script_path+"conf.trinity"):
@@ -2633,21 +2632,26 @@ def GetConf(var=None,scriptpath=None):
 
    if var == "debug":
 
+
        if os.path.exists(script_path+"conf.trinity"):
 
            with open(script_path+"conf.trinity","r") as f:
 
               f = f.readlines()
            for l in f:
+              print("line:",l)
 
               if "DEBUG" in l:
                   if '"' in l:
                       dbg = l.split('"')[1].replace("'","")
-                      if dbg == "False":
-                         return(False)
-                      else:
-                         return(True)
-              return(False)
+
+           if dbg == "False":
+                  return(False)
+           elif not dbg:
+                  return(False) 
+           else:
+                  return(True)
+
        else:
            with open(script_path+"conf.trinity","a+") as f:
                  data = '\nDEBUG = "False"'
@@ -2672,6 +2676,7 @@ if __name__ == "__main__":
 
     PICO_KEY = LoadKeys()
     SAVED_ANSWER = GetConf(var="answer",scriptpath=script_path)
+
 
     record_on = Queue()
     chunks = Queue()
