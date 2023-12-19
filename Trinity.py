@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import g4f,pyaudio,pvporcupine,os,time,sys,struct,random,webrtcvad,subprocess,re,string,wikipedia,googlesearch,requests,signal
+import g4f,pyaudio,pvporcupine,os,time,sys,struct,random,webrtcvad,subprocess,re,csv,string,wikipedia,googlesearch,requests,signal
 import google.cloud.texttospeech as tts
 
 from nltk.corpus import stopwords
@@ -137,10 +137,10 @@ def fallbackGpt(input):
 
      last_sentence.put(input)
 
-#    os.system("aplay %s"%script_path+"local_sounds/server/gpt3.wav")
+#    os.system("aplay -q %s"%script_path+"local_sounds/server/gpt3.wav")
      rnd = str(random.randint(1,10))
      wait = script_path+"/local_sounds/wait/"+rnd+".wav"
-     os.system("aplay %s"%wait)
+     os.system("aplay -q %s"%wait)
 
      Err_msg = ""
      Err_cnt = 0
@@ -200,7 +200,7 @@ def fallbackGpt(input):
              if len(response) < 1:
                  PRINT("-No answer from :",providers_names[Current_Provider_Id])
                  wait = script_path+"/local_sounds/providers/"+str(providers_names[Current_Provider_Id])+".wav"
-                 os.system("aplay %s"%wait)
+                 os.system("aplay -q %s"%wait)
                  Current_Provider_Id += 1
              else:
                   Current_Provider_Id += 1
@@ -210,13 +210,13 @@ def fallbackGpt(input):
                  print("Error:",str(e))
                  print("-No answer from :",providers_names[Current_Provider_Id])
                  wait = script_path+"/local_sounds/providers/"+str(providers_names[Current_Provider_Id])+".wav"
-                 os.system("aplay %s"%wait)
+                 os.system("aplay -q %s"%wait)
                  Blacklisted.append(providers_names[Current_Provider_Id])
                  Current_Provider_Id += 1
         p_cnt += 1
         
      if len(response) < 1:
-                os.system("aplay "+script_path+"local_sounds/errors/err_no_respons_allprovider.wav")
+                os.system("aplay -q "+script_path+"local_sounds/errors/err_no_respons_allprovider.wav")
                 return()
      else:
                 return(Text_To_Speech(str(response),stayawake=False,savehistory=True))
@@ -255,7 +255,7 @@ def wake_up():
                 
                 rnd = str(random.randint(1,15))
                 wake_sound = script_path+"/local_sounds/wakesounds/"+rnd+".wav"
-                os.system("aplay %s"%wake_sound)
+                os.system("aplay -q %s"%wake_sound)
                 break
             if keyword_index == 1:
                 PRINT("keyword_index:",keyword_index)
@@ -283,8 +283,8 @@ def wake_up():
         if keyword_index == 1:
             return(Fallback_Prompt())
         if keyword_index == 2:
-            os.system("aplay %s"%script_path+"local_sounds/repeat/isaid.wav")
-            os.system("aplay %s"%script_path+"tmp/current_answer.wav")
+            os.system("aplay -q %s"%script_path+"local_sounds/repeat/isaid.wav")
+            os.system("aplay -q %s"%script_path+"tmp/current_answer.wav")
             return(wake_up())
 
 def Record_Query():
@@ -301,7 +301,7 @@ def Record_Query():
                     frames_per_buffer=FRAME_DURATION)
 
     wake_sound = script_path+"/local_sounds/wakesounds/record.wav"
-    os.system("aplay %s"%wake_sound)
+    os.system("aplay -q %s"%wake_sound)
 
 
     while not record_on.empty():
@@ -309,7 +309,7 @@ def Record_Query():
 
     PRINT("-Recording stopped.")
     wake_sound = script_path+"/local_sounds/wakesounds/record_end.wav"
-    os.system("aplay %s"%wake_sound)
+    os.system("aplay -q %s"%wake_sound)
 
     stream.stop_stream()
     stream.close()
@@ -367,7 +367,7 @@ def Check_Silence():
 
                       rnd = str(random.randint(1,11))
                       no_input_sound = script_path+"/local_sounds/noinput/"+rnd+".wav"
-                      os.system("aplay  %s"%no_input_sound)
+                      os.system("aplay -q  %s"%no_input_sound)
                       cancel_operation.put(True)
                       No_Input.put(True)
                       break
@@ -380,176 +380,1166 @@ def Check_Silence():
                   to_speech = buffer
                   buffer = b""
                   audio_datas.put(to_speech)
-                  os.system("aplay %s"%script_path+"/local_sounds/errors/err_too_long.wav")
+                  os.system("aplay -q %s"%script_path+"/local_sounds/errors/err_too_long.wav")
                   break
 
 
 
 
+
+
+
+
+
+
+def Write_csv(function_name, trigger_word,filename):
+
+    #CMDFILE,
+    with open(filename, "a+", newline="") as csvfile:
+        fieldnames = ["function", "trigger"]
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+        if csvfile.tell() == 0:
+            writer.writeheader()
+
+        writer.writerow({"function": function_name, "trigger": trigger_word})
+
+    return(Load_Csv())
+
+
+
+
+def Load_Csv():
+
+    global trinity_name
+    global trinity_mean
+    global trinity_creator
+    global trinity_script
+    global trinity_help
+    global prompt_request
+    global trinity_source_request
+    global rnd_request
+    global repeat_request
+    global search_history_request
+    global read_link_request
+    global play_wav_request
+    global web_request
+    global wait_words
+    global action_words
+    global action_functions
+    global alt_trigger
+    global verb_lst
+    global synonyms_list
+
+    trinity_name = []
+    trinity_mean = []
+    trinity_creator = []
+    trinity_script = []
+    trinity_help = []
+    prompt_request = []
+    trinity_source_request = []
+    rnd_request = []
+    repeat_request = []
+    search_history_request = []
+    read_link_request = []
+    play_wav_request = []
+    web_request = []
+    wait_words = []
+    action_words = []
+    action_functions = []
+    alt_trigger = []
+    verb_lst = []
+    synonyms_list = []
+
+
+
+
+
+    if os.path.exists(SYNFILE):
+         with open(SYNFILE, newline="") as f:
+              data = f.readlines()
+              
+              for line in data:
+                  tmplst = []
+                  line = line.strip().split(",")
+                  for l in line:
+                      if l != "":
+                          tmplst.append(l)
+                  synonyms_list.append(tmplst)
+
+
+    else:
+
+          print("-%s not found."%SYNFILE)
+          sys.exit()
+
+    if os.path.exists(TRIFILE):
+         with open(TRIFILE, newline="") as csvfile:
+             reader = csv.DictReader(csvfile)
+             for row in reader:
+                 if "trigger" in row:
+                      trigger= row["trigger"]
+                 else:
+                     continue
+                 if not trigger in alt_trigger:
+                      alt_trigger.append(trigger)
+
+    else:
+
+          print("-%s not found."%TRIFILE)
+          sys.exit()
+
+
+    if os.path.exists(CMDFILE):
+         with open(CMDFILE, newline="") as csvfile:
+             reader = csv.DictReader(csvfile)
+             for row in reader:
+                 if "function" in row:
+                      function = row["function"]
+                      if "trigger" in row:
+                           trigger = row["trigger"]
+                      else:
+                          continue
+                      if function == "trinity_name":
+                           trinity_name.append(trigger)
+                      elif function == "trinity_mean":
+                           trinity_mean.append(trigger)
+                      elif function == "trinity_creator":
+                           trinity_creator.append(trigger)
+                      elif function == "trinity_script":
+                           trinity_script.append(trigger)
+                      elif function == "trinity_help":
+                           trinity_help.append(trigger)
+                      elif function == "prompt_request":
+                           prompt_request.append(trigger)
+                      elif function == "trinity_source_request":
+                           trinity_source_request.append(trigger)
+                      elif function == "rnd_request":
+                           rnd_request.append(trigger)
+                      elif function == "repeat_request":
+                           repeat_request.append(trigger)
+                      elif function == "search_history_request":
+                           search_history_request.append(trigger)
+                      elif function == "read_link_request":
+                           read_link_request.append(trigger)
+                      elif function == "play_wav_request":
+                           play_wav_request.append(trigger)
+                      elif function == "web_request":
+                           web_request.append(trigger)
+                      elif function == "wait_words":
+                           wait_words.append(trigger)
+    else:
+
+          print("-%s not found."%CMDFILE)
+          sys.exit()
+
+
+
+    if os.path.exists(ACTFILE) and os.path.exists(PREFILE):
+         with open(ACTFILE, newline="") as csvfile:
+             reader = csv.DictReader(csvfile)
+
+             for row in reader:
+
+                 if "verb" in row:
+                      verb = row["verb"]
+                      verb_lst.append(verb)
+#                      print("%s,"%verb)
+                 else:
+                     continue
+                 if "indicatif1" in row:
+                      ind1 = row["indicatif1"]
+                 else:
+                     continue
+                 if "indicatif2" in row:
+                      ind2 = row["indicatif2"]
+                 else:
+                     continue
+                 if "conditionnel1" in row:
+                      cond1 = row["conditionnel1"]
+                 else:
+                     continue
+                 if "conditionnel2" in row:
+                      cond2 = row["conditionnel2"]
+                 else:
+                     continue
+                 if "subjonctif1" in row:
+                      sub1 = row["subjonctif1"]
+                 else:
+                     continue
+                 if "subjonctif2" in row:
+                      sub2 = row["subjonctif2"]
+                 else:
+                     continue
+                 if "participe" in row:
+                      participe = row["participe"]
+                 else:
+                     continue
+                 if "suffix1" in row:
+                      suffix1 = row["suffix1"]
+                 else:
+                     continue
+                 if "suffix2" in row:
+                      suffix2 = row["suffix2"]
+                 else:
+                     continue
+                 if "suffix3" in row:
+                      suffix3 = row["suffix3"]
+                 else:
+                     continue
+                 if "functions" in row:
+                      functions = row["functions"]
+#                      print("fnc:",functions)
+                 else:
+                     continue
+
+
+                 if verb not in action_words:
+                         action_words.append(verb)
+                         if "***" in functions:
+                              allowed_fonctions = functions.split("***")
+                              for alf in allowed_fonctions:
+                                    action_functions.append((verb,alf))
+                         else:
+                               action_functions.append((verb,functions))
+
+                 if ind1 not in action_words:
+                         action_words.append(ind1)
+                         if "***" in functions:
+                              allowed_fonctions = functions.split("***")
+                              for alf in allowed_fonctions:
+                                    action_functions.append((ind1,alf))
+                         else:
+                               action_functions.append((ind1,functions))
+
+                 if ind2 not in action_words:
+                          action_words.append(ind2)
+
+                          if "***" in functions:
+                              allowed_fonctions = functions.split("***")
+                              for alf in allowed_fonctions:
+                                    action_functions.append((ind2,alf))
+                          else:
+                               action_functions.append((ind2,functions))
+
+                 if cond1 not in action_words:
+                         action_words.append(cond1)
+                         if "***" in functions:
+                              allowed_fonctions = functions.split("***")
+                              for alf in allowed_fonctions:
+                                    action_functions.append((cond1,alf))
+                         else:
+                               action_functions.append((cond1,functions))
+
+
+                 if cond2 not in action_words:
+                          action_words.append(cond2)
+
+                          if "***" in functions:
+                              allowed_fonctions = functions.split("***")
+                              for alf in allowed_fonctions:
+                                    action_functions.append((cond2,alf))
+                          else:
+                               action_functions.append((cond2,functions))
+
+
+                 if sub1 not in action_words:
+                         action_words.append(sub1)
+                         if "***" in functions:
+                              allowed_fonctions = functions.split("***")
+                              for alf in allowed_fonctions:
+                                    action_functions.append((sub1,alf))
+                         else:
+                               action_functions.append((sub1,functions))
+
+                 if sub2 not in action_words:
+                          action_words.append(sub2)
+
+                          if "***" in functions:
+                              allowed_fonctions = functions.split("***")
+                              for alf in allowed_fonctions:
+                                    action_functions.append((sub2,alf))
+                          else:
+                               action_functions.append((sub2,functions))
+
+                 if participe not in action_words:
+                         action_words.append(participe)
+                         if "***" in functions:
+                              allowed_fonctions = functions.split("***")
+                              for alf in allowed_fonctions:
+                                    action_functions.append((participe,alf))
+                         else:
+                               action_functions.append((participe,functions))
+
+                 if ind1+suffix1 not in action_words:
+                          action_words.append(ind1+suffix1)
+                          if "***" in functions:
+                              allowed_fonctions = functions.split("***")
+                              for alf in allowed_fonctions:
+                                    action_functions.append((ind1+suffix1,alf))
+                          else:
+                               action_functions.append((ind1+suffix1,functions))
+
+                 if ind2+suffix1 not in action_words:
+                          action_words.append(ind2+suffix1)
+                          if "***" in functions:
+                              allowed_fonctions = functions.split("***")
+                              for alf in allowed_fonctions:
+                                    action_functions.append((ind2+suffix1,alf))
+                          else:
+                               action_functions.append((ind2+suffix1,functions))
+
+
+
+                 if cond1+suffix2 not in action_words:
+                          action_words.append(cond1+suffix2)
+                          if "***" in functions:
+                              allowed_fonctions = functions.split("***")
+                              for alf in allowed_fonctions:
+                                    action_functions.append((cond1+suffix2,alf))
+                          else:
+                               action_functions.append((cond1+suffix2,functions))
+
+                 if cond2+suffix3 not in action_words:
+                          action_words.append(cond2+suffix3)
+                          if "***" in functions:
+                              allowed_fonctions = functions.split("***")
+                              for alf in allowed_fonctions:
+                                    action_functions.append((cond2+suffix3,alf))
+                          else:
+                               action_functions.append((cond2+suffix3,functions))
+
+                 if cond1+suffix2 not in action_words:
+                          action_words.append(cond1+suffix2)
+                          if "***" in functions:
+                              allowed_fonctions = functions.split("***")
+                              for alf in allowed_fonctions:
+                                    action_functions.append((cond1+suffix2,alf))
+                          else:
+                               action_functions.append((cond1+suffix2,functions))
+
+                 if cond2+suffix3 not in action_words:
+                          action_words.append(cond2+suffix3)
+                          if "***" in functions:
+                              allowed_fonctions = functions.split("***")
+                              for alf in allowed_fonctions:
+                                    action_functions.append((cond2+suffix3,alf))
+                          else:
+                               action_functions.append((sub2+suffix3,functions))
+
+
+                 if cond1+suffix2 not in action_words:
+                          action_words.append(cond1+suffix2)
+                          if "***" in functions:
+                              allowed_fonctions = functions.split("***")
+                              for alf in allowed_fonctions:
+                                    action_functions.append((cond1+suffix2,alf))
+                          else:
+                               action_functions.append((cond1+suffix2,functions))
+
+                 if cond2+suffix3 not in action_words:
+                          action_words.append(cond2+suffix3)
+                          if "***" in functions:
+                              allowed_fonctions = functions.split("***")
+                              for alf in allowed_fonctions:
+                                    action_functions.append((cond2+suffix3,alf))
+                          else:
+                               action_functions.append((cond2+suffix3,functions))
+
+                 with open(PREFILE, newline="") as csvfile2:
+                      reader2 = csv.DictReader(csvfile2)
+
+                      for row in reader2:
+                           if "present1" in row:
+                                present1= row["present1"]
+                           else:
+                                continue
+                           if "present2" in row:
+                                present2 = row["present2"]
+                           else:
+                                continue
+                           if "condi1" in row:
+                                cond1 = row["condi1"]
+                           else:
+                                continue
+                           if "condi2" in row:
+                                cond2 = row["condi2"]
+                           else:
+                                continue
+
+                           if not any("que" in var for var in [present1,present2,cond1,cond2]):
+                               pre1 =present1+"*"+verb
+                               if not pre1 in action_words:
+#                                    print(pres1)
+                                    action_words.append(pre1)
+                                    if "***" in functions:
+                                        allowed_fonctions = functions.split("***")
+                                        for alf in allowed_fonctions:
+                                              action_functions.append((pre1,alf))
+                                    else:
+                                         action_functions.append((pre1,functions))
+
+                               pre2 =present2+"*"+verb
+                               if not pre2 in action_words:
+#                                    print(pres2)
+                                    action_words.append(pre2)
+                                    if "***" in functions:
+                                        allowed_fonctions = functions.split("***")
+                                        for alf in allowed_fonctions:
+                                              action_functions.append((pre2,alf))
+                                    else:
+                                         action_functions.append((pre2,functions))
+
+
+                               pre3 =cond1+"*"+verb
+                               if not pre3 in action_words:
+#                                    print(pre3)
+                                    action_words.append(pre3)
+                                    if "***" in functions:
+                                        allowed_fonctions = functions.split("***")
+                                        for alf in allowed_fonctions:
+                                              action_functions.append((pre3,alf))
+                                    else:
+                                         action_functions.append((pre3,functions))
+
+                               pre4 =cond2+"*"+verb
+                               if not pre4 in action_words:
+#                                    print(pre4)
+                                    action_words.append(pre4)
+                                    if "***" in functions:
+                                        allowed_fonctions = functions.split("***")
+                                        for alf in allowed_fonctions:
+                                              action_functions.append((pre4,alf))
+                                    else:
+                                         action_functions.append((pre4,functions))
+
+
+
+                           else:
+                               pre1 =present1+"*"+sub1 
+                               if not pre1 in action_words:
+#                                    print(pres1)
+                                    action_words.append(pre1)
+                                    if "***" in functions:
+                                        allowed_fonctions = functions.split("***")
+                                        for alf in allowed_fonctions:
+                                              action_functions.append((pre1,alf))
+                                    else:
+                                         action_functions.append((pre1,functions))
+
+                               pre2 =present2+"*"+sub2
+                               if not pre2 in action_words:
+#                                    print(pres2)
+                                    action_words.append(pre2)
+                                    if "***" in functions:
+                                        allowed_fonctions = functions.split("***")
+                                        for alf in allowed_fonctions:
+                                              action_functions.append((pre2,alf))
+                                    else:
+                                         action_functions.append((pre2,functions))
+
+
+
+
+
+    else:
+
+          print("-%s not found."%ACTFILE)
+          sys.exit()
+
+
+    if os.path.exists(ALTFILE):
+         with open(ALTFILE, newline="") as csvfile:
+             reader = csv.DictReader(csvfile)
+             for row in reader:
+                 
+                 if "function" in row:
+                      function = row["function"]
+                 else:
+                     continue
+
+                 if "trigger" in row:
+                      trigger = row["trigger"]
+
+                     
+                      if function == "ask_for_name":
+                           trinity_name.append(trigger)
+                      elif function == "ask_for_mean":
+                           trinity_mean.append(trigger)
+                      elif function == "ask_for_creator":
+                           trinity_creator.append(trigger)
+                      elif function == "trinity_script":
+                           trinity_script.append(trigger)
+                      elif function == "ask_for_help":
+                           trinity_help.append(trigger)
+                      elif function == "ask_for_prompt":
+                           prompt_request.append(trigger)
+                      elif function == "trinity_source_request":
+                           trinity_source_request.append(trigger)
+                      elif function == "ask_for_rnd":
+                           rnd_request.append(trigger)
+                      elif function == "ask_for_repeat":
+                           repeat_request.append(trigger)
+                      elif function == "ask_for_history":
+                           search_history_request.append(trigger)
+                      elif function == "ask_to_read_link":
+                           read_link_request.append(trigger)
+                      elif function == "ask_to_play_wav":
+                           play_wav_request.append(trigger)
+                      elif function == "ask_for_web":
+                           web_request.append(trigger)
+                      elif function == "ask_to_wait":
+                           wait_words.append(trigger)
+    else:
+
+          print("-%s not found."%ALTFILE)
+          sys.exit()
+
+
+#    print("result:\n\n")
+#    print("trinity_name",trinity_name)
+#    print("trinity_mean",trinity_mean)
+#    print("trinity_creator",trinity_creator)
+#    print("trinity_script",trinity_script)
+#    print("trinity_help",trinity_help)
+#    print("prompt_request",prompt_request)
+#    print("trinity_source_request",trinity_source_request)
+#    print("rnd_request",rnd_request)
+#    print("repeat_request",repeat_request)
+#    print("search_history_request",search_history_request)
+#    print("read_link_request",read_link_request)
+#    print("play_wav_request",play_wav_request)
+#    print("web_request",web_request)
+#    print("wikipedia_full_request",wikipedia_full_request)
+#    print("wait_words",wait_words)
+#    print("\naction_words",action_words)
+#    print("\n\n")
+#    for i in action_words:
+#        print(i)
+#    print("\n\naction_functions:\n",action_functions)
+#    print("prompt_request",prompt_request)
+#    print("action_functions:",action_functions)
+#    for item in search_history_request:
+#             print("item:",item)
+#    input("\n")
+#    for i in synonyms_list:
+#        print(i)
+
+
+
+
+
+
 def Commandes(txt):
-    PRINT("-Commandes")
+
+
+    def postprod(txt,funcname,specific_trigger=None,main_trigger=None):
+        asked = False
+
+        def has_syn(function_name,sentence,altlst = None):
+            synlst = []
+            syntoprint = []
+            found = []
+
+            if altlst:
+                 for act in altlst:
+                         synlst.append(act)
+            else:
+                 for syn in action_functions:
+                     act = syn[0]
+                     fn = syn[1]
+                     if fn == function_name:
+                         #print("adding:",act)
+                         synlst.append(act)
+                         for v in verb_lst:
+                             if v in act and not v in syntoprint:
+                                syntoprint.append(v)
+
+            for syn in synlst:
+                if syn in sentence:
+                   found.append(syn)
+            if len(found) == 0:
+                 if not altlst:
+                      print("\n-Your sentence have to contain at least one of those verbs:\n\n%s\n\n"%(syntoprint))
+                      return(False)
+                 else:
+                      print("\n-Your sentence have to contain at least one of those triggers:\n\n%s\n\n"%(altlst))
+                      return(False)
+            else:
+                 return(True)
+
+
+        def checktrigger(trigger,funcname,spec_trigger,main_action=None):
+
+
+              def getwav(f,trigparts):
+
+
+                   def minitts(tx,fname):
+
+                       try:
+
+                           client = tts.TextToSpeechClient()
+                           audio_config = tts.AudioConfig(audio_encoding=tts.AudioEncoding.LINEAR16)
+
+                           text_input = tts.SynthesisInput(text=tx)
+                           voice_params = tts.VoiceSelectionParams(language_code="fr-FR", name="fr-FR-Neural2-A")
+
+                           response = client.synthesize_speech(input=text_input,voice=voice_params,audio_config=audio_config)
+                           audio_response = response.audio_content
+                           try:
+                               with open("%s/local_sounds/cmd/triggers/%s"%(script_path,fname), "wb") as out:
+                                    out.write(audio_response)
+                           except Exception as e:
+                               print("Error:",str(e))
+                       except Exception as e:
+                           PRINT("Error:%s"%str(e))
+
+
+
+                   if f == "ask_to_wait":
+                             trigcat = "wait_words"
+                   if f == "ask_for_name":
+                             trigcat = "trinity_name"
+                   if f == "ask_for_mean":
+                             trigcat = "trinity_mean"
+                   if f == "ask_for_creator":
+                             trigcat = "trinity_creator"
+                   if f == "ask_for_rnd":
+                             trigcat = "rnd_request"
+                   if f == "ask_for_repeat":
+                             trigcat = "repeat_request"
+                   if f == "ask_for_prompt":
+                             trigcat = "prompt_request"
+                   if f == "ask_for_help":
+                             trigcat = "trinity_help"
+                   if f == "ask_to_play_wav":
+                             trigcat = "play_wav_request"
+                   if f == "ask_for_history":
+                             trigcat = "search_history_request"
+                   if f == "ask_to_read_link":
+                             trigcat = "read_link_request"
+                   if f == "ask_for_web":
+                             trigcat = "web_request"
+
+                   os.system("aplay -q %s/local_sounds/cmd/triggers/%s.wav"%(script_path,trigcat))
+
+                   for t in trigparts:
+                        t = unidecode(t.replace(" ","_").replace("-","_").replace("*","_").replace("'","_"))
+                        wavname = trigcat + "_" + t + ".wav"
+                        if os.path.exists("%s/local_sounds/cmd/triggers/%s"%(script_path,wavname)):
+                             os.system("aplay -q %s/local_sounds/cmd/triggers/%s"%(script_path,wavname))
+                        else:
+                             print("-Wave file not found:%s/local_sounds/cmd/triggers/%s"%(script_path,wavname)) 
+                             minitts(tx,wavname)
+                             if os.path.exists("%s/local_sounds/cmd/triggers/%s"%(script_path,wavname)):
+                                  os.system("aplay -q %s/local_sounds/cmd/triggers/%s"%(script_path,wavname))
+                   return()
+
+
+              new_ambiguity = {}
+
+              trigger = unidecode(trigger.lower().replace(","," ").replace("!"," ").replace("?"," ").replace("  "," "))
+
+              print("main_action=None:",main_action)
+              print("spec_trigger:",spec_trigger)
+              print("funcname:",funcname)
+              print("trigger:",trigger)
+
+              main_trigger = has_syn(funcname,trigger)
+              func_trigger = has_syn(funcname,trigger,altlst=spec_trigger)
+
+              if not main_trigger:
+                  return(False)
+              if not func_trigger:
+                  return(False)
+
+
+              ask_to_action = seeknreturn(trigger,action_words)
+
+              ask_to_add = seeknreturn(trigger,add_words)
+
+              ask_for_name = seeknreturn(trigger,trinity_name)
+
+              ask_for_mean = seeknreturn(trigger,trinity_mean)
+
+              ask_for_creator = seeknreturn(trigger,trinity_creator)
+
+              ask_for_help = seeknreturn(trigger,trinity_help)
+
+              ask_for_prompt = seeknreturn(trigger,prompt_request)
+
+              ask_for_rnd = seeknreturn(trigger,rnd_request)
+
+              ask_for_repeat = seeknreturn(trigger,repeat_request)
+
+              ask_for_history = seeknreturn(trigger,search_history_request)
+
+              ask_for_web = seeknreturn(trigger,web_request)
+
+              ask_to_read_link = seeknreturn(trigger,read_link_request)
+
+              ask_to_play_wav = seeknreturn(trigger,play_wav_request)
+
+              ask_to_wait = seeknreturn(trigger,wait_words)
+
+
+              if ask_to_action :
+                   if ask_to_wait and funcname != "ask_to_wait":
+                             new_ambiguity["ask_to_wait"] = ask_to_wait
+                   if ask_for_name and funcname != "ask_for_name":
+                             new_ambiguity["ask_for_name"] = ask_for_name 
+                   if ask_for_mean and funcname != "ask_for_mean":
+                             new_ambiguity["ask_for_mean"] = ask_for_mean
+                   if ask_for_creator and funcname != "ask_for_creator":
+                             new_ambiguity["ask_for_creator"] = ask_for_creator
+                   if ask_for_rnd and funcname != "ask_for_rnd":
+                             new_ambiguity["ask_for_rnd"] = ask_for_rnd
+                   if ask_for_repeat and funcname != "ask_for_repeat":
+                             new_ambiguity["ask_for_repeat"] = ask_for_repeat
+                   if ask_for_prompt and funcname != "ask_for_prompt":
+                             new_ambiguity["ask_for_prompt"] =ask_for_prompt
+                   if ask_for_help and funcname != "ask_for_help":
+                             new_ambiguity["ask_for_help"] = ask_for_help
+                   if ask_to_play_wav and funcname != "ask_to_play_wav":
+                             new_ambiguity["ask_to_play_wav"] = ask_to_play_wav
+                   if ask_for_history and funcname != "ask_for_history":
+                             new_ambiguity["ask_for_history"] =  ask_for_history
+                   if ask_to_read_link and funcname != "ask_to_read_link":
+                              new_ambiguity["ask_to_read_link"] = ask_to_read_link
+                   if ask_for_web and funcname != "ask_for_web":
+                             new_ambiguity["ask_for_web"] = ask_for_web
+
+              if len(new_ambiguity) == 0:
+
+                    print("\n-Parfait,cette phrase semble déclencher la fonction:",funcname)  
+                    os.system("aplay -q %s/local_sounds/cmd/valid.wav"%script_path)
+                    os.system("aplay -q %s/local_sounds/cmd/save.wav"%script_path)
+                    while True:
+                       rusure =input("\n-Sauvegarde cette phrase dans la base de données ?:\n\n%s\n\n-Votre choix:(oui/non/abandonner)"%trigger).lower()
+                       if rusure in ["oui","non","abandonner"]:
+                          if rusure == "oui": 
+                               Write_csv(trigger,funcname,ALTFILE)
+                               return(True)
+                          elif rusure == "non":
+                               return(False)
+                          elif rusure =="abandonner":
+                               return(True)
+
+              else:
+
+                    os.system("aplay -q %s/local_sounds/cmd/new_ambiguity.wav"%script_path)
+                    for fnc,trigged in new_ambiguity.items():
+                             print("\n\n-La fonction %s est déclenchée par cette partie: %s"%(fnc,trigged))
+                             getwav(fnc,trigged)
+
+                    os.system("aplay -q %s/local_sounds/cmd/new_ambiguity2.wav"%script_path)
+
+#              print("\n\n-mini touchdown\n\n")
+ 
+
+        while True:
+          print("\n\n===============\n\n")
+
+          if not asked:
+               os.system("aplay -q %s/local_sounds/cmd/question_trigger.wav"%script_path)
+               while True:
+                   helpme = input("-Pouvez-vous m'aider à mieux intégrer cette phrase dans ma base de données?\n-Cela ne prendra pas longtemps.\n\nVotre Choix (oui/non):").lower()
+                   if helpme in  ["oui","non"]:
+                           if "oui" in helpme:
+                                  helpme = True
+                                  asked = True
+                           else:
+                                  helpme = False
+                           break
+          else:
+               helpme = True
+
+          if helpme:
+             os.system("aplay -q %s/local_sounds/cmd/instruction.wav"%script_path)
+             print("\n\n===============\n\n==Ajouter un nouveau declencheur pour la fonction: %s ==\n\n-Pouvez-vous garder uniquement la partie qui identifie l'action dans votre phrase?"%funcname)
+             print("\n-Par example si vous auriez dis:\n\n\t-Peux-tu s'il te plaît chercher un truc sur Albert Einstein in wikipedia ce serait super cool!")
+             print("\n-J'aurais voulue que vous ne gardiez que cela:\n\n\t-Peux-tu * chercher * dans wikipedia")
+             print("\n-Le symbole * est utilisé içi afin de ne pas tenir compte des mots qu'il peut y avoir à cette position.")
+             print("\n-Voici votre phrase:\n%s\n"%txt)
+             new_trigger = input("\nNouvelle déclencheur pour la fonction %s :"%funcname)
+             valid = checktrigger(new_trigger,funcname,spec_trigger=specific_trigger,main_action=main_trigger)
+             if valid:
+                  return(funcname)
+          else:
+               os.system("aplay -q %s/local_sounds/cmd/sorry.wav"%script_path)
+               Write_csv(new_trigger,funcname,ALTFILE)
+               return(funcname)
+    def disambiguify(actions,function_names,txt,action_trigger= None):
+
+
+       func_name_toadd = None
+       trigger_words_toadd = None
+       must_contain = None
+       trigger_function = {}
+       triggered_parts = {}
+       score_function = {}
+
+       for fnc in function_names:
+               if fnc == "ask_to_action":
+                      continue
+               if fnc == "ask_for_web":
+                   trigger_function[fnc] = web_request 
+               if fnc == "ask_to_play_wav":
+                   trigger_function[fnc] = play_wav_request
+               if fnc == "ask_for_history":
+                   trigger_function[fnc] = search_history_request 
+               if fnc == "ask_to_read_link":
+                   trigger_function[fnc] = read_link_request
+               if fnc == "ask_to_wait":
+                   trigger_function[fnc] = wait_words
+               if fnc == "ask_for_name":
+                   trigger_function[fnc] = trinity_name
+               if fnc == "ask_for_mean":
+                   trigger_function[fnc] = trinity_mean
+               if fnc == "ask_for_creator":
+                   trigger_function[fnc] = trinity_creator
+               if fnc == "ask_for_help":
+                   trigger_function[fnc] = trinity_help
+               if fnc == "ask_for_prompt":
+                   trigger_function[fnc] = prompt_request
+               if fnc == "ask_for_rnd":
+                   trigger_function[fnc] = rnd_request
+               if fnc == "ask_for_repeat":
+                   trigger_function[fnc] = repeat_request
+               if fnc == "ask_to_wait":
+                   trigger_function[fnc] = wait_words
+
+
+               triggered_parts[fnc] = seeknreturn(txt,trigger_function[fnc])
+#               bonus = bonuspoint(txt,action_functions,fnc)
+               bonus = 0
+               score_function[fnc] = len(triggered_parts[fnc]) + bonus
+
+
+
+       sorted_score = dict(sorted(score_function.items(), key=lambda item: item[1], reverse=True))
+
+       ordered_list = list(dict(sorted(score_function.items(), key=lambda item: item[1], reverse=True)).keys())
+
+
+       winner = bestvalue(sorted_score,ordered_list)
+
+       if winner:
+
+           print("\n-%s has the higher confidence score.\n"%winner)
+           for n,(fnc) in enumerate(ordered_list):
+                print("\n-Commande name:%s\n-Triggered by %s parts:%s\n-Confidence score:%s"%(fnc,len(triggered_parts[fnc]),triggered_parts[fnc],score_function[fnc]))
+
+           return(winner)
+       else:
+           print("\n\n===============\n\n-Cette phrase à déclenchée plusieurs commandes en même temps:")
+           print("-Your sentence :",txt)
+
+
+       os.system("aplay -q %s"%(script_path+"/local_sounds/cmd/ambiguty.wav"))
+       while True:
+           for n,(fnc) in enumerate(ordered_list):
+                print("\n-Commande:%s\n-Déclenchée par %s parties:%s\n-Score de Confiance:%s"%(fnc,len(triggered_parts[fnc]),triggered_parts[fnc],score_function[fnc]))
+                print("-Pour choisir cette commande tapez:",n)
+
+                if n+1 == 1:
+                    os.system("aplay -q %s/local_sounds/cmd/intro_%s.wav"%(script_path,fnc))
+                elif n+1 > 1 and n+1 < len(ordered_list):
+                    os.system("aplay -q %s/local_sounds/cmd/%s.wav"%(script_path,fnc))
+                elif n+1 == len(ordered_list):
+                    os.system("aplay -q %s/local_sounds/cmd/outro_%s.wav"%(script_path,fnc))
+
+
+           print("\n-Si ce n'était pas une commande tapez:%s\n"%len(sorted_score))
+
+           os.system("aplay -q %s/local_sounds/cmd/hit%s.wav"%(script_path,len(sorted_score)))
+
+
+           response = input("\n-Choisissez la bonne réaction pour cette phrase:")
+           try:
+#           if 1 == 1 :
+              response = int(response.strip())
+              if response > len(sorted_score):
+                   continue
+              elif response == len(sorted_score):
+                   return("not a commande")
+              else:
+                    func_name_toadd = ordered_list[response]
+#                    print("\nfunc_name_toadd:",func_name_toadd)
+                    trigger_words_toadd = sorted_score[func_name_toadd]
+#                    print("\ntrigger_words_toadd:",txt)
+                    must_contain = triggered_parts[ordered_list[response]]
+                    break
+           except Exception as e:
+#                   print("\nerror:",e)
+                   pass
+
+       if func_name_toadd and trigger_words_toadd and must_contain:
+       
+            print("\n-La fonction %s à été choisie pour cette phrase.\n"%func_name_toadd)
+            if action_trigger:
+                 goto = postprod(txt,func_name_toadd,specific_trigger=must_contain,main_trigger=action_trigger)
+            else:
+                 goto = postprod(txt,func_name_toadd,specific_trigger=must_contain)
+            if goto:
+                   return(goto)
+       else:
+           if not func_name_toadd:
+                print("-func_name_toadd is missing")
+           if not trigger_words_toadd:
+                print("-trigger_words_toadd is missing")
+           if not must_contain:
+                print("-must_contain is missing")
+           return()
+
+    def bonuspoint(txt,aflist,function_tomatch):
+
+          bonus = 0
+          bonusyn = 0
+#          print("\n\n\n")
+#          print("synlist:",synlist)
+#          print()
+#          print("fnlist:",fnlist)
+#          print("function_tomatch:",function_tomatch)
+#          print("\n\n\n")
+          for af in aflist:
+               act = af[0]
+               fn = af[1]
+
+               if act in txt and fn == function_tomatch:
+#                    print("Bonus point +1 %s in txt and %s is matching %s"%(act,fn,function_tomatch))
+                    bonus += 1
+
+                    for syn in synonyms_list:
+          #              print(syn)
+                        for s in syn:
+                            if s in txt:
+                               for newsyn in syn:
+
+                                   newtxt = txt.replace(s,newsyn)
+
+                                   if function_tomatch == "ask_for_web":
+                                       bonusyn = len(seeknreturn(newtxt,web_request)) 
+                                   if function_tomatch == "ask_to_play_wav":
+                                       bonusyn = len(seeknreturn(newtxt,play_wav_request))
+                                   if function_tomatch == "ask_for_history":
+                                       bonusyn = len(seeknreturn(newtxt,search_history_request)) 
+                                   if function_tomatch == "ask_to_read_link":
+                                       bonusyn = len(seeknreturn(newtxt,read_link_request))
+                                   if function_tomatch == "ask_to_wait":
+                                       bonusyn = len(seeknreturn(newtxt,wait_words))
+                                   if function_tomatch == "ask_for_name":
+                                       bonusyn = len(seeknreturn(newtxt,trinity_name))
+                                   if function_tomatch == "ask_for_mean":
+                                       bonusyn = len(seeknreturn(newtxt,trinity_mean))
+                                   if function_tomatch == "ask_for_creator":
+                                       bonusyn = len(seeknreturn(newtxt,trinity_creator))
+                                   if function_tomatch == "ask_for_help":
+                                       bonusyn = len(seeknreturn(newtxt,trinity_help))
+                                   if function_tomatch == "ask_for_prompt":
+                                       bonusyn = len(seeknreturn(newtxt,prompt_request))
+                                   if function_tomatch == "ask_for_rnd":
+                                       bonusyn = len(seeknreturn(newtxt,rnd_request))
+                                   if function_tomatch == "ask_for_repeat":
+                                       bonusyn = len(seeknreturn(newtxt,repeat_request))
+
+                                   bonusyn += len(seeknreturn(newtxt,alt_trigger))
+
+#                                   print("Replace Bonus point +1 %s in txt"%(newsyn))
+                                   bonus += bonusyn
+
+          return(bonus)
+
+
+    def bestvalue(dictionary,ordered):
+         if not dictionary:
+             return(False)
+         values = [dictionary[key] for key in ordered]
+         max_value = max(values)
+         count_max_value = values.count(max_value)
+         if count_max_value == 1:
+             max_value_key = ordered[values.index(max_value)]
+             return(max_value_key)
+         return(False)
+
+
+
+
+    def seeknreturn(var_to_check,list_elements):
+          found_lst = []
+          for element in list_elements:
+               if "*" in element:
+                   splited = element.split("*")
+                   all_inside = all(e in var_to_check for e in splited)
+                   if all_inside:
+#                      for s in splited:
+#                          found_lst.append(s)
+                       found_lst.append(element)
+               if element in var_to_check:
+                    found_lst.append(element)
+          return(found_lst)
+
+
+    def seekndestroy(list_elements, var_to_check):
+
+          for element in list_elements:
+              if element in var_to_check:
+                  PRINT("-Detroying :",element)
+                  var_to_check = var_to_check.replace(element," ")
+          return(var_to_check.replace("  "," "))
 
     decoded = unidecode(txt.lower())
 
-    decoded = decoded.replace("s'il te plait","").replace("si te plait","").replace("sil te plait","")
+    ambiguity = []
 
-
-    trinity_name = ["comment tu t'appelles","comment t'appelles tu","tu t'appelles comment","c'est quoi ton nom","quel est ton nom"]
-    trinity_mean = ["pourquoi tu t'appelles trinity", "pourquoi t'appelles tu trinity","pourquoi trinity?","pourquoi tu t'appelles comme ca"]
-
-    trinity_creator = ["qui t'a cree","qui t'a programe","qui t'a fait","qui t'a concu","qui t'a fabrique"]
-
-    trinity_script = []
-
-    trinity_help = ["affiche-moi ton aide","quelles sont tes fonction","a quoi sers-tu","quelles sont tes commande","parle-moi de toi"]
-
-
-
-    show_words = ["affiche","montre","trouve","cherche","regarde","donne","racconte","parle"]
-
-
-    prompt_request = ['moi le prompt', "que je t'ecrive", " t'ecrire ", "je te l'ecris", "vais l'ecrire", "va l'ecrire", "va te l'ecrire", "vais te l'ecrire", 'affiche le prompt', 'ouvre le prompt', 'active le prompt', "moi l'invite de commande", "affiche l'invite de commande", "active l'invite de commande", "ouvre l'invite de commande", 'moi le clavier', 'affiche le clavier', 'ouvre le clavier', "j'ai besoin de t'ecrire","tu peux m'ouvrir le clavier","interprete"]
-
-    trinity_source_request = ["affiche ton code source","script trinity"]
-
-    rnd_request = ["choix aleatoire","entre oui et non"]
-
-    repeat_request = ['tu peux me repeter', 'tu peux repeter', 'ai pas entendu', 'ai pas compris', 'rien entendu', 'repete ta', 'repete moi',"repete-moi", 'redis ce que', 'redis ca',"tu as dis quoi","qu est ce que tu as dis","qu est ce que ta dis"]
-
-    search_history_request = ["tu peux afficher","tu peux m'afficher","affiche moi","affiche-moi","montre moi","montre-moi","recherche historique","que tu me fasse","fais une recherche","tu peux chercher","tu peux rechercher","faire une recherche","rechercher sur","rechercher dans","recherche sur","regarder sur","regarder dans","cherche moi","cherche-moi","regarde dans","regarde sur","trouver sur","contenant","concernant","trouver dans","me trouver","trouve sur","trouve moi","trouve-moi","une page qui concerne","une entree parlant","une entree concernant","une entree parlant","une entree qui parle ","une entree sur","infos qui parles","info qui parle","infos parlant","infos sur","info sur","infos concernant","info concernant","infos qui concernent","info qui concerne","infos qui parlent","info qui parle","parle moi","parle-moi","quelque chose sur","quelque chose concernant","quelque chose qui concerne","quelque chose qui parle","quelque chose parlant","truc qui parle","trucs qui parlent","truc parlant","truc concernant","trucs concernant","truc qui concerne","trucs qui concernent","en rapport","si il y a","si il ya","si ya","l'historique","fais une"]
-
-    read_link_request = ["donne moi","donne-moi","le contenu","du lien","d'un lien","de ce lien","peux me dire","fais moi","fais-moi","lis-moi","lis moi","tu peux me lire","que tu me lise","que tu lise","que tu regarde","regarde pour moi","racconte-moi","racconte moi","dis moi","dis-moi","ce qu'il y a","ce qu'il ya","ce que contient","dans ce lien","dans cette page","sur ce site","dans ce site","tu peux me racconter","que tu me racconte"]
-
-
-    play_wav_request = ["fichier audio","lire fichier audio","ouvrir fichier audio","jouer fichier audio","lire un fichier audio","ouvrir un fichier audio","jouer un fichier audio","lis-moi un fichier audio","ouvre-moi un fichier audio","joue-moi un fichier audio"]
-
-    google_request = ["tu peux afficher","tu peux m'afficher","affiche moi","affiche-moi","montre moi","montre-moi","recherche wikipedia","que tu me fasse","fais une recherche","faire une recherche","recherche google","recherche internet","rechercher sur","rechercher dans","recherche sur","regarder sur","regarder dans","regarde dans","regarde sur","trouver sur","trouver dans","me trouver","trouve sur","trouve moi","trouve-moi","une page qui concerne","une page google","une page concernant","une page parlant","une page qui parle ","une page sur","infos qui parles","info qui parle","infos parlant","infos sur","info sur","infos concernant","info concernant","infos qui concernent","info qui concerne","infos qui parlent","info qui parle","parle moi","parle-moi","quelque chose sur","quelque chose concernant","quelque chose qui concerne","quelque chose qui parle","quelque chose parlant","truc qui parle","trucs qui parlent","truc parlant","truc concernant","trucs concernant","truc qui concerne","trucs qui concernent","un article qui concerne","un article wikipedia","un article concernant","un article parlant","un article qui parle ","un article sur"]
-
-#est-ce que tu peux chercher sur Wikipédia intelligence artificielle
-
-    wikipedia_request = ["tu peux afficher","tu peux m'afficher","affiche moi","affiche-moi","montre moi","montre-moi","recherche wikipedia","que tu me fasse","fais une recherche","faire une recherche","chercher sur","rechercher sur","rechercher dans","recherche sur","regarder sur","regarder dans","regarde dans","regarde sur","trouver sur","trouver dans","me trouver","trouve sur","trouve moi","trouve-moi","une page qui concerne","une page wikipedia","une page concernant","une page parlant","une page qui parle ","une page sur","infos qui parles","info qui parle","infos parlant","infos sur","info sur","infos concernant","info concernant","infos qui concernent","info qui concerne","infos qui parlent","info qui parle","parle moi","parle-moi","quelque chose sur","quelque chose concernant","quelque chose qui concerne","quelque chose qui parle","quelque chose parlant","truc qui parle","trucs qui parlent","truc parlant","truc concernant","trucs concernant","truc qui concerne","trucs qui concernent","un article qui concerne","un article wikipedia","un article concernant","un article parlant","un article qui parle ","un article sur"]
-
-    wikipedia_full_request = ["page complete","page complet","page en entier","page entiere","en detail","article complet","article entier","article en entier","toute la page","affiche tout","version complete"]
-
-    wait_words = ["attends","attendre","laisse moi","pause","minute","seconde","arrete"]
-
+    filter = ["s'il te plait","si te plait","sil te plait","merci"]
 
     to_remove = [" fais ","estce"," peux faire "," recherche ","faismoi"," fais ","peux ","fais recherche "," parle ","s'il te plait"," stp "," svp"," sur ","sil plait"]
 
 
-    ask_for_name = any(element in decoded for element in trinity_name)
-
-    ask_for_mean = any(element in decoded for element in trinity_mean)
-
-    ask_for_creator = any(element in decoded for element in trinity_creator)
-
-    ask_for_help = any(element in decoded for element in trinity_help)
-
-    ask_for_prompt = any(element in decoded for element in prompt_request)
-
-    ask_to_show = any(element in decoded for element in show_words)
-
-    ask_for_rnd = any(element in decoded for element in rnd_request)
-
-    ask_for_repeat = any(element in decoded for element in repeat_request)
-
-    ask_for_history = any(element in decoded for element in search_history_request)
-
-    ask_for_google = any(element in decoded for element in google_request)
-
-    ask_for_wiki = any(element in decoded for element in wikipedia_request)
-
-    ask_to_read_link = any(element in decoded for element in read_link_request)
-
-    ask_to_play_wav = any(element in decoded for element in play_wav_request)
-
-    ask_for_full_wiki = any(element in decoded for element in wikipedia_full_request)
-
-    ask_to_wait = any(element in decoded for element in wait_words)
 
 
-    if ask_to_wait:
-              for element in prompt_request:
-                  if element in decoded:
-                      PRINT("Found wait match cmd :",element)
+    ask_to_action = seeknreturn(decoded,action_words)
 
+    ask_to_add = seeknreturn(decoded,add_words)
+
+    ask_for_name = seeknreturn(decoded,trinity_name)
+
+    ask_for_mean = seeknreturn(decoded,trinity_mean)
+
+    ask_for_creator = seeknreturn(decoded,trinity_creator)
+
+    ask_for_help = seeknreturn(decoded,trinity_help)
+
+    ask_for_prompt = seeknreturn(decoded,prompt_request)
+
+    ask_for_rnd = seeknreturn(decoded,rnd_request)
+
+    ask_for_repeat = seeknreturn(decoded,repeat_request)
+
+    ask_for_history = seeknreturn(decoded,search_history_request)
+
+    ask_for_web = seeknreturn(decoded,web_request)
+
+    ask_to_read_link = seeknreturn(decoded,read_link_request)
+
+    ask_to_play_wav = seeknreturn(decoded,play_wav_request)
+
+
+    ask_to_wait = seeknreturn(decoded,wait_words)
+
+
+    found_alt_trigger = seeknreturn(decoded,alt_trigger)
+
+
+    decoded = seekndestroy(filter, decoded)
+
+#    print("Cmd After filter:",decoded)
+
+
+    if ask_to_action or found_alt_trigger:
+#         print("Found ask_to_action match cmd :",ask_to_action)
+#         print()
+         ambiguity.append("ask_to_action")
+
+
+         if ask_to_wait:
+              ambiguity.append("ask_to_wait")
+         if ask_for_name:
+              ambiguity.append("ask_for_name")
+#              print("Found ask_for_name cmd :",ask_for_name)
+         if ask_for_mean:
+              ambiguity.append("ask_for_mean")
+#              print("Found ask_for_mean match cmd :",ask_for_mean)
+         if ask_for_creator:
+              ambiguity.append("ask_for_creator")
+#              print("Found ask_for_mean match cmd :",ask_for_creator)
+         if ask_for_rnd:
+              ambiguity.append("ask_for_rnd")
+         if ask_for_repeat:
+              ambiguity.append("ask_for_repeat")
+#              print("Found ask_for_repeat match cmd :",ask_for_repeat)
+         if ask_for_prompt:
+             ambiguity.append("ask_for_prompt")
+#             print("Found ask_for_prompt match cmd :",ask_for_prompt)
+         if ask_for_help:
+             ambiguity.append("ask_for_help")
+#             print("Found ask_for_help match cmd :",ask_for_help)
+         if ask_to_play_wav:
+             ambiguity.append("ask_to_play_wav")
+#             print("Found ask_to_play_wav match cmd :",ask_to_play_wav)
+         if ask_for_history:
+                 ambiguity.append("ask_for_history")
+#                 print("Found ask_for_history match cmd :",ask_for_history)
+         if ask_to_read_link:
+                 ambiguity.append("ask_to_read_link") 
+#                 print("Found ask_to_read_link match cmd :",ask_to_read_link)
+         if ask_for_web:
+                 ambiguity.append("ask_for_web")
+#                 print("Found ask_for_web match cmd :",ask_for_web)
+
+    if len(ambiguity) > 1:
+        goto = None
+        #print("disambiguify:",ambiguity)
+        if ask_to_action:
+             goto = disambiguify(ask_to_action,ambiguity,decoded,ask_to_action)
+        else:
+             goto = disambiguify(ask_to_action,ambiguity,decoded)
+
+        if goto:
+            print("Going to function :",goto)
+            print()
+#            return(True) 
+    elif len(ambiguity) == 1:
+        print("Ambiguity:",ambiguity)
+        print("\n-No ambiguity")
+#        return(False)
+    else:
+        print("\n-No commande has been found.")
+#        return(False)
+    if goto:
+
+       if goto == "ask_to_wait":
               Standing_By()
               return(True)
 
+       elif goto == "ask_for_name":
+          os.system("aplay -q %s"%(script_path+"/local_sounds/saved_answer/trinity.wav"))
+          return(True)
 
+       elif goto == "ask_for_mean":
+          os.system("aplay -q %s"%(script_path+"/local_sounds/saved_answer/matrix.wav"))
+          return(True)
+       elif goto == "ask_for_creator":
+          os.system("aplay -q %s"%(script_path+"/local_sounds/saved_answer/botmaster.wav"))
+          return(True)
 
+       elif goto == "ask_for_rnd":
+          rnd = str(random.randint(1,2))
+          ouinon = script_path+"/local_sounds/ouinon/"+rnd+".wav"
+          os.system("aplay -q %s"%ouinon)
+          return(True)
+       elif goto == "ask_for_repeat":
+          os.system("aplay -q %s"%script_path+"local_sounds/repeat/isaid.wav")
+          os.system("aplay -q %s"%script_path+"tmp/current_answer.wav")
+          return(True)
 
-    if ask_for_name:
-         for element in trinity_name:
-             if element in decoded:
-                  PRINT("Found name match cmd :",element)
-         os.system("aplay %s"%(script_path+"/local_sounds/saved_answer/trinity.wav"))
-         return(True)
-    if ask_for_mean:
-         for element in trinity_mean:
-             if element in decoded:
-                  PRINT("Found matrix match cmd :",element)
-         os.system("aplay %s"%(script_path+"/local_sounds/saved_answer/matrix.wav"))
-         return(True)
-
-    if ask_for_creator:
-         for element in trinity_creator:
-             if element in decoded:
-                  PRINT("Found botmaster match cmd :",element)
-         os.system("aplay %s"%(script_path+"/local_sounds/saved_answer/botmaster.wav"))
-         return(True)
-    if ask_for_help:
-         for element in trinity_help:
-             if element in decoded:
-                  PRINT("Found help match cmd :",element)
-         os.system("aplay %s"%(script_path+"/local_sounds/saved_answer/help.wav"))
-         return(True)
-    if ask_for_prompt:
-         for element in prompt_request:
-             if element in decoded:
-                  PRINT("Found prompt match cmd :",element)
-         Fallback_Prompt()
-         return(True)
-
-    if ask_for_rnd:
-         for element in rnd_request: 
-             if element in decoded:
-                  PRINT("Found rnd match cmd :",element)
-         rnd = str(random.randint(1,2))
-         ouinon = script_path+"/local_sounds/ouinon/"+rnd+".wav"
-         os.system("aplay %s"%ouinon)
-         return(True)
-
-    if ask_for_repeat:
-         for element in repeat_request: 
-             if element in decoded:
-                  PRINT("Found repeat match cmd :",element)
-         os.system("aplay %s"%script_path+"local_sounds/repeat/isaid.wav")
-         os.system("aplay %s"%script_path+"tmp/current_answer.wav")
-         return(True)
-
-    if ask_to_show:
-
-         if ask_to_play_wav:
-              for element in play_wav_request: 
-                   if element in decoded:
-                        PRINT("Found play sound match cmd :",element)
-                        decoded = decoded.replace(element," ")
-              os.system("aplay %s"%script_path+"local_sounds/question/sound_file.wav")
+       elif goto == "ask_for_prompt":
+              Fallback_Prompt()
+              return(True)
+       elif goto == "ask_for_help":
+              os.system("aplay -q %s"%(script_path+"/local_sounds/saved_answer/help.wav"))
+              return(True)
+       elif goto == "ask_to_play_wav":
+              os.system("aplay -q %s"%script_path+"local_sounds/question/sound_file.wav")
               sound_input = input("Entrez le chemin du fichier à lire:")
               if sound_input.endswith(".wav"):
                   Play_Response(sound_input,stayawake=False,savehistory=False)
                   return(True)
               else:
                   return(True)
-
-         if "historique" in decoded:
-            if ask_for_history:
-               for element in search_history_request: 
-                   if element in decoded:
-                        PRINT("Found historique match cmd :",element)
-                        decoded = decoded.replace(element," ")
-
+       elif goto == "ask_for_history":
                for element in to_remove:
                   if element in decoded:
                       decoded = decoded.replace(element," ")
@@ -561,79 +1551,64 @@ def Commandes(txt):
                SearchHistory(decoded)
                return(True)
 
-
-
-
-
-         if (" lien" in decoded) or ("page web" in decoded):
-             if ask_to_read_link: 
-                  for element in read_link_request: 
-                     if element in decoded:
-                          PRINT("Found read link match cmd :",element)
+       elif goto == "ask_to_read_link":
                   ReadLink(txt=decoded)
 
                   return(True)
-
-
-         if "google" in decoded:
-
-            if ask_for_google:
-               for element in google_request: 
-                   if element in decoded:
-                        PRINT("Found google match cmd :",element)
-                        decoded = decoded.replace(element," ")
-
+       elif goto == "ask_for_web":
+           if "wikipedia" in decoded:
                for element in to_remove:
                   if element in decoded:
                       decoded = decoded.replace(element," ")
 
+               decoded = decoded.replace("wikipedia"," ")
+               os.system("aplay -q %s"%script_path+"local_sounds/server/wikipedia.wav")
 
+               for element in to_remove:
+                   if element in decoded:
+                      decoded = decoded.replace(element," ")
+
+                      decoded = decoded.replace("  ","")
+                      Wikipedia(decoded)
+
+               return(True)
+           else:
+               for element in to_remove:
+                  if element in decoded:
+                      decoded = decoded.replace(element," ")
                decoded = decoded.replace("  ","")
-
-
                Google(decoded)
                return(True)
 
 
-
-         if "wikipedia" in decoded:
-
-              if ask_for_wiki:
-
-                  for element in wikipedia_request: 
-                      if element in decoded:
-                           PRINT("Found wiki match cmd :",element)
-
-                  for element in wikipedia_request: 
-                      if element in decoded:
-                           decoded = decoded.replace(element," ")
-                  decoded = decoded.replace("wikipedia"," ")
-                  os.system("aplay %s"%script_path+"local_sounds/server/wikipedia.wav")
-
-                  if ask_for_full_wiki:
-                      for element in wikipedia_full_request: 
-                          if element in decoded:
-                               decoded = decoded.replace(element," ")
-                      for element in to_remove:
-                           if element in decoded:
-                               decoded = decoded.replace(element," ")
-
-                      decoded = decoded.replace("  ","")
-
-                      Wikipedia(decoded,FULL=True)
-                  else:
-                      for element in to_remove:
-                           if element in decoded:
-                               decoded = decoded.replace(element," ")
-
-                      decoded = decoded.replace("  ","")
+       else:
+            return(False)
 
 
-                      Wikipedia(decoded)
-                  return(True)
-         else:
-              PRINT("-Found no cmd match")
-              return(False)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def GetTitleLink(txt,site=None):
@@ -656,7 +1631,7 @@ def GetTitleLink(txt,site=None):
 
         if len(title_search) == 0:
             PRINT("-GetTitleLink no result from google")
-            os.system("aplay %s"%script_path+"local_sounds/errors/err_no_result_google.wav")
+            os.system("aplay -q %s"%script_path+"local_sounds/errors/err_no_result_google.wav")
             return(None)
 
         else:
@@ -665,7 +1640,7 @@ def GetTitleLink(txt,site=None):
 
 
     except Exception as e:
-         os.system("aplay %s"%script_path+"local_sounds/errors/err_google.wav")
+         os.system("aplay -q %s"%script_path+"local_sounds/errors/err_google.wav")
          print("Error:",str(e))
          return(None)
 
@@ -717,20 +1692,20 @@ def ReadLink(txtinput=None,titleinput=None,urlinput=None):
                     for tag in soup.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']):
                          text_data += tag.get_text()
                     if len(text_data) >0:
-                       os.system("aplay %s"%script_path+"/local_sounds/ok/reading_link.wav")
+                       os.system("aplay -q %s"%script_path+"/local_sounds/ok/reading_link.wav")
                        last_sentence.put(txtinput+" %s"%urlinput)
                        Text_To_Speech(text_data,stayawake=True)
                        return()
                     else:
-                        os.system("aplay %s"%script_path+"local_sounds/errors/err_read_link_no_txt.wav")
+                        os.system("aplay -q %s"%script_path+"local_sounds/errors/err_read_link_no_txt.wav")
                         return()
                 except Exception as e:
                       print("Error:",str(e))
-                      os.system("aplay %s"%script_path+"local_sounds/errors/err_read_link_request.wav")
+                      os.system("aplay -q %s"%script_path+"local_sounds/errors/err_read_link_request.wav")
 
 
     else:
-         os.system("aplay %s"%script_path+"local_sounds/question/read_link_url.wav")
+         os.system("aplay -q %s"%script_path+"local_sounds/question/read_link_url.wav")
 
          url_input = input("Entrez un lien:")
 
@@ -769,19 +1744,19 @@ def ReadLink(txtinput=None,titleinput=None,urlinput=None):
                     for tag in soup.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']):
                          text_data += tag.get_text()
                     if len(text_data) >0:
-                       os.system("aplay %s"%script_path+"/local_sounds/ok/reading_link.wav")
+                       os.system("aplay -q %s"%script_path+"/local_sounds/ok/reading_link.wav")
                        last_sentence.put(txtinput+" %s"%urlinput)
                        Text_To_Speech(text_data,stayawake=True)
                        return()
                     else:
-                        os.system("aplay %s"%script_path+"local_sounds/errors/err_read_link_no_txt.wav")
+                        os.system("aplay -q %s"%script_path+"local_sounds/errors/err_read_link_no_txt.wav")
                         return()
                 except Exception as e:
                       print("Error:",str(e))
-                      os.system("aplay %s"%script_path+"local_sounds/errors/err_read_link_request.wav")
+                      os.system("aplay -q %s"%script_path+"local_sounds/errors/err_read_link_request.wav")
                       return()
     else:
-              os.system("aplay %s"%script_path+"local_sounds/errors/err_url_not_valid.wav")
+              os.system("aplay -q %s"%script_path+"local_sounds/errors/err_url_not_valid.wav")
               return()
 
 
@@ -835,8 +1810,8 @@ def Google(tosearch,rnbr=50): #,tstmode = True):
          while True:
              time.sleep(0.5)
 
-             os.system("aplay  "+script_path+"local_sounds/question/search_history_cmd.wav")
-             os.system("aplay  "+script_path+"local_sounds/question/do_i_read_link.wav")
+             os.system("aplay -q  "+script_path+"local_sounds/question/search_history_cmd.wav")
+             os.system("aplay -q  "+script_path+"local_sounds/question/do_i_read_link.wav")
 
              Start_Thread_Record()
 
@@ -853,10 +1828,10 @@ def Google(tosearch,rnbr=50): #,tstmode = True):
 
 
                    if "non" in txt and not "oui" in txt:
-                         os.system("aplay %s"%script_path+"/local_sounds/ok/1.wav")
+                         os.system("aplay -q %s"%script_path+"/local_sounds/ok/1.wav")
                          return(False)
                    elif "oui" in txt and not "non" in txt:
-                         os.system("aplay %s"%script_path+"/local_sounds/ok/1.wav")
+                         os.system("aplay -q %s"%script_path+"/local_sounds/ok/1.wav")
                          return([description,title,url])
 
 
@@ -871,19 +1846,19 @@ def Google(tosearch,rnbr=50): #,tstmode = True):
                    opinion = score_sentiment.get()
 
                    if opinion == None:
-                             os.system("aplay %s"%script_path+"/local_sounds/question/repeat.wav")
+                             os.system("aplay -q %s"%script_path+"/local_sounds/question/repeat.wav")
                    elif opinion == False:
-                         os.system("aplay %s"%script_path+"/local_sounds/ok/1.wav")
+                         os.system("aplay -q %s"%script_path+"/local_sounds/ok/1.wav")
                          return(False)
                    elif opinion == True:
-                         os.system("aplay %s"%script_path+"/local_sounds/ok/1.wav")
+                         os.system("aplay -q %s"%script_path+"/local_sounds/ok/1.wav")
                          return([description,title,url])
 
 
          
 
     def miniprompt(full):
-        os.system("aplay %s"%script_path+"/local_sounds/prompt/2.wav")
+        os.system("aplay -q %s"%script_path+"/local_sounds/prompt/2.wav")
         user_input = input("Que voulez vous faire avec les résultats? :")
         if len(str(user_input)) > 2:
 
@@ -1146,7 +2121,7 @@ def Google(tosearch,rnbr=50): #,tstmode = True):
                    for element in exit_words:
                        if element in txt_input:
                             PRINT("Found exit match cmd :",element)
-                   os.system("aplay %s"%script_path+"/local_sounds/ok/1.wav")
+                   os.system("aplay -q %s"%script_path+"/local_sounds/ok/1.wav")
                    return(True)
 
          if ask_to_read_results:
@@ -1157,7 +2132,7 @@ def Google(tosearch,rnbr=50): #,tstmode = True):
 
                    lst_all = [" cent","100","complete","tout les","en entier","au total","en tout","combien","le reste"]
                    if any(element in txt_input.lower() for element in lst_all):
-                         os.system("aplay %s"%script_path+"/local_sounds/ok/google_full.wav")
+                         os.system("aplay -q %s"%script_path+"/local_sounds/ok/google_full.wav")
                          readlist(full,100)
                          return(False)
 
@@ -1171,7 +2146,7 @@ def Google(tosearch,rnbr=50): #,tstmode = True):
                                  continue
 
                         if chosen_one:
-                              os.system("aplay %s"%script_path+"/local_sounds/ok/custom_google.wav")
+                              os.system("aplay -q %s"%script_path+"/local_sounds/ok/custom_google.wav")
                               readlist(full,chosen_one)
                               return(False)
 
@@ -1181,7 +2156,7 @@ def Google(tosearch,rnbr=50): #,tstmode = True):
                               break
 
                    if chosen_one:
-                        os.system("aplay %s"%script_path+"/local_sounds/ok/printed_google.wav")
+                        os.system("aplay -q %s"%script_path+"/local_sounds/ok/printed_google.wav")
                         quit = readres(full,chosen_one)
                         return(quit)
                    else:
@@ -1192,16 +2167,16 @@ def Google(tosearch,rnbr=50): #,tstmode = True):
                             except:
                                  continue
                    if chosen_one:
-                       os.system("aplay %s"%script_path+"/local_sounds/ok/printed_google.wav")
+                       os.system("aplay -q %s"%script_path+"/local_sounds/ok/printed_google.wav")
                        quit = readres(full,chosen_one)
                        return(quit)
                    else:
-                      os.system("aplay %s"%script_path+"/local_sounds/errors/err_number_notfound.wav")
+                      os.system("aplay -q %s"%script_path+"/local_sounds/errors/err_number_notfound.wav")
                       return(False)
 
          if  not ask_to_wait and not ask_to_exit and not ask_to_read_results and not ask_for_prompt:
 
-           os.system("aplay %s"%script_path+"/local_sounds/history/err_cmd.wav")
+           os.system("aplay -q %s"%script_path+"/local_sounds/history/err_cmd.wav")
            return(False)
 
 
@@ -1218,15 +2193,15 @@ def Google(tosearch,rnbr=50): #,tstmode = True):
 
         if len(google_result) == 0:
             PRINT("-Google() no result from google")
-            os.system("aplay %s"%script_path+"local_sounds/errors/err_no_result_google.wav")
+            os.system("aplay -q %s"%script_path+"local_sounds/errors/err_no_result_google.wav")
             return()
 
     except Exception as e:
-         os.system("aplay %s"%script_path+"local_sounds/errors/err_Google.wav")
+         os.system("aplay -q %s"%script_path+"local_sounds/errors/err_Google.wav")
          print("Error:",str(e))
          return()
 
-    os.system("aplay %s"%script_path+"local_sounds/ok/googleres.wav")
+    os.system("aplay -q %s"%script_path+"local_sounds/ok/googleres.wav")
 
 
     full = google_result[:100]
@@ -1245,7 +2220,7 @@ def Google(tosearch,rnbr=50): #,tstmode = True):
     while True:
          time.sleep(0.5)
 
-         os.system("aplay  "+script_path+"local_sounds/question/search_history_cmds.wav")
+         os.system("aplay -q  "+script_path+"local_sounds/question/search_history_cmds.wav")
 
          Start_Thread_Record()
 
@@ -1283,7 +2258,7 @@ def Wikipedia(tosearch,Title= None ,FULL=None):
           
         if not wiki_search:
             PRINT("-Wikipedia no result from google")
-            os.system("aplay %s"%script_path+"local_sounds/errors/err_no_result_wiki.wav")
+            os.system("aplay -q %s"%script_path+"local_sounds/errors/err_no_result_wiki.wav")
             return()
 
         wikipedia.set_lang("fr")
@@ -1298,7 +2273,7 @@ def Wikipedia(tosearch,Title= None ,FULL=None):
                PRINT("-wiki reponse:",r)
         else:
             PRINT("-no result from wikipedia")
-            os.system("aplay %s"%script_path+"local_sounds/errors/err_no_result_wiki.wav")
+            os.system("aplay -q %s"%script_path+"local_sounds/errors/err_no_result_wiki.wav")
             return()
 
  
@@ -1307,7 +2282,7 @@ def Wikipedia(tosearch,Title= None ,FULL=None):
             try:
                 if not FULL:
 
-                    os.system("aplay %s"%script_path+"local_sounds/question/wikipedia.wav")
+                    os.system("aplay -q %s"%script_path+"local_sounds/question/wikipedia.wav")
 
 
                     Start_Thread_Record()
@@ -1334,19 +2309,19 @@ def Wikipedia(tosearch,Title= None ,FULL=None):
                     if opinion == None:
                              choice = random.choice(["summary", "full"])
                              if choice == "summary":
-                                     os.system("aplay %s"%script_path+"/local_sounds/ouinon/wiki_summary.wav")
+                                     os.system("aplay -q %s"%script_path+"/local_sounds/ouinon/wiki_summary.wav")
                              if choice == "full":
-                                     os.system("aplay %s"%script_path+"/local_sounds/ouinon/wiki_full.wav")
+                                     os.system("aplay -q %s"%script_path+"/local_sounds/ouinon/wiki_full.wav")
                     elif opinion == False:
                          choice = "summary"
-                         os.system("aplay %s"%script_path+"/local_sounds/ok/wiki_summary.wav")
+                         os.system("aplay -q %s"%script_path+"/local_sounds/ok/wiki_summary.wav")
                     elif opinion == True:
                          choice = "full"
-                         os.system("aplay %s"%script_path+"/local_sounds/ok/wiki_full.wav")
+                         os.system("aplay -q %s"%script_path+"/local_sounds/ok/wiki_full.wav")
 
                 elif FULL == True:
                      choice = "full"
-                     os.system("aplay %s"%script_path+"/local_sounds/ouinon/wiki_full.wav")
+                     os.system("aplay -q %s"%script_path+"/local_sounds/ouinon/wiki_full.wav")
 
                 if choice == "summary":
 
@@ -1362,7 +2337,7 @@ def Wikipedia(tosearch,Title= None ,FULL=None):
                                 summary = wikipedia.summary(title=query_list[0].replace(" ","").replace("_",""),auto_suggest=True)
                             except Exception as e:
                                 print("Error:",str(e))
-                                os.system("aplay %s"%script_path+"local_sounds/errors/err_wiki.wav")
+                                os.system("aplay -q %s"%script_path+"local_sounds/errors/err_wiki.wav")
                                 return()
 
                     last_sentence.put(tosearch)
@@ -1385,7 +2360,7 @@ def Wikipedia(tosearch,Title= None ,FULL=None):
                                 content = page.content
                             except Exception as e:
                                 print("Error:",str(e))
-                                os.system("aplay %s"%script_path+"local_sounds/errors/err_wiki.wav")
+                                os.system("aplay -q %s"%script_path+"local_sounds/errors/err_wiki.wav")
                                 return()
 
                     if "== Notes" in content:
@@ -1407,16 +2382,16 @@ def Wikipedia(tosearch,Title= None ,FULL=None):
 
                     else:
                          PRINT("-no result from content wikipedia")
-                         os.system("aplay %s"%script_path+"local_sounds/errors/err_no_result_wiki.wav")
+                         os.system("aplay -q %s"%script_path+"local_sounds/errors/err_no_result_wiki.wav")
                          return()
             except Exception as e:
-                os.system("aplay %s"%script_path+"local_sounds/errors/err_wiki.wav")
+                os.system("aplay -q %s"%script_path+"local_sounds/errors/err_wiki.wav")
                 print("Error:",str(e))
                 return()
 
     except Exception as e:
        local_sounds/errors/err_func_wiki.wav
-       os.system("aplay %s"%script_path+"local_sounds/errors/err_func_wiki.wav")
+       os.system("aplay -q %s"%script_path+"local_sounds/errors/err_func_wiki.wav")
        print("Error:",str(e))
        return()
 
@@ -1424,7 +2399,7 @@ def Wikipedia(tosearch,Title= None ,FULL=None):
 
 def Fallback_Prompt():
     PRINT("-fallbackprompt")
-    os.system("aplay %s"%script_path+"/local_sounds/prompt/2.wav")
+    os.system("aplay -q %s"%script_path+"/local_sounds/prompt/2.wav")
 #    while True:
     if 1 == 1:
         user_input = input("Comment puis-je vous aider ?:")
@@ -1450,9 +2425,9 @@ def Check_Transcript(transcripts,transcripts_confidence,words,words_confidence,E
 
     if len(Err_msg) > 0:
         if Err_msg.startswith("Speech_To_Text:"):
-            os.system("aplay  %s"%script_path+"/local_sounds/errors/err_stt.wav")
+            os.system("aplay -q  %s"%script_path+"/local_sounds/errors/err_stt.wav")
             Text_To_Speech(Err_msg,stayawake=True)
-            os.system("aplay  %s"%script_path+"/local_sounds/errors/err_prompt.wav")
+            os.system("aplay -q  %s"%script_path+"/local_sounds/errors/err_prompt.wav")
             return(Fallback_Prompt())
 
     if len(transcripts) > 0:
@@ -1480,7 +2455,7 @@ def Check_Transcript(transcripts,transcripts_confidence,words,words_confidence,E
         return(transcripts.replace("\\",""),final_confidence)
         
     else:
-      os.system("aplay  %s"%script_path+"/local_sounds/errors/err_no_respons.wav")
+      os.system("aplay -q  %s"%script_path+"/local_sounds/errors/err_no_respons.wav")
       #      Go_Back_To_Sleep()
       return("",False)
 
@@ -1536,13 +2511,13 @@ def Repeat(txt):
        if no:
           go_prompt = any(element in txt.lower() for element in prompt_request)
           if go_prompt:
-              os.system("aplay %s"%script_path+"/local_sounds/ok/1.wav")
+              os.system("aplay -q %s"%script_path+"/local_sounds/ok/1.wav")
               return(Fallback_Prompt())
           else:
-              os.system("aplay %s"%script_path+"/local_sounds/ok/1.wav")
+              os.system("aplay -q %s"%script_path+"/local_sounds/ok/1.wav")
               Go_Back_To_Sleep()
        else:
-               os.system("aplay %s"%script_path+"/local_sounds/ok/1.wav")
+               os.system("aplay -q %s"%script_path+"/local_sounds/ok/1.wav")
 
                cmd = Commandes(txt)
                if cmd:
@@ -1551,12 +2526,12 @@ def Repeat(txt):
                   elif cmd == "random":
                        rnd = str(random.randint(1,2))
                        ouinon = script_path+"/local_sounds/ouinon/"+rnd+".wav"
-                       os.system("aplay %s"%ouinon)
+                       os.system("aplay -q %s"%ouinon)
                else:
                      return(fallbackGpt(txt))
     else:
 
-               os.system("aplay %s"%script_path+"/local_sounds/ok/1.wav")
+               os.system("aplay -q %s"%script_path+"/local_sounds/ok/1.wav")
                #go_to_function.put("Speech_To_Text")
                cmd = Commandes(txt)
                if cmd:
@@ -1597,7 +2572,7 @@ def Bad_Stt(txt):
                 print("Error:",str(e))
                 sys.exit()
 
-    os.system("aplay %s"%script_path+fname)
+    os.system("aplay -q %s"%script_path+fname)
 
 
 
@@ -1611,12 +2586,12 @@ def Bad_Confidence(txt):
 
     rnd = str(random.randint(1,10))
     bad_sound = script_path+"/local_sounds/badconf/"+rnd+".wav"
-    os.system("aplay %s"%bad_sound)
+    os.system("aplay -q %s"%bad_sound)
 
     Bad_Stt(txt)
 
     question_sound = script_path+"/local_sounds/question/1.wav"
-    os.system("aplay %s"%question_sound)
+    os.system("aplay -q %s"%question_sound)
 
     Start_Thread_Record()
 
@@ -1635,45 +2610,45 @@ def Bad_Confidence(txt):
              choice = random.choice(["repeat", "send","prompt"])
              if choice == "send":
                  if len(Orig_sentence) > 0:
-                     os.system("aplay %s"%script_path+"/local_sounds/ok/1.wav")
+                     os.system("aplay -q %s"%script_path+"/local_sounds/ok/1.wav")
                      return(fallbackGpt(Orig_sentence))
                  else:
-                     os.system("aplay %s"%script_path+"local_sounds/forgot/1.wav")
+                     os.system("aplay -q %s"%script_path+"local_sounds/forgot/1.wav")
                      choice = random.choice(["repeat","prompt"])
                      if choice == "repeat":
-                         os.system("aplay %s"%script_path+"/local_sounds/repeat/1.wav")
+                         os.system("aplay -q %s"%script_path+"/local_sounds/repeat/1.wav")
                          return(Trinity("Repeat"))
                      if choice == "prompt":
-                         os.system("aplay %s"%script_path+"/local_sounds/prompt/1.wav")
+                         os.system("aplay -q %s"%script_path+"/local_sounds/prompt/1.wav")
                          return(Fallback_Prompt())
 
 
              if choice == "repeat":
-                 os.system("aplay %s"%script_path+"/local_sounds/repeat/1.wav")
+                 os.system("aplay -q %s"%script_path+"/local_sounds/repeat/1.wav")
                  return(Trinity("Repeat"))
              if choice == "prompt":
-                 os.system("aplay %s"%script_path+"/local_sounds/prompt/1.wav")
+                 os.system("aplay -q %s"%script_path+"/local_sounds/prompt/1.wav")
                  return(Fallback_Prompt())
     elif opinion == False:
              choice = random.choice(["repeat","prompt"])
              if choice == "repeat":
-                 os.system("aplay %s"%script_path+"/local_sounds/repeat/1.wav")
+                 os.system("aplay -q %s"%script_path+"/local_sounds/repeat/1.wav")
                  return(Trinity("Repeat"))
              if choice == "prompt":
-                 os.system("aplay %s"%script_path+"/local_sounds/prompt/1.wav")
+                 os.system("aplay -q %s"%script_path+"/local_sounds/prompt/1.wav")
                  return(Fallback_Prompt())
     elif opinion == True:
-                 os.system("aplay %s"%script_path+"/local_sounds/ok/1.wav")
+                 os.system("aplay -q %s"%script_path+"/local_sounds/ok/1.wav")
                  if len(Orig_sentence) > 0:
                      return(fallbackGpt(Orig_sentence))
                  else:
-                     os.system("aplay %s"%script_path+"local_sounds/forgot/1.wav")
+                     os.system("aplay -q %s"%script_path+"local_sounds/forgot/1.wav")
                      choice = random.choice(["repeat","prompt"])
                      if choice == "repeat":
-                         os.system("aplay %s"%script_path+"/local_sounds/repeat/1.wav")
+                         os.system("aplay -q %s"%script_path+"/local_sounds/repeat/1.wav")
                          return(Trinity("Repeat"))
                      if choice == "prompt":
-                         os.system("aplay %s"%script_path+"/local_sounds/prompt/1.wav")
+                         os.system("aplay -q %s"%script_path+"/local_sounds/prompt/1.wav")
                          return(Fallback_Prompt())
 
 
@@ -1821,7 +2796,7 @@ def Text_To_Speech(txtinput,stayawake=False,savehistory=True):
             wav_list.append(script_path+fname)
 
     if Err:
-        os.system("aplay  "+script_path+"local_sounds/errors/err_tts.wav")
+        os.system("aplay -q  "+script_path+"local_sounds/errors/err_tts.wav")
 
 
 
@@ -1840,7 +2815,7 @@ def Text_To_Speech(txtinput,stayawake=False,savehistory=True):
 def Play_Response(audio_response=None,stay_awake=False,save_history=True,answer_txt=None):
     PRINT("-playresponse")
 
-    os.system("aplay  "+audio_response)
+    os.system("aplay -q  "+audio_response)
 
     if save_history:
        History(answer_txt)
@@ -2005,10 +2980,10 @@ def Standing_By(self_launched=False):
     keyword_index = None
 
     if self_launched:
-        os.system("aplay %s"%script_path+"local_sounds/wait/selfwait.wav")
+        os.system("aplay -q %s"%script_path+"local_sounds/wait/selfwait.wav")
 
     else:
-        os.system("aplay %s"%script_path+"local_sounds/history/wait.wav")
+        os.system("aplay -q %s"%script_path+"local_sounds/history/wait.wav")
 
 
     try:
@@ -2031,7 +3006,7 @@ def Standing_By(self_launched=False):
                 PRINT("keyword_index:",keyword_index)
                 rnd = str(random.randint(1,15))
                 wake_sound = script_path+"/local_sounds/wakesounds/"+rnd+".wav"
-                os.system("aplay %s"%wake_sound)
+                os.system("aplay -q %s"%wake_sound)
                 break
 
     finally:
@@ -2081,17 +3056,17 @@ def SearchHistory(tosearch):
          PRINT("\ntoplay:\n %s \n"%toplay)
 
          nbrtoplay = len(toplay)
-         os.system("aplay %slocal_sounds/history/playlist_%s.wav"%(script_path,str(nbrtoplay)))
+         os.system("aplay -q %slocal_sounds/history/playlist_%s.wav"%(script_path,str(nbrtoplay)))
 
          for n,wavfile in enumerate(toplay):
-             os.system("aplay %slocal_sounds/history/play_%s.wav"%(script_path,str(n+1)))
+             os.system("aplay -q %slocal_sounds/history/play_%s.wav"%(script_path,str(n+1)))
              if wavfile.endswith(".wav"):
-                  os.system("aplay %s"%wavfile)
+                  os.system("aplay -q %s"%wavfile)
              else:
                   try:
                       args = [element for element in match.strip().split("***") if element]
                       hist_wav = args[2]
-                      os.system("aplay %s"%hist_wav)
+                      os.system("aplay -q %s"%hist_wav)
                   except Exception as e:
                       print("Error playlist:",str(e))
 
@@ -2179,7 +3154,7 @@ def SearchHistory(tosearch):
                    for element in exit_words:
                        if element in txt_input:
                             PRINT("Found exit match cmd :",element)
-                   os.system("aplay %s"%script_path+"/local_sounds/ok/1.wav")
+                   os.system("aplay -q %s"%script_path+"/local_sounds/ok/1.wav")
                    return(True)
 
          if ask_to_play:
@@ -2206,7 +3181,7 @@ def SearchHistory(tosearch):
 
                                        hist_bingo = args[3]
 
-                                       os.system("aplay  "+script_path+"local_sounds/history/choose_%s.wav"%(str(rnd_nbr + 1)))
+                                       os.system("aplay -q  "+script_path+"local_sounds/history/choose_%s.wav"%(str(rnd_nbr + 1)))
 
                                        playlist([hist_wav])
                                        return(True)
@@ -2295,7 +3270,7 @@ def SearchHistory(tosearch):
                                        res_str = "\n-(Résultat numéro %s)\n    Catégories:%s\n    Texte utilisateur synthétisé:%s\n     Réponse:%s\n   Score:%s"%(str(n+1),hist_cats,hist_txt,hist_answer,hist_bingo)
                                        
 
-                                       os.system("aplay  "+script_path+"local_sounds/history/choose_%s.wav"%(str(rnd_nbr + 1)))
+                                       os.system("aplay -q  "+script_path+"local_sounds/history/choose_%s.wav"%(str(rnd_nbr + 1)))
                                        Text_To_Speech(res_str,stayawake=True,savehistory=False)
                                        return()
 
@@ -2324,11 +3299,11 @@ def SearchHistory(tosearch):
 
          if not ask_to_search and not ask_to_play and not ask_to_wait and not ask_to_exit and not ask_to_read_results and not ask_for_prompt:
            
-           os.system("aplay %s"%script_path+"/local_sounds/history/err_cmd.wav")
+           os.system("aplay -q %s"%script_path+"/local_sounds/history/err_cmd.wav")
            return()
 
     def miniprompt(top5,full):
-        os.system("aplay %s"%script_path+"/local_sounds/prompt/2.wav")
+        os.system("aplay -q %s"%script_path+"/local_sounds/prompt/2.wav")
         user_input = input("Que voulez vous faire avec l'historique? :")
         if len(str(user_input)) > 2:
 
@@ -2387,17 +3362,17 @@ def SearchHistory(tosearch):
          MatchedNbr = 5
 
     if len(SortedMatched) == 1:
-         os.system("aplay  "+script_path+"local_sounds/history/found_one.wav")
+         os.system("aplay -q  "+script_path+"local_sounds/history/found_one.wav")
     elif len(SortedMatched) == 2:
-         os.system("aplay  "+script_path+"local_sounds/history/found_two.wav")
+         os.system("aplay -q  "+script_path+"local_sounds/history/found_two.wav")
     elif len(SortedMatched) == 3:
-         os.system("aplay  "+script_path+"local_sounds/history/found_three.wav")
+         os.system("aplay -q  "+script_path+"local_sounds/history/found_three.wav")
     elif len(SortedMatched) == 4:
-         os.system("aplay  "+script_path+"local_sounds/history/found_four.wav")
+         os.system("aplay -q  "+script_path+"local_sounds/history/found_four.wav")
     elif len(SortedMatched) >= 5:
-         os.system("aplay  "+script_path+"local_sounds/history/found_five.wav")
+         os.system("aplay -q  "+script_path+"local_sounds/history/found_five.wav")
     else:
-        os.system("aplay  "+script_path+"local_sounds/history/no_result.wav")
+        os.system("aplay -q  "+script_path+"local_sounds/history/no_result.wav")
         return()
 
     TopFive = SortedMatched[:MatchedNbr]
@@ -2433,9 +3408,9 @@ def SearchHistory(tosearch):
 
 
          if len(TopFive) >1:
-             os.system("aplay  "+script_path+"local_sounds/question/search_history_cmds.wav")
+             os.system("aplay -q  "+script_path+"local_sounds/question/search_history_cmds.wav")
          else:
-             os.system("aplay  "+script_path+"local_sounds/question/search_history_cmd.wav")
+             os.system("aplay -q  "+script_path+"local_sounds/question/search_history_cmd.wav")
 
 
 
@@ -2605,9 +3580,9 @@ def Check_History(question):
 
 
 
-                            os.system("aplay %s"%script_path+"local_sounds/already/1.wav")
-                            os.system("aplay %s"%final_wav)
-                            os.system("aplay %s"%script_path+"local_sounds/question/amigood.wav")
+                            os.system("aplay -q %s"%script_path+"local_sounds/already/1.wav")
+                            os.system("aplay -q %s"%final_wav)
+                            os.system("aplay -q %s"%script_path+"local_sounds/question/amigood.wav")
 
                             Start_Thread_Record()
 
@@ -2622,13 +3597,13 @@ def Check_History(question):
                                       score_sentiment.put(False)
                                 opinion = score_sentiment.get()
                                 if opinion == None:
-                                        os.system("aplay %s"%script_path+"local_sounds/notok/1.wav")
+                                        os.system("aplay -q %s"%script_path+"local_sounds/notok/1.wav")
                                         return(False)
                                 elif opinion == False:
-                                        os.system("aplay %s"%script_path+"local_sounds/notok/1.wav")
+                                        os.system("aplay -q %s"%script_path+"local_sounds/notok/1.wav")
                                         return(False)
                                 else:
-                                        os.system("aplay %s"%script_path+"local_sounds/ok/1.wav")
+                                        os.system("aplay -q %s"%script_path+"local_sounds/ok/1.wav")
                                         return(True)
 
 
@@ -2824,11 +3799,12 @@ if __name__ == "__main__":
 
 
     DISPLAY = ""
-#    DEBUG = False
-#    XCB_ERROR_FIX = False
-#    SAVED_ANSWER = script_path +"/local_sounds/saved_answer/"
+    DEBUG = False
+    XCB_ERROR_FIX = False
+    SAVED_ANSWER = script_path +"/local_sounds/saved_answer/"
 
     GetConf()
+
 
     print("DEBUG:",DEBUG)
     print("XCB_ERROR_FIX:",XCB_ERROR_FIX)
@@ -2853,7 +3829,39 @@ if __name__ == "__main__":
     wake_me_up.put(True)
     Current_Provider_Id = 0
     Repeat_Last_One=""
-    
+    trinity_name = []
+    trinity_mean = []
+    trinity_creator = []
+    trinity_script = []
+    trinity_help = []
+    prompt_request = []
+    trinity_source_request = []
+    rnd_request = []
+    repeat_request = []
+    search_history_request = []
+    read_link_request = []
+    play_wav_request = []
+    web_request = []
+    wait_words = []
+    add_words = []
+    action_words = []
+    action_functions = []
+    alt_trigger = []
+    verb_lst = []
+    synonyms_list = []
+
+    CMDFILE = script_path + "/datas/cmd.trinity"
+    ALTFILE = script_path + "/datas/alt_cmd.trinity"
+    TRIFILE = script_path + "/datas/alt_trigger.trinity"
+    ACTFILE = script_path + "/datas/action.trinity"
+    PREFILE = script_path + "/datas/prefix.trinity"
+    SYNFILE = script_path + "/datas/synonym.trinity"
+
+    Load_Csv()
+
+
+
+
 
     if XCB_ERROR_FIX:
          Xcb_Fix("unset")

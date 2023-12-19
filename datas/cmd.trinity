@@ -1,0 +1,197 @@
+function,trigger
+trinity_name,comment*tu*t'appelles
+trinity_name,comment*vous*vous appellez
+trinity_name,c'est quoi*ton *nom
+trinity_name,c'est quoi*votre *nom
+trinity_name,quel*ton nom
+trinity_name,quel*votre nom
+trinity_mean,pourquoi*tu*trinity
+trinity_mean,pourquoi*vous*trinity
+trinity_mean,pourquoi*t'appelles*comme ca
+trinity_mean,pourquoi*vous*appelles*comme ca
+trinity_mean,pourquoi*t'a*ce *nom
+trinity_mean,pourquoi*vous avez*ce *nom
+trinity_mean,pourquoi*tu*ce *nom
+trinity_mean,pourquoi*vous*ce *nom
+trinity_creator,qui*t'a cree
+trinity_creator,qui*vous a cree
+trinity_creator,qui*t'a programe
+trinity_creator,qui*vous a programe
+trinity_creator,qui*t'a fait
+trinity_creator,qui*vous a fait
+trinity_creator,qui*t'a concu
+trinity_creator,qui*vous a concu
+trinity_creator,qui*t'a fabrique
+trinity_creator,qui*vous a fabrique
+trinity_creator,qui*t'a*ce nom
+trinity_creator,qui*vous a*ce nom
+trinity_creator,qui*t'a appelle*comme
+trinity_creator,qui*vous a appelle*comme
+trinity_creator,qui*t'a*appelle*maniere
+trinity_creator,qui*vous a*appelle*maniere
+trinity_creator,qui*t'a*appelle*ainsi
+trinity_creator,qui*vous a*appelle*ainsi
+trinity_help,affiche*moi*ton aide
+trinity_help,affichez*moi*votre aide
+trinity_help,affiche*tes fonction
+trinity_help,affichez*vos fonction
+trinity_help,affiche*tes commande
+trinity_help,affichez*vos commande
+trinity_help,quelles*sont*tes fonction
+trinity_help,quelles*sont*vos fonction
+trinity_help,a quoi*sers-tu
+trinity_help,a quoi*servez-vous
+trinity_help,quelles*sont*tes commande
+trinity_help,quelles*sont*vos commande
+trinity_help,parle-moi de toi
+trinity_help,parlez-moi de vous
+trinity_help,quelles*sont*tes possibilite
+trinity_help,quelles*sont*vos possibilite
+trinity_help,qu*peut*faire*avec toi
+trinity_help,qu*peut*faire*avec vous
+prompt_request,le prompt
+prompt_request,que*je t'ecrive
+prompt_request,que*je vous ecrive
+prompt_request, t'ecrire
+prompt_request,de vous ecrire 
+prompt_request,je*te*l'ecri
+prompt_request,je*vous*l'ecrire
+prompt_request,vais l'ecrire
+prompt_request,va l'ecrire
+prompt_request,il*te l'ecrire
+prompt_request,il*vous l'ecrire
+prompt_request,vais*te l'ecrire
+prompt_request,vais*vous l'ecrire
+prompt_request,invite de commande
+prompt_request,le clavier
+prompt_request,j'ai*de t'ecrire
+prompt_request,j'ai*de vous ecrire
+prompt_request,je*de t'ecrire
+prompt_request,je*de vous ecrire
+prompt_request,interpreteur
+trinity_source_request,affiche ton code source
+trinity_source_request,affichez votre code source
+trinity_source_request,script trinity
+rnd_request,choix aleatoire
+rnd_request,entre oui et non
+repeat_request,tu peux*repete
+repeat_request,vous*pouvez*repeter
+repeat_request,moyen*tu repete
+repeat_request,moyen*vous repetiez
+repeat_request,moyen de repete
+repeat_request,possible*tu repete
+repeat_request,possible*vous repetiez
+repeat_request,possible de repete
+repeat_request,j*ai*pas*entendu
+repeat_request,j*ai*pas*compris
+repeat_request,rien entendu
+repeat_request,j*ai*rien compri
+repeat_request,repete ta
+repeat_request,repetez votre
+repeat_request,repete*moi
+repeat_request,repetez*moi
+repeat_request,redis*ce que
+repeat_request,redis*ca
+repeat_request,redites*ce que
+repeat_request,redites*ca
+repeat_request,t'a dis quoi
+repeat_request,qu'*que t*a* dis
+repeat_request,vous aves dit quoi
+repeat_request,qu'*que vous* dis
+search_history_request,historique
+search_history_request,rappelle
+search_history_request,souviens
+search_history_request,un*qui concerne
+search_history_request,des*qui concerne
+search_history_request,un*parlant
+search_history_request,des*parlant
+search_history_request,un*concernant
+search_history_request,des*concernant
+search_history_request,un*qui parle
+search_history_request,des*qui parle 
+search_history_request,resultat* sur 
+search_history_request,quelque*sur
+search_history_request,quelque chose concernant
+search_history_request,quelque chose qui concerne
+search_history_request,quelque*chose qui parle
+search_history_request,quelque*chose parlant
+search_history_request,en rapport avec
+search_history_request,en rapport au
+search_history_request,associe*a
+search_history_request,si*y*a
+search_history_request,on*deja*parle de*avec toi
+search_history_request,on*deja*parle de*avec vous
+search_history_request,on*deja*parle*ensemble
+search_history_request,si*je*ai*deja*parle*avec*toi
+search_history_request,si*j'*ai*deja*parle*avec toi
+search_history_request,si*je*ai*deja*parle*avec*vous
+search_history_request,si*j'*ai*deja*parle*avec vous
+read_link_request,le contenu
+read_link_request,ce qu*i*a dans
+read_link_request,ce qu*i*a sur
+read_link_request,ce qu*ya dans
+read_link_request,ce qu*ya sur
+read_link_request,ce que contient
+read_link_request,l'interrieur
+read_link_request,cette page
+read_link_request,ce site
+read_link_request,dans ce 
+read_link_request,ce lien
+play_wav_request,fichier*audio
+play_wav_request,fichier*son
+play_wav_request,fichier*wav
+play_wav_request,point*wav
+play_wav_request,ce fichier
+play_wav_request,enregistrement
+play_wav_request,lecture*fichier
+web_request,avec*wikipedia
+web_request,avec*google
+web_request,sur*wikipedia
+web_request,sur*google
+web_request,page*concerne
+web_request,page*wikipedia
+web_request,page*google
+web_request,page*internet
+web_request,page*concernant
+web_request,page*parlant
+web_request,page*qui parle
+web_request,page* sur 
+web_request,infos*qui parle
+web_request,info qui parle
+web_request,infos*parlant
+web_request,info*sur
+web_request,info*concernant
+web_request,infos*concern
+web_request,quelque*chose*sur
+web_request,quelque chose*concern
+web_request,quelque*chose*parle
+web_request,truc*qui*parle
+web_request,truc*concern
+web_request,article*concern
+web_request,article*google
+web_request,article*parl
+web_request,article*sur
+wait_words,attends
+wait_words,attendre
+wait_words,laisse-moi
+wait_words,laissez-moi
+wait_words,pause
+wait_words,minute
+wait_words,seconde
+wait_words,arrete
+wait_words,arretez
+add_words,declencheur*ta base de donnee
+add_words,phrase*ta base de donnee
+add_words,declencheur*ta base de donnee
+add_words,activateur*ta base de donnee
+add_words,fonction*ta base de donnee
+add_words,declencher*tes*fonction
+add_words,declencheur*votre base de donnee
+add_words,phrase*votre base de donnee
+add_words,declencheur*votre base de donnee
+add_words,activateur*votre base de donnee
+add_words,fonction*votre base de donnee
+add_words,declencher*vos*fonction
+add_words,nouveau*declencheur
+add_words,activateur*fonction
+add_words,nouvel*activateur
