@@ -146,8 +146,10 @@ play_wav_request,enregistrement
 play_wav_request,lecture*fichier
 web_request,avec*wikipedia
 web_request,avec*google
+web_request,avec*internet
 web_request,sur*wikipedia
 web_request,sur*google
+web_request,sur*internet
 web_request,page*concerne
 web_request,page*wikipedia
 web_request,page*google
