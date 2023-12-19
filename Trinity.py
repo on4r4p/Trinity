@@ -1181,7 +1181,7 @@ def Commandes(txt):
 
 
                triggered_parts[fnc] = seeknreturn(txt,trigger_function[fnc])
-#               bonus = bonuspoint(txt,action_functions,fnc)
+               bonus = bonuspoint(txt,action_functions,fnc)
                bonus = 0
                score_function[fnc] = len(triggered_parts[fnc]) + bonus
 
