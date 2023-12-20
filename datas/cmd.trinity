@@ -98,34 +98,33 @@ repeat_request,t'a dis quoi
 repeat_request,qu'*que t*a* dis
 repeat_request,vous aves dit quoi
 repeat_request,qu'*que vous* dis
-search_history_request,historique
-search_history_request,rappelle
-search_history_request,souviens
-search_history_request,un*qui concerne
-search_history_request,des*qui concerne
-search_history_request,un*parlant
-search_history_request,des*parlant
-search_history_request,un*concernant
-search_history_request,des*concernant
-search_history_request,un*qui parle
-search_history_request,des*qui parle 
-search_history_request,resultat* sur 
-search_history_request,quelque*sur
-search_history_request,quelque chose concernant
-search_history_request,quelque chose qui concerne
-search_history_request,quelque*chose qui parle
-search_history_request,quelque*chose parlant
-search_history_request,en rapport avec
-search_history_request,en rapport au
-search_history_request,associe*a
-search_history_request,si*y*a
-search_history_request,on*deja*parle de*avec toi
-search_history_request,on*deja*parle de*avec vous
-search_history_request,on*deja*parle*ensemble
-search_history_request,si*je*ai*deja*parle*avec*toi
-search_history_request,si*j'*ai*deja*parle*avec toi
-search_history_request,si*je*ai*deja*parle*avec*vous
-search_history_request,si*j'*ai*deja*parle*avec vous
+search_history_request,rappelle* si *historique
+search_history_request,souviens * si *historique
+search_history_request,un*qui concerne *historique
+search_history_request,des*qui concerne *historique
+search_history_request,un*parlant*historique
+search_history_request,des*parlant*historique
+search_history_request,un*concernant*historique
+search_history_request,des*concernant*historique
+search_history_request,un*qui parle*historique
+search_history_request,des*qui parle*historique
+search_history_request,resultat* sur *historique
+search_history_request,quelque*sur*historique
+search_history_request,quelque chose concernant*historique
+search_history_request,quelque chose qui concerne*historique
+search_history_request,quelque*chose qui parle*historique
+search_history_request,quelque*chose parlant*historique
+search_history_request,en rapport avec*historique
+search_history_request,en rapport au*historique
+search_history_request,associe*a*historique
+search_history_request,si*y*a*historique
+search_history_request,on*deja*parle de*avec toi*historique
+search_history_request,on*deja*parle de*avec vous*historique
+search_history_request,on*deja*parle*ensemble*historique
+search_history_request,si*je*ai*deja*parle*avec*toi*historique
+search_history_request,si*j'*ai*deja*parle*avec toi*historique
+search_history_request,si*je*ai*deja*parle*avec*vous*historique
+search_history_request,si*j'*ai*deja*parle*avec vous*historique
 read_link_request,le contenu
 read_link_request,ce qu*il*y*a dans
 read_link_request,ce qu*il*y*a sur
