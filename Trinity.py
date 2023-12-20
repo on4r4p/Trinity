@@ -2676,7 +2676,7 @@ def Text_To_Speech(txtinput,stayawake=False,savehistory=True):
 
     PRINT("\n-Trinity:len(txtinput:",len(txtinput))
 
-    print("\n-Trinity:\n\n%s\n\n"%stxtinput)
+    print("\n-Trinity:\n\n%s\n\n"%txtinput)
 
     parsed_response = parse_response(str(txtinput))
 
