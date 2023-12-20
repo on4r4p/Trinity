@@ -1214,7 +1214,7 @@ def Commandes(txt):
        while True:
            for n,(fnc) in enumerate(ordered_list):
                 print("\n-Trinity:Commande:%s\n-Déclenchée par %s parties:%s\n-Score de Confiance:%s"%(fnc,len(triggered_parts[fnc]),triggered_parts[fnc],score_function[fnc]))
-                print("\n==\n-Trinity:Pour choisir cette commande tapez:%s\n==\n"%n)
+                print("\n==\n-Trinity:Pour choisir cette commande (%s) tapez:%s\n==\n"%(fnc,n))
 
                 if n+1 == 1:
                     os.system("aplay -q %s/local_sounds/cmd/intro_%s.wav"%(script_path,fnc))
