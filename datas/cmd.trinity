@@ -127,8 +127,8 @@ search_history_request,si*j'*ai*deja*parle*avec toi
 search_history_request,si*je*ai*deja*parle*avec*vous
 search_history_request,si*j'*ai*deja*parle*avec vous
 read_link_request,le contenu
-read_link_request,ce qu*i*a dans
-read_link_request,ce qu*i*a sur
+read_link_request,ce qu*il*y*a dans
+read_link_request,ce qu*il*y*a sur
 read_link_request,ce qu*ya dans
 read_link_request,ce qu*ya sur
 read_link_request,ce que contient
