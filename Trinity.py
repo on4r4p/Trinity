@@ -1439,11 +1439,11 @@ def Commandes(txt):
 
         if goto:
             PRINT("\n-Trinity:Va dans la fonction :%s"%goto)
-            print()
     elif len(ambiguity) == 1:
         PRINT("\n-Trinity:No ambiguity")
     else:
-        print("\n-Trinity:Aucune commande.")
+        PRINT("\n-Trinity:Aucune commande.")
+
     if goto:
 
        if goto == "ask_to_wait":
