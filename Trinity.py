@@ -229,12 +229,13 @@ def wake_up():
     word_key = script_path+"/models/trinity_fr_raspberry-pi_v3_0_0.ppn"
     word_key2 = script_path+"/models/interpreteur_fr_raspberry-pi_v3_0_0.ppn"
     word_key3 = script_path+"/models/repete_fr_raspberry-pi_v3_0_0.ppn"
+    word_key4 = script_path+"/models/merci_fr_raspberry-pi_v3_0_0.ppn"
     pvfr = script_path+"/models/porcupine_params_fr.pv"
     porcupine = None
     keyword_index = None
 
     try:
-        porcupine = pvporcupine.create(access_key=PICO_KEY, model_path = pvfr,keyword_paths=[word_key,word_key2,word_key3],sensitivities=[1,1,1] )
+        porcupine = pvporcupine.create(access_key=PICO_KEY, model_path = pvfr,keyword_paths=[word_key,word_key2,word_key3,word_key4],sensitivities=[1,1,1,1] )
         with ignoreStderr():
             pa = pyaudio.PyAudio()
         audio_stream = pa.open(
@@ -263,8 +264,11 @@ def wake_up():
             if keyword_index == 2:
                 PRINT("\n-Trinity:keyword_index:",keyword_index)
                 break
-
-
+            if keyword_index == 3:
+                PRINT("\n-Trinity:keyword_index:",keyword_index)
+                rnd = str(random.randint(1,15))
+                thk_sound = script_path+"/local_sounds/merci/"+rnd+".wav"
+                os.system("aplay -q %s"%thk_sound)
 
 
     finally:
@@ -1426,8 +1430,8 @@ def Commandes(txt):
          if ask_for_web:
                  ambiguity.append("ask_for_web")
 
+    goto = None
     if len(ambiguity) > 1:
-        goto = None
         if ask_to_action:
              goto = disambiguify(ask_to_action,ambiguity,decoded,ask_to_action)
         else:
@@ -1525,7 +1529,8 @@ def Commandes(txt):
 
        else:
             return(False)
-
+    else:
+          return(False)
 
 
 
@@ -2670,6 +2675,9 @@ def Text_To_Speech(txtinput,stayawake=False,savehistory=True):
 
 
     PRINT("\n-Trinity:len(txtinput:",len(txtinput))
+
+    print("\n-Trinity:\n\n%s\n\n"%stxtinput)
+
     parsed_response = parse_response(str(txtinput))
 
     txt_list = Split_Text(parsed_response)
