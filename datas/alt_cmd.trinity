@@ -1,1 +1,3 @@
 trigger,function
+recherche * dans l'historique,ask_for_history
+comment * t'utilise,ask_for_help

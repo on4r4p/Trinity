@@ -48,16 +48,21 @@ def signal_handler(sig, frame):
 
 def PRINT(txt,other=None):
    tmp_txt = txt
+#   print("\n-Trinity:Dans la fonction PRINT().")
+#   print("\n-Trinity:other:",other)
    try:
        if DEBUG:
             if other:
                 tmp_txt = str(txt) + " " +str(other)
+                print(tmp_txt)
             else:
                 print(tmp_txt)
-   except:
+   except Exception as e:
+         print("\n-Trinity:Erreur dans la fonction PRINT:",str(e))
          pass
-def LoadKeys():
-   PRINT("\n-Trinity:Dans fonction LoadKeys")
+
+def PicoLoadKeys():
+   PRINT("\n-Trinity:Dans fonction PicoLoadKeys")
    if os.path.exists(script_path+"/keys/pico.key"):
        with open(script_path+"/keys/pico.key","r") as k:
            PICO_KEY = k.read()
@@ -70,8 +75,37 @@ def LoadKeys():
             return(PICO_KEY)
    else:
        print("\n-Trinity:-%s/keys/pico.key doesn't exist."%script_path)
+       sys.exit()
 
+def GoogleLoadKeys():
+   PRINT("\n-Trinity:Dans fonction GoogleLoadKeys")
 
+   GOOGLE_KEY = ""
+   GOOGLE_ENGINE = ""
+
+   if os.path.exists(script_path+"/keys/google_search.key"):
+       with open(script_path+"/keys/google_search.key","r") as k:
+           GOOGLE_KEY = k.read()
+           GOOGLE_KEY = GOOGLE_KEY.strip()
+       if len(GOOGLE_KEY) != 39:
+            print("\n-Trinity:-Wrong Google Api key (len).")
+            print(GOOGLE_KEY)
+            GOOGLE_KEY = ""
+   else:
+       print("\n-Trinity:-%s/keys/google_search_engine.key doesn't exist."%script_path)
+
+   if os.path.exists(script_path+"/keys/google_search_engine.id"):
+       with open(script_path+"/keys/google_search_engine.id","r") as k:
+           GOOGLE_ENGINE = k.read()
+           GOOGLE_ENGINE = GOOGLE_ENGINE.strip()
+       if len(GOOGLE_ENGINE) != 17:
+            print("\n-Trinity:-Wrong Google engine id (len).")
+            print(GOOGLE_ENGINE)
+            GOOGLE_ENGINE = ""
+   else:
+       print("\n-Trinity:-%s/keys/google_search_engine.id doesn't exist."%script_path)
+
+   return(GOOGLE_KEY,GOOGLE_ENGINE)
 
 
 def parse_response(data):
@@ -219,6 +253,7 @@ def fallbackGpt(input):
                 os.system("aplay -q "+script_path+"local_sounds/errors/err_no_respons_allprovider.wav")
                 return()
      else:
+                PRINT("\n-Trinity:Le server %s à répondu."%(providers_names[Current_Provider_Id]))
                 return(Text_To_Speech(str(response),stayawake=False,savehistory=True))
 
 
@@ -429,10 +464,12 @@ def Load_Csv():
     global web_request
     global wait_words
     global action_words
+    global add_words
     global action_functions
     global alt_trigger
     global verb_lst
     global synonyms_list
+    global fnc_verb
 
     trinity_name = []
     trinity_mean = []
@@ -448,15 +485,16 @@ def Load_Csv():
     play_wav_request = []
     web_request = []
     wait_words = []
+    add_words = []
     action_words = []
     action_functions = []
     alt_trigger = []
     verb_lst = []
     synonyms_list = []
+    fnc_verb = {}
 
 
-
-
+    PRINT("\n-Trinity:Dans la fonction Load_Csv .")
 
     if os.path.exists(SYNFILE):
          with open(SYNFILE, newline="") as f:
@@ -531,6 +569,8 @@ def Load_Csv():
                            web_request.append(trigger)
                       elif function == "wait_words":
                            wait_words.append(trigger)
+                      elif function == "add_words":
+                           add_words.append(trigger)
     else:
 
           print("\n-Trinity:Error:%s not found."%CMDFILE)
@@ -546,8 +586,6 @@ def Load_Csv():
 
                  if "verb" in row:
                       verb = row["verb"]
-                      verb_lst.append(verb)
-#                      print("%s,"%verb)
                  else:
                      continue
                  if "indicatif1" in row:
@@ -599,12 +637,22 @@ def Load_Csv():
 
                  if verb not in action_words:
                          action_words.append(verb)
+                         verb_lst.append(verb)
                          if "***" in functions:
                               allowed_fonctions = functions.split("***")
                               for alf in allowed_fonctions:
                                     action_functions.append((verb,alf))
+                                    if not alf in fnc_verb:
+                                        fnc_verb[alf] = []
+                                    if not verb in fnc_verb[alf]:
+                                        fnc_verb[alf].append(verb)
                          else:
                                action_functions.append((verb,functions))
+                               if not functions in fnc_verb:
+                                     fnc_verb[functions] = []
+                               if not verb in fnc_verb[functions]:
+                                     fnc_verb[functions].append(verb)
+
 
                  if ind1 not in action_words:
                          action_words.append(ind1)
@@ -680,8 +728,10 @@ def Load_Csv():
                               allowed_fonctions = functions.split("***")
                               for alf in allowed_fonctions:
                                     action_functions.append((ind1+suffix1,alf))
+                                    action_functions.append((ind1+suffix1.replace("-"," "),alf))
                           else:
                                action_functions.append((ind1+suffix1,functions))
+                               action_functions.append((ind1+suffix1.replace("-"," "),functions))
 
                  if ind2+suffix1 not in action_words:
                           action_words.append(ind2+suffix1)
@@ -689,8 +739,10 @@ def Load_Csv():
                               allowed_fonctions = functions.split("***")
                               for alf in allowed_fonctions:
                                     action_functions.append((ind2+suffix1,alf))
+                                    action_functions.append((ind2+suffix1.replace("-"," "),alf))
                           else:
                                action_functions.append((ind2+suffix1,functions))
+                               action_functions.append((ind2+suffix1.replace("-"," "),functions))
 
 
 
@@ -700,8 +752,10 @@ def Load_Csv():
                               allowed_fonctions = functions.split("***")
                               for alf in allowed_fonctions:
                                     action_functions.append((cond1+suffix2,alf))
+                                    action_functions.append((cond1+suffix2.replace("-"," "),alf))
                           else:
                                action_functions.append((cond1+suffix2,functions))
+                               action_functions.append((cond1+suffix2.replace("-"," "),functions))
 
                  if cond2+suffix3 not in action_words:
                           action_words.append(cond2+suffix3)
@@ -709,8 +763,10 @@ def Load_Csv():
                               allowed_fonctions = functions.split("***")
                               for alf in allowed_fonctions:
                                     action_functions.append((cond2+suffix3,alf))
+                                    action_functions.append((cond2+suffix3.replace("-"," "),alf))
                           else:
                                action_functions.append((cond2+suffix3,functions))
+                               action_functions.append((cond2+suffix3.replace("-"," "),functions))
 
                  if cond1+suffix2 not in action_words:
                           action_words.append(cond1+suffix2)
@@ -718,8 +774,10 @@ def Load_Csv():
                               allowed_fonctions = functions.split("***")
                               for alf in allowed_fonctions:
                                     action_functions.append((cond1+suffix2,alf))
+                                    action_functions.append((cond1+suffix2.replace("-"," "),alf))
                           else:
                                action_functions.append((cond1+suffix2,functions))
+                               action_functions.append((cond1+suffix2.replace("-"," "),functions))
 
                  if cond2+suffix3 not in action_words:
                           action_words.append(cond2+suffix3)
@@ -727,8 +785,10 @@ def Load_Csv():
                               allowed_fonctions = functions.split("***")
                               for alf in allowed_fonctions:
                                     action_functions.append((cond2+suffix3,alf))
+                                    action_functions.append((cond2+suffix3.replace("-"," "),alf))
                           else:
                                action_functions.append((sub2+suffix3,functions))
+                               action_functions.append((sub2+suffix3.replace("-"," "),functions))
 
 
                  if cond1+suffix2 not in action_words:
@@ -737,8 +797,10 @@ def Load_Csv():
                               allowed_fonctions = functions.split("***")
                               for alf in allowed_fonctions:
                                     action_functions.append((cond1+suffix2,alf))
+                                    action_functions.append((cond1+suffix2.replace("-"," "),alf))
                           else:
                                action_functions.append((cond1+suffix2,functions))
+                               action_functions.append((cond1+suffix2.replace("-"," "),functions))
 
                  if cond2+suffix3 not in action_words:
                           action_words.append(cond2+suffix3)
@@ -746,8 +808,10 @@ def Load_Csv():
                               allowed_fonctions = functions.split("***")
                               for alf in allowed_fonctions:
                                     action_functions.append((cond2+suffix3,alf))
+                                    action_functions.append((cond2+suffix3.replace("-"," "),alf))
                           else:
                                action_functions.append((cond2+suffix3,functions))
+                               action_functions.append((cond2+suffix3.replace("-"," "),functions))
 
                  with open(PREFILE, newline="") as csvfile2:
                       reader2 = csv.DictReader(csvfile2)
@@ -842,7 +906,12 @@ def Load_Csv():
                                          action_functions.append((pre2,functions))
 
 
-
+         for k in fnc_verb:
+             fnc_verb[k].append("pouvoir")
+             fnc_verb[k].append("vouloir")
+             fnc_verb[k].append("être")
+             fnc_verb[k].append("falloir")
+             fnc_verb[k].append("devoir")
 
 
     else:
@@ -893,10 +962,270 @@ def Load_Csv():
                            web_request.append(trigger)
                       elif function == "ask_to_wait":
                            wait_words.append(trigger)
+                      elif function == "ask_to_add":
+                           add_words.append(trigger)
     else:
 
           print("\n-Trinity:Error %s not found."%ALTFILE)
           sys.exit()
+
+
+
+
+
+
+
+
+def Add_Trigger():
+
+    print("\n-Trinity:Dans la fonction Add_Trigger.\n")
+
+    def seeknreturn(var_to_check,list_elements):
+          found_lst = []
+          for element in list_elements:
+               if "*" in element:
+                   splited = element.split("*")
+                   all_inside = all(e in var_to_check for e in splited)
+                   if all_inside:
+#                      for s in splited:
+#                          found_lst.append(s)
+                       found_lst.append(element)
+               if element in var_to_check:
+                    found_lst.append(element)
+          return(found_lst)
+
+
+
+    def checktrigger(trigger,funcname):
+
+
+              def minitts(tx,fname):
+
+                       try:
+
+                           client = tts.TextToSpeechClient()
+                           audio_config = tts.AudioConfig(audio_encoding=tts.AudioEncoding.LINEAR16)
+
+                           text_input = tts.SynthesisInput(text=tx)
+                           voice_params = tts.VoiceSelectionParams(language_code="fr-FR", name="fr-FR-Neural2-A")
+
+                           response = client.synthesize_speech(input=text_input,voice=voice_params,audio_config=audio_config)
+                           audio_response = response.audio_content
+                           try:
+                               with open("%s/local_sounds/cmd/triggers/%s"%(script_path,fname), "wb") as out:
+                                    out.write(audio_response)
+                           except Exception as e:
+                               PRINT("\n-Trinity:Error:%s"%str(e))
+                       except Exception as e:
+                           PRINT("\n-Trinity:Error:%s"%str(e))
+
+
+
+              def getwav(f,trigparts):
+
+                   trigcat = None
+
+                   if f == "ask_to_wait":
+                             trigcat = "wait_words"
+                   if f == "ask_for_name":
+                             trigcat = "trinity_name"
+                   if f == "ask_for_mean":
+                             trigcat = "trinity_mean"
+                   if f == "ask_for_creator":
+                             trigcat = "trinity_creator"
+                   if f == "ask_for_rnd":
+                             trigcat = "rnd_request"
+                   if f == "ask_for_repeat":
+                             trigcat = "repeat_request"
+                   if f == "ask_for_prompt":
+                             trigcat = "prompt_request"
+                   if f == "ask_for_help":
+                             trigcat = "trinity_help"
+                   if f == "ask_to_play_wav":
+                             trigcat = "play_wav_request"
+                   if f == "ask_for_history":
+                             trigcat = "search_history_request"
+                   if f == "ask_to_read_link":
+                             trigcat = "read_link_request"
+                   if f == "ask_for_web":
+                             trigcat = "web_request"
+                   if f == "ask_to_add":
+                             trigcat = "add_words"
+
+                   if not trigcat:
+                        PRINT("\n-Trinity:Error getwav %s ne correspond pas a une fonction."%f)
+                        return()
+
+                   os.system("aplay -q %s/local_sounds/cmd/triggers/%s.wav"%(script_path,trigcat))
+
+                   for t in trigparts:
+                        t = unidecode(t.replace(" ","_").replace("-","_").replace("*","_").replace("'","_"))
+                        wavname = trigcat + "_" + t + ".wav"
+                        if os.path.exists("%s/local_sounds/cmd/triggers/%s"%(script_path,wavname)):
+                             os.system("aplay -q %s/local_sounds/cmd/triggers/%s"%(script_path,wavname))
+                        else:
+                             print("\n-Trinity:Error Wave file not found:%s/local_sounds/cmd/triggers/%s"%(script_path,wavname)) 
+                             minitts(tx,wavname)
+                             if os.path.exists("%s/local_sounds/cmd/triggers/%s"%(script_path,wavname)):
+                                  os.system("aplay -q %s/local_sounds/cmd/triggers/%s"%(script_path,wavname))
+                   return()
+
+              new_ambiguity = {}
+
+              trigger = unidecode(trigger.lower().replace(","," ").replace("!"," ").replace("?"," ").replace("  "," "))
+
+
+              ask_to_action = seeknreturn(trigger,action_words)
+
+              ask_to_add = seeknreturn(trigger,add_words)
+
+              ask_for_name = seeknreturn(trigger,trinity_name)
+
+              ask_for_mean = seeknreturn(trigger,trinity_mean)
+
+              ask_for_creator = seeknreturn(trigger,trinity_creator)
+
+              ask_for_help = seeknreturn(trigger,trinity_help)
+
+              ask_for_prompt = seeknreturn(trigger,prompt_request)
+
+              ask_for_rnd = seeknreturn(trigger,rnd_request)
+
+              ask_for_repeat = seeknreturn(trigger,repeat_request)
+
+              ask_for_history = seeknreturn(trigger,search_history_request)
+
+              ask_for_web = seeknreturn(trigger,web_request)
+
+              ask_to_read_link = seeknreturn(trigger,read_link_request)
+
+              ask_to_play_wav = seeknreturn(trigger,play_wav_request)
+
+              ask_to_wait = seeknreturn(trigger,wait_words)
+
+
+              if ask_to_action :
+                   if ask_to_wait and funcname != "ask_to_wait":
+                             new_ambiguity["ask_to_wait"] = ask_to_wait
+                   if ask_for_name and funcname != "ask_for_name":
+                             new_ambiguity["ask_for_name"] = ask_for_name 
+                   if ask_for_mean and funcname != "ask_for_mean":
+                             new_ambiguity["ask_for_mean"] = ask_for_mean
+                   if ask_for_creator and funcname != "ask_for_creator":
+                             new_ambiguity["ask_for_creator"] = ask_for_creator
+                   if ask_for_rnd and funcname != "ask_for_rnd":
+                             new_ambiguity["ask_for_rnd"] = ask_for_rnd
+                   if ask_for_repeat and funcname != "ask_for_repeat":
+                             new_ambiguity["ask_for_repeat"] = ask_for_repeat
+                   if ask_for_prompt and funcname != "ask_for_prompt":
+                             new_ambiguity["ask_for_prompt"] =ask_for_prompt
+                   if ask_for_help and funcname != "ask_for_help":
+                             new_ambiguity["ask_for_help"] = ask_for_help
+                   if ask_to_play_wav and funcname != "ask_to_play_wav":
+                             new_ambiguity["ask_to_play_wav"] = ask_to_play_wav
+                   if ask_for_history and funcname != "ask_for_history":
+                             new_ambiguity["ask_for_history"] =  ask_for_history
+                   if ask_to_read_link and funcname != "ask_to_read_link":
+                              new_ambiguity["ask_to_read_link"] = ask_to_read_link
+                   if ask_for_web and funcname != "ask_for_web":
+                             new_ambiguity["ask_for_web"] = ask_for_web
+                   if ask_to_add and funcname != "ask_to_add":
+                             new_ambiguity["ask_for_web"] = ask_to_add
+              if len(new_ambiguity) == 0:
+
+                    print("\n-Parfait,cette phrase semble déclencher la fonction:",funcname)  
+                    os.system("aplay -q %s/local_sounds/cmd/valid.wav"%script_path)
+                    os.system("aplay -q %s/local_sounds/cmd/save.wav"%script_path)
+                    while True:
+                       rusure =input("\n-Sauvegarde cette phrase dans la base de données ?:\n\n%s\n\n-Votre choix:(oui/non/abandonner)"%trigger).lower()
+                       if rusure in ["oui","non","abandonner"]:
+                          if rusure == "oui": 
+                               Write_csv(trigger,funcname,ALTFILE)
+                               return(True)
+                          elif rusure == "non":
+                               return(False)
+                          elif rusure =="abandonner":
+                               return(True)
+
+              else:
+
+                    os.system("aplay -q %s/local_sounds/cmd/new_ambiguity.wav"%script_path)
+                    for fnc,trigged in new_ambiguity.items():
+                             print("\n\n-La fonction %s est déclenchée par cette partie: %s"%(fnc,trigged))
+                             getwav(fnc,trigged)
+
+                    os.system("aplay -q %s/local_sounds/cmd/new_ambiguity2.wav"%script_path)
+
+#              print("\n\n-mini touchdown\n\n")
+ 
+
+
+    os.system("aplay -q %s/local_sounds/question/newtrigger.wav"%script_path)
+
+    functions = [
+         ('trinity_name', 'pour avoir le nom du script de Trinity',"Salut ça va ?Comment tu t'appelle?","comment * t'appelle","trinity_name"),
+         ('trinity_mean', 'pour avoir le sens du nom du script de Trinity',"Pourquoi on a décidé de t'appeler comme ça?","pourquoi *t'appeler comme ça","trinity_mean"),
+         ('trinity_creator', 'pour connaitre le nom du créateur du script de Trinity',"Qui est-ce qui t'a créé ?","qui * t'a créé","trinity_creator"),
+         ('trinity_help', "pour avoir l'aide du script Trinity","Affiche moi l'aide de ton script.","affiche*moi *aide * ton script","ask_for_help"),
+         ('prompt_request', 'pour pouvoir écrire à Trinity',"J'ai besoin de t'écrire un truc.","ai * de t'écrire","ask_for_prompt"),
+         ('trinity_source_request', 'pour afficher la source du script Trinity',"tu peux me montrer ton code source?","peux* montrer * ton code","ask_for_src"),
+         ('rnd_request', 'pour effectuer un choix aléatoire',"Peux-tu faire un choix entre 1 et 2?","peux*tu * choix entre * et ","ask_for_rnd"),
+         ('repeat_request', 'pour demander à Trinity de répéter',"J'ai rien compris tu peux me redire ça ?","tu*peux* redire ça","ask_to_repeat"),
+         ('search_history_request', "pour faire une recherche dans l'historique","Regarde dans l'historique si tu trouve Albert Einstein","regarde * l'historique * si * trouve","ask_for_history"),
+         ('read_link_request', "pour lire une page web","Tu peux me lire ce qu'il y a dans cette page web?","tu*peux* lire * dans * page web","ask_to_read_link"),
+         ('play_wav_request', 'Pour lire un fichier audio',"Tu peux me jouer ce fichier audio s'il te plaît?","tu*peux* jouer * fichier audio","ask_to_play_wav"),
+         ('web_request', 'Pour faire une recherche sur internet',"Fais-moi une recherche sur google a propos du big bang","fais*moi recherche * google * a propos","ask_for_web"),
+         ('wait_words', "Pour demander à Trinity d'attendre","Minute papillon je ne suis pas près!","Minute * je * suis pas près","ask_to_wait"),
+         ('add_words', 'Pour ajouter un nouveau déclencheur de fonction',"j'aimerai ajouter un nouveau trigger.","ajouter * nouveau * trigger","ask_to_add"),
+   ]
+
+
+    for index, (function_name, function_description,_,_,_) in enumerate(functions, start=1):
+         print(f"({index}) {function_name} :  {function_description}")
+
+    while True:
+         try:
+             user_choice = int(input("\nChoisissez une fonction (1 à {}): ".format(len(functions))))
+             if user_choice in range(1,len(functions)+1):
+                selected_function = functions[user_choice - 1][0]
+                selected_description = functions[user_choice - 1][1]
+                exemple1 = functions[user_choice - 1][2]
+                exemple2 = functions[user_choice - 1][3]
+                seekname = functions[user_choice - 1][4]
+                break
+         except:
+             pass
+    print(f"Vous avez choisi {selected_function}: {selected_description}")
+
+
+
+
+    while True:
+#             print("\n\n===============\n\n")
+
+             os.system("aplay -q %s/local_sounds/cmd/instruction.wav"%script_path)
+             print("\n\n===============\n\n==Ajouter un nouveau déclencheur pour la fonction: %s ==\n\n-Gardez la partie qui identifie l'action %s dans votre phrase."%(selected_function,selected_description))
+             print("\n-Par example si votre phrase complète ressemble à ceci:\n\n\t-",exemple1)
+             print("\n-J'aimerais que vous ne gardiez que cela:\n\n\t-",exemple2)
+             print("\n-Le symbole * est utilisé içi afin de ne pas tenir compte des mots qu'il peut y avoir à cette position.\n\n")
+             print("\n\n-Voici les déclencheurs déjà enregistrés pour cette fonction:\n")
+             for n,i in enumerate(globals()[selected_function]):print("\t%s-:%s"%(n,i))
+
+             if seekname in fnc_verb:
+                 print("\n\n-Voici la liste de verbes déjà associés à cette fonction:\n")
+                 for n,f in enumerate(fnc_verb[seekname]):print("\t%s-:%s"%(n,f))
+             else:
+                 for k in fnc_verb:
+                    print(k)
+             print("\n-Si votre phrase utilise l'un de ces verbes meme sous une forme conjugué il n'est pas nécessaire de l'écrire.\n-Vous pouvez néanmoins le faire si vous souhaitez que votre déclencheur soit plus précis.\n\n-Les accents et caractére spéciaux et ponctuation sont automatiquement enlevés.\n")
+             new_trigger = input("\n-Nouveau déclencheur pour la fonction %s :"%selected_function)
+             valid = checktrigger(new_trigger,seekname)
+             if valid:
+                  return(selected_function)
+
+
+
+
 
 
 
@@ -968,7 +1297,7 @@ def Commandes(txt):
                        except Exception as e:
                            PRINT("\n-Trinity:Error:%s"%str(e))
 
-
+                   trigcat = None
 
                    if f == "ask_to_wait":
                              trigcat = "wait_words"
@@ -994,6 +1323,10 @@ def Commandes(txt):
                              trigcat = "read_link_request"
                    if f == "ask_for_web":
                              trigcat = "web_request"
+
+                   if not trigcat:
+                        PRINT("\n-Trinity:Error getwav %s ne correspond pas a une fonction."%f)
+                        return()
 
                    os.system("aplay -q %s/local_sounds/cmd/triggers/%s.wav"%(script_path,trigcat))
 
@@ -1182,7 +1515,8 @@ def Commandes(txt):
                    trigger_function[fnc] = repeat_request
                if fnc == "ask_to_wait":
                    trigger_function[fnc] = wait_words
-
+               if fnc == "ask_to_add":
+                   trigger_function[fnc] = add_words
 
                triggered_parts[fnc] = seeknreturn(txt,trigger_function[fnc])
                bonus = bonuspoint(txt,action_functions,fnc)
@@ -1429,6 +1763,8 @@ def Commandes(txt):
                  ambiguity.append("ask_to_read_link") 
          if ask_for_web:
                  ambiguity.append("ask_for_web")
+         if ask_to_add:
+                 ambiguity.append("ask_to_add")
 
     goto = None
     if len(ambiguity) > 1:
@@ -1445,6 +1781,10 @@ def Commandes(txt):
         PRINT("\n-Trinity:Aucune commande.")
 
     if goto:
+
+       if goto == "ask_to_add":
+              Add_Trigger()
+              return(True)
 
        if goto == "ask_to_wait":
               Standing_By()
@@ -1502,6 +1842,7 @@ def Commandes(txt):
 
                   return(True)
        elif goto == "ask_for_web":
+
            if "wikipedia" in decoded:
                for element in to_remove:
                   if element in decoded:
@@ -1515,7 +1856,7 @@ def Commandes(txt):
                       decoded = decoded.replace(element," ")
 
                       decoded = decoded.replace("  ","")
-                      Wikipedia(decoded)
+               Wikipedia(decoded)
 
                return(True)
            else:
@@ -1537,37 +1878,87 @@ def Commandes(txt):
 
 
 def GetTitleLink(txt,site=None):
-    try:
-        google_result = googlesearch.search(txt,num_results=10,lang="fr", advanced=True)
+    PRINT("\n-Trinity:Dans la fonction GetTitleLink()")
+    PRINT("\n-Trinity:txt:",txt)
+    PRINT("\n-Trinity:txt:",site)
 
-        title_search = ""
+    SearchFallback = False
 
-        for g in google_result:
-            if site:
-                if site in g.url:
-                    PRINT("\n-Trinity:google_result:",g.title)
-                    title_search = g.title
-                    break
-            else:
-                    PRINT("\n-Trinity:google_result:",g.title)
-                    title_search = g.title
-                    break
+    if (len(GOOGLE_KEY) != 0 and len(GOOGLE_ENGINE) != 0):
+
+         PRINT("\n-Trinity:Using Custom Search Google Api.")
+
+         try:
+             google_query = "https://www.googleapis.com/customsearch/v1?key=%s&cx=%s&q=%s&start=1"%(GOOGLE_KEY,GOOGLE_ENGINE,txt)
+
+             response = requests.get(google_query)
+
+             if response.status_code != 200:
+                       SearchFallback = True
+                       raise
+
+             data = response.json()
+
+             search_items = data.get("items")
+
+             title_search = ""
+
+             for result in search_items:
+
+                  title_search = result.get("title")
+
+                  if len(title_search) == 0:
+                     continue
+                  else:
+                      break
+
+         except Exception as e:
+                   os.system("aplay -q %s"%script_path+"local_sounds/errors/err_Google.wav")
+                   PRINT("\n-Trinity:Custom search Error:",str(e))
+                   SearchFallback = True
+
+         if len(title_search) == 0:
+                 PRINT("\n-Trinity:-Google() no result from google")
+                 os.system("aplay -q %s"%script_path+"local_sounds/errors/err_no_result_google.wav")
+                 SearchFallback = True
+         else:
+               return(title_search)
+
+    if (len(GOOGLE_KEY) == 0 and len(GOOGLE_ENGINE) == 0) or SearchFallback == True:
+
+         try:
+             google_result = googlesearch.search(txt,num_results=10,lang="fr", advanced=True)
+
+             title_search = ""
+
+             for g in google_result:
+                 if site:
+                     if site in g.url:
+                         PRINT("\n-Trinity:google_result:",g.title)
+                         title_search = g.title
+                         break
+                 else:
+                         PRINT("\n-Trinity:google_result:",g.title)
+                         title_search = g.title
+                         break
 
 
-        if len(title_search) == 0:
-            PRINT("\n-Trinity:GetTitleLink no result from google")
-            os.system("aplay -q %s"%script_path+"local_sounds/errors/err_no_result_google.wav")
-            return(None)
+             if len(title_search) == 0:
+                 PRINT("\n-Trinity:GetTitleLink no result from google")
+                 os.system("aplay -q %s"%script_path+"local_sounds/errors/err_no_result_google.wav")
+                 return(None)
 
-        else:
-            return(title_search)
+             else:
+                 return(title_search)
 
 
 
-    except Exception as e:
-         os.system("aplay -q %s"%script_path+"local_sounds/errors/err_google.wav")
-         PRINT("\n-Trinity:Error:",str(e))
-         return(None)
+         except Exception as e:
+              os.system("aplay -q %s"%script_path+"local_sounds/errors/err_google.wav")
+              PRINT("\n-Trinity:Error:",str(e))
+              return(None)
+
+    return(None) 
 
 
 
@@ -1688,6 +2079,7 @@ def ReadLink(txtinput=None,titleinput=None,urlinput=None):
 def Google(tosearch,rnbr=50): #,tstmode = True):
 
     Exit = False
+    SearchFallback = False
     google_result = []
 
     PRINT("\n-Trinity: tosearch:",tosearch)
@@ -2105,26 +2497,84 @@ def Google(tosearch,rnbr=50): #,tstmode = True):
            return(False)
 
 
-    try:
-        google_query = googlesearch.search(tosearch,num_results=rnbr,lang="fr", advanced=True)
+
+    if (len(GOOGLE_KEY) != 0 and len(GOOGLE_ENGINE) != 0):
+
+         PRINT("\n-Trinity:Using Custom Search Google Api.")
+
+         maxpage = int(rnbr/10)
+         for page in range(maxpage):
+              start = page * 10 + 1
+              try:
+                  google_query = "https://www.googleapis.com/customsearch/v1?key=%s&cx=%s&q=%s&start=%s"%(GOOGLE_KEY,GOOGLE_ENGINE,tosearch,start)
+
+                  response = requests.get(google_query)
+
+                  if response.status_code != 200:
+                       SearchFallback = True
+                       continue
+                  else:
+                       SearchFallback = False
+                  data = response.json()
+
+                  search_items = data.get("items")
+
+                  for result in search_items:
+
+                      title = result.get("title")
+
+                      description = result.get("snippet")
+                      if len(description) == 0:
+                          description = result.get("htmlSnippet")
+                      if len(description) == 0:
+                          try:
+                              description = search_item["pagemap"]["metatags"][0]["og:description"]
+                          except :
+                              description = "no description"
+                      url = result.get("link")
+
+                      google_result.append((title,description,url))
 
 
-        for result in google_query:
 
-            title = result.title
-            description = result.description
-            url = result.url
-            google_result.append((title,description,url))
+              except Exception as e:
+                   os.system("aplay -q %s"%script_path+"local_sounds/errors/err_Google.wav")
+                   PRINT("\n-Trinity:Custom search Error:",str(e))
+                   SearchFallback = True
 
-        if len(google_result) == 0:
-            PRINT("\n-Trinity:-Google() no result from google")
-            os.system("aplay -q %s"%script_path+"local_sounds/errors/err_no_result_google.wav")
-            return()
+         if len(google_result) == 0:
+                 PRINT("\n-Trinity:-Google() no result from google")
+                 os.system("aplay -q %s"%script_path+"local_sounds/errors/err_no_result_google.wav")
+                 return()
 
-    except Exception as e:
-         os.system("aplay -q %s"%script_path+"local_sounds/errors/err_Google.wav")
-         PRINT("\n-Trinity:Error:",str(e))
-         return()
+
+
+    if (len(GOOGLE_KEY) == 0 and len(GOOGLE_ENGINE) == 0) or SearchFallback == True:
+
+
+         PRINT("\n-Trinity:Using module googlesearch.")
+         try:
+             google_query = googlesearch.search(tosearch,num_results=rnbr,lang="fr", advanced=True)
+
+
+             for result in google_query:
+
+                 title = result.title
+                 description = result.description
+                 url = result.url
+                 google_result.append((title,description,url))
+
+             if len(google_result) == 0:
+                 PRINT("\n-Trinity:-Google() no result from google")
+                 os.system("aplay -q %s"%script_path+"local_sounds/errors/err_no_result_google.wav")
+                 return()
+
+         except Exception as e:
+              os.system("aplay -q %s"%script_path+"local_sounds/errors/err_Google.wav")
+              PRINT("\n-Trinity:Googlesearch Error:",str(e))
+              return()
+
+
 
     os.system("aplay -q %s"%script_path+"local_sounds/ok/googleres.wav")
 
@@ -2170,6 +2620,9 @@ def Google(tosearch,rnbr=50): #,tstmode = True):
 
 def Wikipedia(tosearch,Title= None ,FULL=None):
 
+
+    tosearch = tosearch.strip()
+    PRINT("\n-Trinity:Dans la fonction Wikipedia.")
     PRINT("\n-Trinity:tosearch:",tosearch)
     PRINT("\n-Trinity:title:",Title)
     PRINT("\n-Trinity:FULL:",FULL)
@@ -3743,7 +4196,8 @@ if __name__ == "__main__":
     Current_Category = []
     Blacklisted = []
 
-    PICO_KEY = LoadKeys()
+    PICO_KEY = PicoLoadKeys()
+    GOOGLE_KEY,GOOGLE_ENGINE = GoogleLoadKeys()
     record_on = Queue()
     chunks = Queue()
     last_sentence = Queue()
@@ -3776,6 +4230,7 @@ if __name__ == "__main__":
     alt_trigger = []
     verb_lst = []
     synonyms_list = []
+    fnc_verb = {}
 
     CMDFILE = script_path + "/datas/cmd.trinity"
     ALTFILE = script_path + "/datas/alt_cmd.trinity"

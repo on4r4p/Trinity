@@ -5,7 +5,7 @@ trinity_name,c'est quoi*ton *nom
 trinity_name,c'est quoi*votre *nom
 trinity_name,quel*ton nom
 trinity_name,quel*votre nom
-trinity_mean,pourquoi*tu*trinity
+trinity_mean,pourquoi*tu*appel*trinity
 trinity_mean,pourquoi*vous*trinity
 trinity_mean,pourquoi*t'appelles*comme ca
 trinity_mean,pourquoi*vous*appelles*comme ca
@@ -109,6 +109,7 @@ search_history_request,des*concernant*historique
 search_history_request,un*qui parle*historique
 search_history_request,des*qui parle*historique
 search_history_request,resultat* sur *historique
+search_history_request,cherche* dans l'historique
 search_history_request,quelque*sur*historique
 search_history_request,quelque chose concernant*historique
 search_history_request,quelque chose qui concerne*historique
@@ -196,3 +197,4 @@ add_words,declencher*vos*fonction
 add_words,nouveau*declencheur
 add_words,activateur*fonction
 add_words,nouvel*activateur
+add_words,nouveau*trigger
