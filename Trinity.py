@@ -20,6 +20,8 @@ from threading import Thread
 from ctypes import *
 from contextlib import contextmanager
 
+from itertools import product
+
 from unidecode import unidecode
 
 @contextmanager
@@ -136,6 +138,21 @@ def parse_response(data):
         index = data.find("Bonjour, c'est Bing.")
         data = data[index+21:]            
 
+#tocheck
+
+    if "Bonjour, je suis Copilot" in data:
+        to_find = "Bonjour, je suis Copilot"
+        index = data.find(to_find)
+        next_point = None
+        for n,c in enumerate(data[index:]):
+            if c == ".":
+                 next_point = n + 1
+                 break
+        if next_point:
+           data = data[index+len(to_find)+next_point:]
+        else:
+           data = data[index+len(to_find):]
+
     data = data.replace("**","")
     no_link = re.sub(r'\[\d+\]:\s*https?://[^\s]+ "[^"]*"\n?', '', data)
     no_emoj = re.sub(emoj,'',no_link)
@@ -158,8 +175,116 @@ def parse_response(data):
     return(final.replace("####","")) 
 
 
-def fallbackGpt(input):
-     PRINT("\n-Trinity:Dans la fonction FallbackGpt")
+def To_Gpt(input):
+
+
+   if GPT4FREE_SERVERS_STATUS:
+       FreeGpt(input)
+
+   else:
+       #TODO
+       print("\n-Trinity:Error only gpt4free providers are working atm.")
+       sys.exit()
+
+def Check_Free_Servers():
+     PRINT("\n-Trinity:Dans la fonction Check_Free_Servers")
+
+     active_with_auth = []
+     active_no_auth = []
+     unknown_with_auth = []
+     unknown_no_auth = []
+
+     providers_to_return = []
+
+
+     try:
+
+         response = requests.get("https://raw.githubusercontent.com/xtekky/gpt4free/main/README.md")
+         markdown = response.text.splitlines()
+         print("\n\n")
+         for line in markdown:
+              if "g4f.Provider." in line:
+                    if "https://img.shields.io/badge/Active-brightgreen" in line:
+                        provider =  "g4f.Provider." + line.split("g4f.Provider.")[1].split("`")[0]
+                        if "❌" in line:
+                            active_no_auth.append(provider)
+                        else:
+                            active_with_auth.append(provider)
+                    if "https://img.shields.io/badge/Unknown-grey" in line:
+                        provider =  "g4f.Provider." + line.split("g4f.Provider.")[1].split("`")[0]
+                        if "❌" in line:
+                            unknown_no_auth.append(provider)
+                        else:   
+                            unknown_with_auth.append(provider)
+
+     except Exception as e:
+         print("\n-Trinity Error:",str(e))
+
+     if active_with_auth:
+           PRINT("\n-Trinity:Free servers active_with_auth:\n")
+           for aa in active_with_auth:
+                PRINT(aa)
+     if active_no_auth:
+           PRINT("\n-Trinity:Free servers active_no_auth:\n")
+           for an in active_no_auth:
+                PRINT(an)
+
+     if unknown_with_auth:
+           PRINT("\n-Trinity:Free servers unknown_with_auth:\n")
+           for ua in unknown_with_auth:
+                PRINT(ua)
+     if unknown_no_auth:
+           PRINT("\n-Trinity:Free serversunknown_no_auth:\n")
+           for un in unknown_no_auth:
+                PRINT(un)
+
+     if GPT4FREE_SERVERS_STATUS == "All":
+         if GPT4FREE_SERVERS_AUTH == True:
+              providers_to_return = active_with_auth + unknown_with_auth
+         elif GPT4FREE_SERVERS_AUTH == False:
+              providers_to_return = active_no_auth + unknown_no_auth
+         elif GPT4FREE_SERVERS_AUTH == "All":
+              providers_to_return = active_with_auth + active_no_auth + unknown_with_auth + unknown_no_auth
+
+     elif GPT4FREE_SERVERS_STATUS == "Active":
+         if GPT4FREE_SERVERS_AUTH == True:
+              providers_to_return = active_with_auth 
+         elif GPT4FREE_SERVERS_AUTH == False:
+              providers_to_return = active_no_auth
+         elif GPT4FREE_SERVERS_AUTH == "All":
+              providers_to_return = active_with_auth + active_no_auth
+
+     elif GPT4FREE_SERVERS_STATUS == "Unknown":
+         if GPT4FREE_SERVERS_AUTH == True:
+              providers_to_return = unknown_with_auth 
+         elif GPT4FREE_SERVERS_AUTH == False:
+              providers_to_return = unknown_no_auth
+         elif GPT4FREE_SERVERS_AUTH == "All":
+              providers_to_return = unknown_with_auth + unknown_no_auth
+
+     if len(providers_to_return) == 0:
+         PRINT("\n-Trinity:Error retrieving providers list.Using Saved lists from 05/03/2024 :\n")
+         providers_to_return = [
+               "g4f.Provider.Aura",
+               "g4f.Provider.Bing",
+               "g4f.Provider.DeepInfra",
+               "g4f.Provider.Gemini",
+               "g4f.Provider.GeminiPro",
+               "g4f.Provider.GeminiProChat",
+               "g4f.Provider.Koala",
+               "g4f.Provider.Liaobots",
+               "g4f.Provider.Llama2",
+               "g4f.Provider.PerplexityLabs",
+               "g4f.Provider.Phind",
+               "g4f.Provider.Pi",
+               "g4f.Provider.You"]
+
+     return(providers_to_return)
+
+
+
+def FreeGpt(input):
+     PRINT("\n-Trinity:Dans la fonction FreeGpt")
 
      global Current_Provider_Id
      global Blacklisted
@@ -180,60 +305,29 @@ def fallbackGpt(input):
      Err_cnt = 0
      response = ""
 
-     allowed_models = [
-        'code-davinci-002',
-        'text-ada-001',
-        'text-babbage-001',
-        'text-curie-001',
-        'text-davinci-002',
-        'text-davinci-003']
 
-
-     providers = [
-     g4f.Provider.Bing,
-     g4f.Provider.GptGo,
-     g4f.Provider.You,
-     g4f.Provider.Phind,
-     g4f.Provider.AiAsk,
-     g4f.Provider.GPTalk,
-     g4f.Provider.Llama2,
-     g4f.Provider.Vercel
-
- ]
-
-
-     providers_names = [
-     "Bing",
-     "GptGo",
-     "You",
-     "Phind",
-     "AiAsk",
-     "GPTalk",
-     "Llama2",
-     "Vercel"
-
- ]
 
      p_cnt = 0
-     while p_cnt <= (len(providers)- len(Blacklisted)) :
-        if Current_Provider_Id > (len(providers)- len(Blacklisted)):
+     while p_cnt <= (len(Providers_To_Use)- len(Blacklisted)) :
+        if Current_Provider_Id > (len(Providers_To_Use)- len(Blacklisted)):
              Current_Provider_Id = 0
-        if providers_names[Current_Provider_Id] in Blacklisted:
-              PRINT("\n-Trinity:skipping :",providers[Current_Provider_Id])
+        if Providers_To_Use[Current_Provider_Id] in Blacklisted:
+              PRINT("\n-Trinity:skipping :",Providers_To_Use[Current_Provider_Id])
               Current_Provider_Id += 1
               continue
 
-        PRINT("\n-Trinity:Asking :",providers[Current_Provider_Id])
+        PRINT("\n-Trinity:Asking :",Providers_To_Use[Current_Provider_Id])
         try:
              response = g4f.ChatCompletion.create(
              model=g4f.models.default, 
-             provider = providers[Current_Provider_Id],
+             provider = eval(Providers_To_Use[Current_Provider_Id]),
              timeout=10,
              messages=[{"role": "user", "content": str(input)}])
 
              if len(response) < 1:
-                 PRINT("\n-Trinity:No answer from :",providers_names[Current_Provider_Id])
-                 wait = script_path+"/local_sounds/providers/"+str(providers_names[Current_Provider_Id])+".wav"
+                 PRINT("\n-Trinity:No answer from :",Providers_To_Use[Current_Provider_Id])
+                 provider_name = Providers_To_Use[Current_Provider_Id].replace("g4f.Provider.","")
+                 wait = script_path+"/local_sounds/providers/"+str(provider_name)+".wav"
                  os.system("aplay -q %s"%wait)
                  Current_Provider_Id += 1
              else:
@@ -242,10 +336,11 @@ def fallbackGpt(input):
 
         except Exception as e:
                  print("\n-Trinity:Error:",str(e))
-                 print("\n-Trinity:No answer from :",providers_names[Current_Provider_Id])
-                 wait = script_path+"/local_sounds/providers/"+str(providers_names[Current_Provider_Id])+".wav"
+                 print("\n-Trinity:No answer from :",Providers_To_Use[Current_Provider_Id])
+                 provider_name = Providers_To_Use[Current_Provider_Id].replace("g4f.Provider.","")
+                 wait = script_path+"/local_sounds/providers/"+str(providers_name)+".wav"
                  os.system("aplay -q %s"%wait)
-                 Blacklisted.append(providers_names[Current_Provider_Id])
+                 Blacklisted.append(Providers_To_Use[Current_Provider_Id])
                  Current_Provider_Id += 1
         p_cnt += 1
         
@@ -253,7 +348,7 @@ def fallbackGpt(input):
                 os.system("aplay -q "+script_path+"local_sounds/errors/err_no_respons_allprovider.wav")
                 return()
      else:
-                PRINT("\n-Trinity:Le server %s à répondu."%(providers_names[Current_Provider_Id]))
+                PRINT("\n-Trinity:Le server %s à répondu."%(Providers_To_Use[Current_Provider_Id]))
                 return(Text_To_Speech(str(response),stayawake=False,savehistory=True))
 
 
@@ -445,6 +540,469 @@ def Write_csv(function_name, trigger_word,filename):
     return(Load_Csv())
 
 
+def Special_Syntax(txt,filepath=None,line=None):
+
+    def parse_cmd(cmd_txt):
+
+#         def unnest(lst, append=False):
+#             chunk = []
+#             for x in lst:
+#                 if isinstance(x, list):
+#                     if chunk:
+#                         yield chunk
+#                     yield from unnest(x, True)
+#                     chunk = []
+#                 else:
+#                     if append:
+#                         chunk.append(x)
+#                     else:
+#                         yield [x]
+#             if chunk:
+#                 yield chunk
+
+
+
+
+         def to_list(str_lst):
+
+             def check_split(index):
+                 coma = False
+                 obracket = False
+                 cbracket = False
+                 quote = False
+
+                 for c in str_lst[index:]:
+         #            print("c:",c)
+                     if c == " ":pass
+                     elif c == ",":coma = True
+                     elif c == "[":obracket = True
+                     elif c == "]":cbracket = True
+                     elif c in ["'",'"']:quote = True
+                     else:
+                         if coma and obracket:
+         #                   print("coma and obracket")
+                            return True
+                         elif coma and quote:
+         #                   print("coma and quote")
+                            return True
+                         elif cbracket:
+         #                   print("cbracket")
+                            return True
+                         else:
+         #                   print("\npas glop\n")
+                            return False
+         #        print("Rien")
+                 return True
+
+             bucket = ""
+             to_split = False
+         #    listing = []
+             for e,char in enumerate(str_lst):
+         #        print("bucket:",bucket)
+                 if to_split:
+                     if char in ["'",'"']:
+    #                     print("bucket:",bucket)
+                         if check_split(e+1):
+                             yield (None, bucket)
+                             #listing.append((None,bucket))
+                             bucket = ""
+                             to_split = False
+                         else:
+                             bucket += char
+                     else:
+                         bucket += char
+                 else:
+                     if char == "[":
+         #                 listing.append(("[", None))
+                         yield ("[", None)
+                     elif char == "]":
+         #                 listing.append(("]", None))
+                         yield ("]", None)
+                     elif char in ["'",'"']:
+                         to_split = True
+                     else:
+                         pass
+         #    print("listing\:",listing)
+         #    return listing
+
+         def make_list(listing):
+             lst = []
+             for id,data in listing:
+                 if id == "[":
+                     lst.append(make_list(listing))
+                 elif id == "]":
+                     return lst
+                 else:
+                     lst.append(data)
+             return lst[0]
+
+
+
+         def add_braks(cmd_txt,lbraks,rbraks):
+             def check_around(idx):
+                    while True:
+                        if idx <= 0:return False
+                        if cmd_txt[idx] == " ":pass
+                        elif cmd_txt[idx] == "[":return False
+                        elif cmd_txt[idx] == "]":return True
+                        else:return False
+                        idx -= 1
+                    #return True
+
+             outside_lvl = []
+             bad_pos = []
+             skip = 0
+             start = None
+             end = None
+             for e,char in enumerate(cmd_txt):
+
+                 if char == "[" and start is None:
+                       start = e
+                 elif char == "[":
+                      skip += 1
+                 elif char == "]":
+                      if skip > 0:
+                         skip -= 1
+                      else:
+                         end = e +1
+                         outside_lvl.append((start,end))
+                         start = None
+                         end = None
+
+             for st,ed in outside_lvl:
+                 for i in range(st,ed):
+                      bad_pos.append(i)
+
+             braks_txt = ""
+             opened = False
+             badbool = False
+             for e,char in enumerate(cmd_txt):
+                 if e not in bad_pos:
+                     badbool = False
+                     if opened:
+                         braks_txt += str(char)
+                     else:
+                         if check_around(e-1):
+                             #print("cmd_txt[%s-1]:%s char:,[%s"%(e,cmd_txt[e-1],char))
+                             braks_txt += ",["+str(char)
+                         else:
+                             #print("cmd_txt[%s-1]:%s char:[%s"%(e,cmd_txt[e-1],char))
+                             braks_txt += "["+str(char)
+                         opened = True
+                          
+                 else:
+                     badbool = True
+                     if opened:
+                         braks_txt += "],"+str(char)
+                         opened = False
+                     else:
+                         braks_txt += str(char)
+
+             if opened:
+                braks_txt += "]"
+
+             return("["+braks_txt+"]")
+
+         def add_quotes(fullbraks):
+
+             def check_around(idx,coma=False):
+                 if coma:
+                     pos = idx -1
+                     before = False
+                     after = False
+                     while True:
+    #                     print("char before:",fullbraks[pos])
+                         if pos == 0:break
+                         if fullbraks[pos] == " ":pass
+                         elif fullbraks[pos] == "[":
+                              before = True
+                              break
+                         elif fullbraks[pos] == "]":
+                              before = False
+                              break
+                         else:
+                              before = True
+                              break
+                         pos -= 1
+
+                     for c in fullbraks[idx+1:]:
+    #                     print("char after:",c)
+                         if c == " ":pass
+                         if c == "[":
+                             after = False
+                             break
+                         elif c == "]":
+                             after = True
+                             break
+                         else:
+                             after = True
+                             break
+
+                     if before and not after:
+    #                         print("before and not after")
+                             return('",')
+                     elif after and not before:
+    #                         print("after and not before")
+                             return(',"')
+                     elif not before and not after:
+    #                         print("not before and not after")
+                             return(",")
+                     else:
+    #                         print(" before and after")
+                             return('","')
+                               
+                 else:
+                    for c in fullbraks[idx:]:
+                        if c == "[":return False
+                        elif c == "]":return False
+                        else:return True
+                    return False
+
+             fullquotes = ""
+             for e,char in enumerate(fullbraks):
+    #             print("char:",char)
+                 if char == "[":
+                      if check_around(e+1):
+                        fullquotes += '["'
+                      else:
+                        fullquotes += "["
+                 elif char == "]":
+                      if check_around(e-1):
+                        fullquotes += '"]'
+                      else:
+                        fullquotes += "]"
+                 elif char == ",":
+
+                      fullquotes += check_around(e,True)
+                 else:
+                      fullquotes += char
+             return fullquotes
+
+         def valid_lists(cmd_txt):
+             lbraks = [pos for pos, char in enumerate(cmd_txt) if char == '[']
+             rbraks = [pos for pos, char in enumerate(cmd_txt) if char == ']']
+             lbrak_nbr = len(lbraks)
+             rbrak_nbr = len(rbraks)
+
+             lcurlys = [pos for pos, char in enumerate(cmd_txt) if char == '{']
+             rcurlys = [pos for pos, char in enumerate(cmd_txt) if char == '}']
+             lcurly_nbr = len(lcurlys)
+             rcurly_nbr = len(rcurlys)
+
+
+             if lbrak_nbr == 0 and rbrak_nbr == 0 and lcurly_nbr > 0 and rcurly_nbr > 0:
+                 print("Fichier:%s ligne:%s Les symboles '{' et '}' s'utilisent conjointement avec les symboles '[' et ']' mais pas seuls."%(filepath,line))
+                 return("~PARSE~ERR~",None,None)
+             elif lbrak_nbr == 0 and rbrak_nbr == 0 :
+                 return(False,None,None)
+             if lbrak_nbr != rbrak_nbr:
+                if lbrak_nbr >rbrak_nbr:
+                    print("Fichier:%s ligne:%s Il ya %s '[' et %s ']' seulement."%(filepath,line,lbrak_nbr,rbrak_nbr))
+                else:
+                    print("Fichier:%s ligne:%s Il ya seulement %s '[' et %s ']'."%(filepath,line,lbrak_nbr,rbrak_nbr))
+                return("~PARSE~ERR~",None,None)
+
+             if lcurly_nbr != rcurly_nbr:
+                if lcurly_nbr >rcurly_nbr:
+                    print("Fichier:%s ligne:%s Il ya %s '{' et %s '}' seulement."%(filepath,line,lcurly_nbr,rcurly_nbr))
+                else:
+                    print("Fichier:%s ligne:%s Il ya seulement %s '{' et %s '}'."%(filepath,line,lcurly_nbr,rcurly_nbr))
+                return("~PARSE~ERR~",None,None)
+
+             for o,c in zip(lbraks,rbraks):
+    #             print("o:%s c:%s"%(o,c))
+                 if o > c:
+                       print("Fichier:%s ligne:%s Mauvaise syntax."%(filepath,line))
+                       return("~PARSE~ERR~",None,None)
+             for o,c in zip(lcurlys,rcurlys):
+    #             print("o:%s c:%s"%(o,c))
+                 if o > c:
+                       print("Fichier:%s ligne:%s Mauvaise syntax."%(filepath,line))
+                       return("~PARSE~ERR~",None,None)
+
+             return(True,lbraks,rbraks)
+
+         cmd_txt = cmd_txt.replace("/",",")
+
+         list_inside,lbraks,rbraks = valid_lists(cmd_txt)
+         if list_inside:
+             if list_inside == "~PARSE~ERR~":
+                return(list_inside,None)
+             else:
+                  try:
+                       curlys = None
+                       fullbraks = add_braks(cmd_txt,lbraks,rbraks)
+                       if "{" in fullbraks and "}" in fullbraks:
+                           fullbraks,curlys = extract_curly(fullbraks)
+                           fullquotes = add_quotes(fullbraks)
+         #                  fullquotes = putback_curly(fullquotes,curlys)
+                       else:
+                           fullquotes = add_quotes(fullbraks)
+
+                       PRINT("\nfullbraks:%s\n"%fullbraks)
+                       PRINT("\nfullquotes:%s\n"%fullquotes)
+
+
+                       protolist = to_list(fullquotes)
+                       actualist = make_list(protolist)
+
+                       return(actualist,curlys)
+                  except Exception as e:
+                       print("-Trinity Error:",str(e))
+                       return("~PARSE~ERR~",None)
+         else:
+             return(False,None) 
+
+#    def putback_curly(str_to_check,dict):
+#        for k,i in dict.items():
+#            if k in str_to_check:
+#                str_to_check = str_to_check.replace(k,i)
+#        return(str_to_check)
+
+    def extract_curly(str_to_check):
+
+        PRINT("\nstr_to_check:\n",str_to_check)
+        def rnd_str(str_to_check,curly_dict):
+             while True:
+                  characters = string.ascii_letters + string.digits
+                  rnd = ''.join(random.choice(characters) for _ in range(5))
+                  if not rnd in curly_dict and not rnd in str_to_check:
+                     return rnd
+
+        curly_dict = {}
+        while True:
+            start = False
+            end = False
+
+            for n,c in enumerate(str_to_check):
+                if c == "{" and not start and not end:
+                     start = n
+                if c == "}" and start and not end:
+                     end = n+1
+                if start and end:
+                    break
+
+            curly = str_to_check[start:end]
+            marker = rnd_str(str_to_check,curly_dict)
+
+            if "," in curly:
+                curly = curly.replace("{","").replace("}","").split(",")
+            else:
+                curly = curly.replace("{","").replace("}","")
+
+            curly_dict[marker] = curly
+            str_to_check = str_to_check[:start] + str(marker) + str_to_check[end:]
+
+            if "{" not in str_to_check and "}" not in str_to_check:
+                break
+
+    #    print("\nwithout curly:",str_to_check)
+    #    print("\ncurly_dict:")
+
+    #    for i,j in curly_dict.items():
+    #        print("%s type= %s:%s"%(i,type(i),j))
+        return(str_to_check,curly_dict)
+
+#    def Mark_sublvl(lists_to_check,pos_lst=0,lvl=0,markers_dict={}):#TODO
+    #    print("\nlists_to_check:",lists_to_check)
+#        for pos_itm,lists in enumerate(lists_to_check):
+            #print("pos_itm:%s lists:%s"%(pos_itm,lists))
+#            if isinstance(lists,list):
+#                key = "lvl:%s,posl:%s,posi%s"%(lvl,pos_lst,pos_itm)
+#                if not key in markers_dict:
+#                    markers_dict[key] = lists
+#                    markers_dict = final_parse(lists,pos_lst,lvl+1,markers_dict = markers_dict)
+    #        else:
+    #             print("lists not a list:",lists)
+        return markers_dict
+
+    def Unfold_cmd(cmd_lst,curlys):
+
+        unfolded = []
+
+        for lst in cmd_lst:
+            tmp_lst = []
+
+            if isinstance(lst,list):
+                for item in lst:
+                    skip = False
+                    for k,i in curlys.items():
+                        if k in item:
+                           skip = True
+                           if isinstance(i,list):
+                               for j in i:
+                                   tmp_lst.append(item.replace(k,j))
+                           else:
+                               tmp_lst.append(item.replace(k,i))
+
+                           break
+                    if not skip:
+                        tmp_lst.append(item)
+
+                unfolded.append(tmp_lst)
+            #else:
+        return(unfolded)
+
+    parsed_cmd,curlys = parse_cmd(txt)
+
+    if parsed_cmd:
+         final_list = []
+         if parsed_cmd == "~PARSE~ERR~":
+             return(None)
+         PRINT("\ntxt:\n%s\n"%txt)
+         PRINT("\nparsed_cmd:\n%s\n"%parsed_cmd)
+         if curlys:
+             PRINT("\ncurlys is full:")
+             for i,j in curlys.items():
+                 PRINT("%s:%s"%(i,j))
+             unfolded = Unfold_cmd(parsed_cmd,curlys)
+             prod = product(*unfolded)
+             final_list = ["".join(i) for i in prod]
+             PRINT("\nfinal_list:")
+             for f in final_list:
+                 print(f)
+             return(final_list)
+         else:
+             prod = product(*parsed_cmd)
+             final_list = ["".join(i) for i in prod]
+             PRINT("\nfinal_list:")
+             for f in final_list:
+                 print(f)
+             return(final_list)
+    else:
+#        PRINT("no advanced syntax:\n",txt)
+        return(txt)
+
+    ##TODO sublvl etc ..
+    #for n,p in enumerate(parsed_cmd):
+    #   print("sending %s %s"%(n,p))
+    #   markers = final_parse(p,pos_lst=n)
+
+
+    #marker = final_parse(parsed_cmd)
+    #print("\n\nfinal marker:")
+    #for i,j in markers.items():print("%s:%s"%(i,j))
+
+    #print("\nparsed_cmd:\n")
+    #for n,i in enumerate(parsed_cmd):
+    #    print("%s =  %s"%(n,i))
+    #to_prod,markers = is_inner_lst(parsed_cmd)
+    #sys.exit()
+
+    #if markers:
+    #    print("\nmarkers is full\n")
+    #    prod = product(*parsed_cmd)
+    #    for i in prod:
+    #       print(i)
+    #else:
+    #    print("\n\nno markers final:\n")       
+    #    prod = product(*parsed_cmd) 
+    #    for i in prod:
+    #       print(i)
+
+
+
+
 
 
 def Load_Csv():
@@ -534,7 +1092,8 @@ def Load_Csv():
     if os.path.exists(CMDFILE):
          with open(CMDFILE, newline="") as csvfile:
              reader = csv.DictReader(csvfile)
-             for row in reader:
+             for line,row in enumerate(reader):
+                 line = line + 2
                  if "function" in row:
                       function = row["function"]
                       if "trigger" in row:
@@ -542,35 +1101,125 @@ def Load_Csv():
                       else:
                           continue
                       if function == "trinity_name":
-                           trinity_name.append(trigger)
+                          check_trigger = Special_Syntax(trigger,CMDFILE,line)
+                          if check_trigger:
+                               if isinstance(check_trigger,list):
+                                   for t in check_trigger:
+                                       trinity_name.append(t)
+                               else:
+                                   trinity_name.append(trigger)
                       elif function == "trinity_mean":
-                           trinity_mean.append(trigger)
+                           check_trigger = Special_Syntax(trigger,CMDFILE,line)
+                           if check_trigger:
+                               if isinstance(check_trigger,list):
+                                   for t in check_trigger:
+                                       trinity_mean.append(t)
+                               else:
+                                   trinity_mean.append(trigger)
                       elif function == "trinity_creator":
-                           trinity_creator.append(trigger)
+                           check_trigger = Special_Syntax(trigger,CMDFILE,line)
+                           if check_trigger:
+                               if isinstance(check_trigger,list):
+                                   for t in check_trigger:
+                                       trinity_creator.append(t)
+                               else:
+                                   trinity_creator.append(trigger)
                       elif function == "trinity_script":
-                           trinity_script.append(trigger)
+                           check_trigger = Special_Syntax(trigger,CMDFILE,line)
+                           if check_trigger:
+                               if isinstance(check_trigger,list):
+                                   for t in check_trigger:
+                                       trinity_script.append(t)
+                               else:
+                                   trinity_script.append(trigger)
                       elif function == "trinity_help":
-                           trinity_help.append(trigger)
+                           check_trigger = Special_Syntax(trigger,CMDFILE,line)
+                           if check_trigger:
+                               if isinstance(check_trigger,list):
+                                   for t in check_trigger:
+                                       trinity_help.append(t)
+                               else:
+                                   trinity_help.append(trigger)
                       elif function == "prompt_request":
-                           prompt_request.append(trigger)
+                           check_trigger = Special_Syntax(trigger,CMDFILE,line)
+                           if check_trigger:
+                               if isinstance(check_trigger,list):
+                                   for t in check_trigger:
+                                       prompt_request.append(t)
+                               else:
+                                   prompt_request.append(trigger)
                       elif function == "trinity_source_request":
-                           trinity_source_request.append(trigger)
+                           check_trigger = Special_Syntax(trigger,CMDFILE,line)
+                           if check_trigger:
+                               if isinstance(check_trigger,list):
+                                   for t in check_trigger:
+                                       trinity_source_request.append(t)
+                               else:
+                                   trinity_source_request.append(trigger)
                       elif function == "rnd_request":
-                           rnd_request.append(trigger)
+                           check_trigger = Special_Syntax(trigger,CMDFILE,line)
+                           if check_trigger:
+                               if isinstance(check_trigger,list):
+                                   for t in check_trigger:
+                                       rnd_request.append(t)
+                               else:
+                                   rnd_request.append(trigger)
                       elif function == "repeat_request":
-                           repeat_request.append(trigger)
+                           check_trigger = Special_Syntax(trigger,CMDFILE,line)
+                           if check_trigger:
+                               if isinstance(check_trigger,list):
+                                   for t in check_trigger:
+                                       repeat_request.append(t)
+                               else:
+                                   repeat_request.append(trigger)
                       elif function == "search_history_request":
-                           search_history_request.append(trigger)
+                           check_trigger = Special_Syntax(trigger,CMDFILE,line)
+                           if check_trigger:
+                               if isinstance(check_trigger,list):
+                                   for t in check_trigger:
+                                       search_history_request.append(t)
+                               else:
+                                   search_history_request.append(trigger)
                       elif function == "read_link_request":
-                           read_link_request.append(trigger)
+                           check_trigger = Special_Syntax(trigger,CMDFILE,line)
+                           if check_trigger:
+                               if isinstance(check_trigger,list):
+                                   for t in check_trigger:
+                                       read_link_request.append(t)
+                               else:
+                                   read_link_request.append(trigger)
                       elif function == "play_wav_request":
-                           play_wav_request.append(trigger)
+                           check_trigger = Special_Syntax(trigger,CMDFILE,line)
+                           if check_trigger:
+                               if isinstance(check_trigger,list):
+                                   for t in check_trigger:
+                                       play_wav_request.append(t)
+                               else:
+                                   play_wav_request.append(trigger)
                       elif function == "web_request":
-                           web_request.append(trigger)
+                           check_trigger = Special_Syntax(trigger,CMDFILE,line)
+                           if check_trigger:
+                               if isinstance(check_trigger,list):
+                                   for t in check_trigger:
+                                       web_request.append(t)
+                               else:
+                                   web_request.append(trigger)
                       elif function == "wait_words":
-                           wait_words.append(trigger)
+                           check_trigger = Special_Syntax(trigger,CMDFILE,line)
+                           if check_trigger:
+                               if isinstance(check_trigger,list):
+                                   for t in check_trigger:
+                                       wait_words.append(t)
+                               else:
+                                   wait_words.append(trigger)
                       elif function == "add_words":
-                           add_words.append(trigger)
+                           check_trigger = Special_Syntax(trigger,CMDFILE,line)
+                           if check_trigger:
+                               if isinstance(check_trigger,list):
+                                   for t in check_trigger:
+                                       add_words.append(t)
+                               else:
+                                   add_words.append(trigger)
     else:
 
           print("\n-Trinity:Error:%s not found."%CMDFILE)
@@ -935,35 +1584,128 @@ def Load_Csv():
 
                      
                       if function == "ask_for_name":
-                           trinity_name.append(trigger)
+                          check_trigger = Special_Syntax(trigger,CMDFILE,line)
+                          if check_trigger:
+                               if isinstance(check_trigger,list):
+                                   for t in check_trigger:
+                                       trinity_name.append(t)
+                               else:
+                                   trinity_name.append(trigger)
                       elif function == "ask_for_mean":
-                           trinity_mean.append(trigger)
+                           check_trigger = Special_Syntax(trigger,CMDFILE,line)
+                           if check_trigger:
+                               if isinstance(check_trigger,list):
+                                   for t in check_trigger:
+                                       trinity_mean.append(t)
+                               else:
+                                   trinity_mean.append(trigger)
                       elif function == "ask_for_creator":
-                           trinity_creator.append(trigger)
+                           check_trigger = Special_Syntax(trigger,CMDFILE,line)
+                           if check_trigger:
+                               if isinstance(check_trigger,list):
+                                   for t in check_trigger:
+                                       trinity_creator.append(t)
+                               else:
+                                   trinity_creator.append(trigger)
                       elif function == "trinity_script":
-                           trinity_script.append(trigger)
+                           check_trigger = Special_Syntax(trigger,CMDFILE,line)
+                           if check_trigger:
+                               if isinstance(check_trigger,list):
+                                   for t in check_trigger:
+                                       trinity_script.append(t)
+                               else:
+                                   trinity_script.append(trigger)
                       elif function == "ask_for_help":
-                           trinity_help.append(trigger)
+                           check_trigger = Special_Syntax(trigger,CMDFILE,line)
+                           if check_trigger:
+                               if isinstance(check_trigger,list):
+                                   for t in check_trigger:
+                                       trinity_help.append(t)
+                               else:
+                                   trinity_help.append(trigger)
                       elif function == "ask_for_prompt":
-                           prompt_request.append(trigger)
+                           check_trigger = Special_Syntax(trigger,CMDFILE,line)
+                           if check_trigger:
+                               if isinstance(check_trigger,list):
+                                   for t in check_trigger:
+                                       prompt_request.append(t)
+                               else:
+                                   prompt_request.append(trigger)
                       elif function == "trinity_source_request":
-                           trinity_source_request.append(trigger)
+                           check_trigger = Special_Syntax(trigger,CMDFILE,line)
+                           if check_trigger:
+                               if isinstance(check_trigger,list):
+                                   for t in check_trigger:
+                                       trinity_source_request.append(t)
+                               else:
+                                   trinity_source_request.append(trigger)
                       elif function == "ask_for_rnd":
-                           rnd_request.append(trigger)
+                           check_trigger = Special_Syntax(trigger,CMDFILE,line)
+                           if check_trigger:
+                               if isinstance(check_trigger,list):
+                                   for t in check_trigger:
+                                       rnd_request.append(t)
+                               else:
+                                   rnd_request.append(trigger)
                       elif function == "ask_for_repeat":
-                           repeat_request.append(trigger)
+                           check_trigger = Special_Syntax(trigger,CMDFILE,line)
+                           if check_trigger:
+                               if isinstance(check_trigger,list):
+                                   for t in check_trigger:
+                                       repeat_request.append(t)
+                               else:
+                                   repeat_request.append(trigger)
                       elif function == "ask_for_history":
-                           search_history_request.append(trigger)
+                           check_trigger = Special_Syntax(trigger,CMDFILE,line)
+                           if check_trigger:
+                               if isinstance(check_trigger,list):
+                                   for t in check_trigger:
+                                       search_history_request.append(t)
+                               else:
+                                   search_history_request.append(trigger)
+
                       elif function == "ask_to_read_link":
-                           read_link_request.append(trigger)
+                           check_trigger = Special_Syntax(trigger,CMDFILE,line)
+                           if check_trigger:
+                               if isinstance(check_trigger,list):
+                                   for t in check_trigger:
+                                       read_link_request.append(t)
+                               else:
+                                   read_link_request.append(trigger)
+
                       elif function == "ask_to_play_wav":
-                           play_wav_request.append(trigger)
+                           check_trigger = Special_Syntax(trigger,CMDFILE,line)
+                           if check_trigger:
+                               if isinstance(check_trigger,list):
+                                   for t in check_trigger:
+                                       play_wav_request.append(t)
+                               else:
+                                   play_wav_request.append(trigger)
                       elif function == "ask_for_web":
-                           web_request.append(trigger)
+                           check_trigger = Special_Syntax(trigger,CMDFILE,line)
+                           if check_trigger:
+                               if isinstance(check_trigger,list):
+                                   for t in check_trigger:
+                                       web_request.append(t)
+                               else:
+                                   web_request.append(trigger)
                       elif function == "ask_to_wait":
-                           wait_words.append(trigger)
+                           check_trigger = Special_Syntax(trigger,CMDFILE,line)
+                           if check_trigger:
+                               if isinstance(check_trigger,list):
+                                   for t in check_trigger:
+                                       wait_words.append(t)
+                               else:
+                                   wait_words.append(trigger)
+
                       elif function == "ask_to_add":
-                           add_words.append(trigger)
+                           check_trigger = Special_Syntax(trigger,CMDFILE,line)
+                           if check_trigger:
+                               if isinstance(check_trigger,list):
+                                   for t in check_trigger:
+                                       add_words.append(t)
+                               else:
+                                   add_words.append(trigger)
     else:
 
           print("\n-Trinity:Error %s not found."%ALTFILE)
@@ -2786,7 +3528,7 @@ def Fallback_Prompt():
               cmd = Commandes(user_input)
               if not cmd:
                   PRINT("\n-Trinity:pas de cmd")
-                  return(fallbackGpt(str(user_input)))
+                  return(To_Gpt(str(user_input)))
               else:
                     Go_Back_To_Sleep()
 
@@ -2906,7 +3648,7 @@ def Repeat(txt):
                        ouinon = script_path+"/local_sounds/ouinon/"+rnd+".wav"
                        os.system("aplay -q %s"%ouinon)
                else:
-                     return(fallbackGpt(txt))
+                     return(To_Gpt(txt))
     else:
 
                os.system("aplay -q %s"%script_path+"/local_sounds/ok/1.wav")
@@ -2916,7 +3658,7 @@ def Repeat(txt):
                   if cmd == "prompt":
                       return(Fallback_Prompt())
                else:
-                     return(fallbackGpt(txt))
+                     return(To_Gpt(txt))
 
 def Bad_Stt(txt):
     PRINT("\n-Trinity:Dans la fonction Bad_Stt")
@@ -2989,7 +3731,7 @@ def Bad_Confidence(txt):
              if choice == "send":
                  if len(Orig_sentence) > 0:
                      os.system("aplay -q %s"%script_path+"/local_sounds/ok/1.wav")
-                     return(fallbackGpt(Orig_sentence))
+                     return(To_Gpt(Orig_sentence))
                  else:
                      os.system("aplay -q %s"%script_path+"local_sounds/forgot/1.wav")
                      choice = random.choice(["repeat","prompt"])
@@ -3018,7 +3760,7 @@ def Bad_Confidence(txt):
     elif opinion == True:
                  os.system("aplay -q %s"%script_path+"/local_sounds/ok/1.wav")
                  if len(Orig_sentence) > 0:
-                     return(fallbackGpt(Orig_sentence))
+                     return(To_Gpt(Orig_sentence))
                  else:
                      os.system("aplay -q %s"%script_path+"local_sounds/forgot/1.wav")
                      choice = random.choice(["repeat","prompt"])
@@ -3132,7 +3874,7 @@ def Text_To_Speech(txtinput,stayawake=False,savehistory=True):
     print("\n-Trinity:\n\n%s\n\n"%txtinput)
 
     parsed_response = parse_response(str(txtinput))
-
+    PRINT("\n-After Parse:\n%s\n\n"%parsed_response)
     txt_list = Split_Text(parsed_response)
     ln_txt_list = len(txt_list)
     wav_list = []
@@ -4059,7 +4801,7 @@ def Trinity(fname = "WakeMe"):
                               if cmd:
                                   return(Go_Back_To_Sleep())
                               else:
-                                  fallbackGpt(txt)
+                                  To_Gpt(txt)
 
                           else:
                               return(Bad_Confidence(txt))
@@ -4092,8 +4834,10 @@ def GetConf():
    global DEBUG
    global XCB_ERROR_FIX
    global SAVED_ANSWER
+   global GPT4FREE_SERVERS_STATUS
+   global GPT4FREE_SERVERS_AUTH
 
-   options = ["DEBUG","XCB_ERROR_FIX","SAVED_ANSWER"]
+   options = ["DEBUG","XCB_ERROR_FIX","SAVED_ANSWER","GPT4FREE_SERVERS_STATUS","GPT4FREE_SERVERS_AUTH"]
    folder = False
    conf = False
 
@@ -4102,56 +4846,90 @@ def GetConf():
               f = f.readlines()
 
            for l in f:
+
+              if "=" not in l:
+                 continue
+
               l = l.strip()
+
+              if "#" in l:
+                  l = l.split("#")[0]
+
               option = next((r for r in options if r in l),"")
+
+              if not option:
+                 PRINT("\n-Trinity:Error skipped line :",l)
+                 continue
+            
+              conf = l.split('=')[1]
+
+              while conf.startswith(" "):
+                    conf = conf[1:]
+
+              while conf.endswith(" "):
+                    conf = conf[:-1]
+
+              conf = conf.replace("'","").replace('"',"")
+
               if option == "SAVED_ANSWER":
-                  if '=' in l:
 
-
-                      folder = l.split('=')[1]
-
-                      while folder.startswith(" "):
-                         folder = folder[1:]
-                      while folder.endswith(" "):
-                         folder = folder[:-1]
-
-                      folder = folder.replace("'","").replace('"',"")
-
-                      if folder == "default":
+                      if conf.lower() == "default":
                          SAVED_ANSWER = script_path+"/local_sounds/saved_answer/"
                       else:
-                          SAVED_ANSWER = folder
-              elif option in options:
-                      conf = l.split('=')[1]
+                          SAVED_ANSWER = conf
 
-                      while conf.startswith(" "):
-                         conf = conf[1:]
-                      while conf.endswith(" "):
-                         conf = conf[:-1]
+              elif  option == "GPT4FREE_SERVERS_STATUS":
+                   if conf.lower() == "all":
+                        GPT4FREE_SERVERS_STATUS = "All"
+                   elif conf.lower() == "active":
+                        GPT4FREE_SERVERS_STATUS = "Active"
+                   elif conf.lower() == "unknown":
+                        GPT4FREE_SERVERS_STATUS = "Unknown"
+                   elif conf.lower() == "none":
+                        GPT4FREE_SERVERS_STATUS = None
+                   else:
+                          print("-Trinity:Error GPT4FREE_SERVERS_STATUS has to be All,Active,Unknown or None.")
 
-                      conf = conf.replace("'","").replace('"',"")
+              elif  option == "GPT4FREE_SERVERS_AUTH":
+                   if conf.lower() == "true":
+                        GPT4FREE_SERVERS_AUTH = True
+                   elif conf.lower() == "false":
+                        GPT4FREE_SERVERS_AUTH = False
+                   elif conf.lower() == "all":
+                        GPT4FREE_SERVERS_AUTH = "All"
+                   else:
+                          print("-Trinity:Error GPT4FREE_SERVERS_STATUS has to be All,True or False.")
 
-                      conf = conf.lower()
-                      if conf == "true":
-                           if option == "DEBUG":
-                                DEBUG = True
-                           elif option == "XCB_ERROR_FIX":
-                                XCB_ERROR_FIX = True
-                      else:
-                          if option == "DEBUG":
-                                DEBUG = False
-                          elif option == "XCB_ERROR_FIX":
-                               XCB_ERROR_FIX = False
+              elif option == "DEBUG":
+                   if conf.lower() == "true":
+                           DEBUG = True
+                   elif conf.lower() == "false":
+                           DEBUG = False
+                   else:
+                          print("-Trinity:Error DEBUG has to be either True or False.")
+
+              elif option == "XCB_ERROR_FIX":
+                   if conf.lower() == "true":
+                           XCB_ERROR_FIX = True
+                   elif conf.lower() == "false":
+                           XCB_ERROR_FIX = False
+                   else:
+                          print("-Trinity:Error XCB_ERROR_FIX has to be either True or False.")
+
 
    else:
            with open(script_path+"conf.trinity","w") as f:
-                data = """Saved_Answers = default
+                data = """SAVED_ANSWER = default
+GPT4FREE_SERVERS_STATUS = Active #Active or Unknown or All or None
+GPT4FREE_SERVERS_AUTH = False #True or False or All
 DEBUG = False
 XCB_ERROR_FIX = False"""
                 f.write(data)
 
            DEBUG = False
            SAVED_ANSWER = script_path+"/local_sounds/saved_answer/"
+           GPT4FREE_SERVERS_STATUS = "Active"
+           GPT4FREE_SERVERS_AUTH = False
            XCB_ERROR_FIX = False
 
 def Xcb_Fix(mode):
@@ -4177,18 +4955,29 @@ if __name__ == "__main__":
        script_path = script_path[:-1]
 
 
-
     DISPLAY = ""
+    Providers_To_Use = []
+    GPT4FREE_SERVERS_STATUS = "Active"
+    GPT4FREE_SERVERS_AUTH = False
     DEBUG = False
     XCB_ERROR_FIX = False
     SAVED_ANSWER = script_path +"/local_sounds/saved_answer/"
 
     GetConf()
 
+    if GPT4FREE_SERVERS_STATUS:
+        Providers_To_Use = Check_Free_Servers()
 
-    PRINT("-Trinity:DEBUG:",DEBUG)
-    PRINT("-Trinity:XCB_ERROR_FIX:",XCB_ERROR_FIX)
-    PRINT("-Trinity:SAVED_ANSWER:",SAVED_ANSWER)
+
+    PRINT("\n-Trinity:DEBUG:",DEBUG)
+    PRINT("-Trinity:GPT4FREE_SERVERS_STATUS:%s"%GPT4FREE_SERVERS_STATUS)
+    PRINT("-Trinity:GPT4FREE_SERVERS_AUTH:%s"%GPT4FREE_SERVERS_AUTH)
+    PRINT("-Trinity:XCB_ERROR_FIX:%s"%XCB_ERROR_FIX)
+    PRINT("-Trinity:SAVED_ANSWER:%s"%SAVED_ANSWER)
+    if GPT4FREE_SERVERS_STATUS:
+         PRINT("-Trinity:Free Gpt servers:")
+         for i in Providers_To_Use:
+              PRINT("\t",i)
 
     FRAME_DURATION = 480
     FRAME_RATE = 16000
@@ -4248,6 +5037,7 @@ if __name__ == "__main__":
     if XCB_ERROR_FIX:
          Xcb_Fix("unset")
 
+    os.system("aplay -q %s"%script_path+"local_sounds/boot/psx.wav")
     signal.signal(signal.SIGINT, signal_handler)
 #####
     Trinity()

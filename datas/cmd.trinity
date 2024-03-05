@@ -144,35 +144,19 @@ play_wav_request,point*wav
 play_wav_request,ce fichier
 play_wav_request,enregistrement
 play_wav_request,lecture*fichier
-web_request,avec*wikipedia
-web_request,avec*google
-web_request,avec*internet
-web_request,sur*wikipedia
-web_request,sur*google
-web_request,sur*internet
-web_request,page*concerne
-web_request,page*wikipedia
-web_request,page*google
-web_request,page*internet
-web_request,page*concernant
-web_request,page*parlant
-web_request,page*qui parle
-web_request,page* sur 
-web_request,infos*qui parle
-web_request,info qui parle
-web_request,infos*parlant
-web_request,info*sur
-web_request,info*concernant
-web_request,infos*concern
-web_request,quelque*chose*sur
-web_request,quelque chose*concern
-web_request,quelque*chose*parle
-web_request,truc*qui*parle
-web_request,truc*concern
-web_request,article*concern
-web_request,article*google
-web_request,article*parl
-web_request,article*sur
+web_request,[ avec / sur ] * [ wikipedia / google / internet ]
+web_request,[pag{e /es }/inf{o /os }]*[parl{e /ent /eraient }/concern{e /ent /eraient }]*[ wikipedia / google / internet ] 
+web_request,[pag{e/es}/inf{o/os}] * sur 
+web_request,quelque*chose* sur 
+web_request,quelque chose * concern
+web_request,quelque * chose * parle
+web_request,truc qui parle
+web_request,truc qui parlant
+web_request,truc concern
+web_request,article * concern
+web_request,article * google
+web_request,article * parl
+web_request,article * sur
 wait_words,attends
 wait_words,attendre
 wait_words,laisse-moi
