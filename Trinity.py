@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import g4f,pyaudio,pvporcupine,os,time,sys,struct,random,webrtcvad,subprocess,re,csv,string,wikipedia,googlesearch,requests,signal
+import g4f,pyaudio,pvporcupine,os,time,sys,struct,random,webrtcvad,subprocess,re,csv,string,wikipedia,googlesearch,requests,signal,inspect
 import google.cloud.texttospeech as tts
 
 from nltk.corpus import stopwords
@@ -65,8 +65,8 @@ def PRINT(txt,other=None):
 
 def PicoLoadKeys():
    PRINT("\n-Trinity:Dans fonction PicoLoadKeys")
-   if os.path.exists(script_path+"/keys/pico.key"):
-       with open(script_path+"/keys/pico.key","r") as k:
+   if os.path.exists(SCRIPT_PATH+"/keys/pico.key"):
+       with open(SCRIPT_PATH+"/keys/pico.key","r") as k:
            PICO_KEY = k.read()
            PICO_KEY = PICO_KEY.strip()
        if not PICO_KEY.endswith("=="):
@@ -76,7 +76,7 @@ def PicoLoadKeys():
        else:
             return(PICO_KEY)
    else:
-       print("\n-Trinity:-%s/keys/pico.key doesn't exist."%script_path)
+       print("\n-Trinity:-%s/keys/pico.key doesn't exist."%SCRIPT_PATH)
        sys.exit()
 
 def GoogleLoadKeys():
@@ -85,8 +85,8 @@ def GoogleLoadKeys():
    GOOGLE_KEY = ""
    GOOGLE_ENGINE = ""
 
-   if os.path.exists(script_path+"/keys/google_search.key"):
-       with open(script_path+"/keys/google_search.key","r") as k:
+   if os.path.exists(SCRIPT_PATH+"/keys/google_search.key"):
+       with open(SCRIPT_PATH+"/keys/google_search.key","r") as k:
            GOOGLE_KEY = k.read()
            GOOGLE_KEY = GOOGLE_KEY.strip()
        if len(GOOGLE_KEY) != 39:
@@ -94,10 +94,10 @@ def GoogleLoadKeys():
             print(GOOGLE_KEY)
             GOOGLE_KEY = ""
    else:
-       print("\n-Trinity:-%s/keys/google_search_engine.key doesn't exist."%script_path)
+       print("\n-Trinity:-%s/keys/google_search_engine.key doesn't exist."%SCRIPT_PATH)
 
-   if os.path.exists(script_path+"/keys/google_search_engine.id"):
-       with open(script_path+"/keys/google_search_engine.id","r") as k:
+   if os.path.exists(SCRIPT_PATH+"/keys/google_search_engine.id"):
+       with open(SCRIPT_PATH+"/keys/google_search_engine.id","r") as k:
            GOOGLE_ENGINE = k.read()
            GOOGLE_ENGINE = GOOGLE_ENGINE.strip()
        if len(GOOGLE_ENGINE) != 17:
@@ -105,7 +105,7 @@ def GoogleLoadKeys():
             print(GOOGLE_ENGINE)
             GOOGLE_ENGINE = ""
    else:
-       print("\n-Trinity:-%s/keys/google_search_engine.id doesn't exist."%script_path)
+       print("\n-Trinity:-%s/keys/google_search_engine.id doesn't exist."%SCRIPT_PATH)
 
    return(GOOGLE_KEY,GOOGLE_ENGINE)
 
@@ -138,13 +138,12 @@ def parse_response(data):
         index = data.find("Bonjour, c'est Bing.")
         data = data[index+21:]            
 
-#tocheck
-
     if "Bonjour, je suis Copilot" in data:
         to_find = "Bonjour, je suis Copilot"
         index = data.find(to_find)
+        after_to_find = index + len(to_find)
         next_point = None
-        for n,c in enumerate(data[index:]):
+        for n,c in enumerate(data[after_to_find:]):
             if c == ".":
                  next_point = n + 1
                  break
@@ -296,9 +295,9 @@ def FreeGpt(input):
 
      last_sentence.put(input)
 
-#    os.system("aplay -q %s"%script_path+"local_sounds/server/gpt3.wav")
+#    os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/server/gpt3.wav")
      rnd = str(random.randint(1,10))
-     wait = script_path+"/local_sounds/wait/"+rnd+".wav"
+     wait = SCRIPT_PATH+"/local_sounds/wait/"+rnd+".wav"
      os.system("aplay -q %s"%wait)
 
      Err_msg = ""
@@ -327,40 +326,40 @@ def FreeGpt(input):
              if len(response) < 1:
                  PRINT("\n-Trinity:No answer from :",Providers_To_Use[Current_Provider_Id])
                  provider_name = Providers_To_Use[Current_Provider_Id].replace("g4f.Provider.","")
-                 wait = script_path+"/local_sounds/providers/"+str(provider_name)+".wav"
+                 wait = SCRIPT_PATH+"/local_sounds/providers/"+str(provider_name)+".wav"
                  os.system("aplay -q %s"%wait)
                  Current_Provider_Id += 1
              else:
-                  Current_Provider_Id += 1
                   break
 
         except Exception as e:
                  print("\n-Trinity:Error:",str(e))
                  print("\n-Trinity:No answer from :",Providers_To_Use[Current_Provider_Id])
                  provider_name = Providers_To_Use[Current_Provider_Id].replace("g4f.Provider.","")
-                 wait = script_path+"/local_sounds/providers/"+str(providers_name)+".wav"
+                 wait = SCRIPT_PATH+"/local_sounds/providers/"+str(provider_name)+".wav"
                  os.system("aplay -q %s"%wait)
                  Blacklisted.append(Providers_To_Use[Current_Provider_Id])
                  Current_Provider_Id += 1
         p_cnt += 1
         
      if len(response) < 1:
-                os.system("aplay -q "+script_path+"local_sounds/errors/err_no_respons_allprovider.wav")
+                os.system("aplay -q "+SCRIPT_PATH+"local_sounds/errors/err_no_respons_allprovider.wav")
                 return()
      else:
                 PRINT("\n-Trinity:Le server %s à répondu."%(Providers_To_Use[Current_Provider_Id]))
+                Current_Provider_Id += 1
                 return(Text_To_Speech(str(response),stayawake=False,savehistory=True))
 
 
 def wake_up():
     PRINT("\n-Trinity:Dans la fonction Wakeup")
 
-#    word_key = script_path+"/models/Trinity_en_linux_v2_2_0.ppn"
-    word_key = script_path+"/models/trinity_fr_raspberry-pi_v3_0_0.ppn"
-    word_key2 = script_path+"/models/interpreteur_fr_raspberry-pi_v3_0_0.ppn"
-    word_key3 = script_path+"/models/repete_fr_raspberry-pi_v3_0_0.ppn"
-    word_key4 = script_path+"/models/merci_fr_raspberry-pi_v3_0_0.ppn"
-    pvfr = script_path+"/models/porcupine_params_fr.pv"
+#    word_key = SCRIPT_PATH+"/models/Trinity_en_linux_v2_2_0.ppn"
+    word_key = SCRIPT_PATH+"/models/trinity_fr_raspberry-pi_v3_0_0.ppn"
+    word_key2 = SCRIPT_PATH+"/models/interpreteur_fr_raspberry-pi_v3_0_0.ppn"
+    word_key3 = SCRIPT_PATH+"/models/repete_fr_raspberry-pi_v3_0_0.ppn"
+    word_key4 = SCRIPT_PATH+"/models/merci_fr_raspberry-pi_v3_0_0.ppn"
+    pvfr = SCRIPT_PATH+"/models/porcupine_params_fr.pv"
     porcupine = None
     keyword_index = None
 
@@ -385,7 +384,7 @@ def wake_up():
                 PRINT("\n-Trinity:keyword_index:",keyword_index)
                 
                 rnd = str(random.randint(1,15))
-                wake_sound = script_path+"/local_sounds/wakesounds/"+rnd+".wav"
+                wake_sound = SCRIPT_PATH+"/local_sounds/wakesounds/"+rnd+".wav"
                 os.system("aplay -q %s"%wake_sound)
                 break
             if keyword_index == 1:
@@ -397,7 +396,7 @@ def wake_up():
             if keyword_index == 3:
                 PRINT("\n-Trinity:keyword_index:",keyword_index)
                 rnd = str(random.randint(1,15))
-                thk_sound = script_path+"/local_sounds/merci/"+rnd+".wav"
+                thk_sound = SCRIPT_PATH+"/local_sounds/merci/"+rnd+".wav"
                 os.system("aplay -q %s"%thk_sound)
 
 
@@ -416,8 +415,8 @@ def wake_up():
         if keyword_index == 1:
             return(Fallback_Prompt())
         if keyword_index == 2:
-            os.system("aplay -q %s"%script_path+"local_sounds/repeat/isaid.wav")
-            os.system("aplay -q %s"%script_path+"tmp/current_answer.wav")
+            os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/repeat/isaid.wav")
+            os.system("aplay -q %s"%SCRIPT_PATH+"tmp/current_answer.wav")
             return(wake_up())
 
 def Record_Query():
@@ -433,7 +432,7 @@ def Record_Query():
                     input=True,
                     frames_per_buffer=FRAME_DURATION)
 
-    wake_sound = script_path+"/local_sounds/wakesounds/record.wav"
+    wake_sound = SCRIPT_PATH+"/local_sounds/wakesounds/record.wav"
     os.system("aplay -q %s"%wake_sound)
 
 
@@ -441,7 +440,7 @@ def Record_Query():
         chunks.put(stream.read(FRAME_DURATION))
 
     PRINT("\n-Trinity:Enregistrement terminé.")
-    wake_sound = script_path+"/local_sounds/wakesounds/record_end.wav"
+    wake_sound = SCRIPT_PATH+"/local_sounds/wakesounds/record_end.wav"
     os.system("aplay -q %s"%wake_sound)
 
     stream.stop_stream()
@@ -499,7 +498,7 @@ def Check_Silence():
                       record_on.get()
 
                       rnd = str(random.randint(1,11))
-                      no_input_sound = script_path+"/local_sounds/noinput/"+rnd+".wav"
+                      no_input_sound = SCRIPT_PATH+"/local_sounds/noinput/"+rnd+".wav"
                       os.system("aplay -q  %s"%no_input_sound)
                       cancel_operation.put(True)
                       No_Input.put(True)
@@ -513,7 +512,7 @@ def Check_Silence():
                   to_speech = buffer
                   buffer = b""
                   audio_datas.put(to_speech)
-                  os.system("aplay -q %s"%script_path+"/local_sounds/errors/err_too_long.wav")
+                  os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/errors/err_too_long.wav")
                   break
 
 
@@ -791,33 +790,33 @@ def Special_Syntax(txt,filepath=None,line=None):
 
 
              if lbrak_nbr == 0 and rbrak_nbr == 0 and lcurly_nbr > 0 and rcurly_nbr > 0:
-                 print("Fichier:%s ligne:%s Les symboles '{' et '}' s'utilisent conjointement avec les symboles '[' et ']' mais pas seuls."%(filepath,line))
+                 print("\n-Fichier:%s ligne:%s Les symboles '{' et '}' s'utilisent conjointement avec les symboles '[' et ']' mais pas seuls."%(filepath,line))
                  return("~PARSE~ERR~",None,None)
              elif lbrak_nbr == 0 and rbrak_nbr == 0 :
                  return(False,None,None)
              if lbrak_nbr != rbrak_nbr:
                 if lbrak_nbr >rbrak_nbr:
-                    print("Fichier:%s ligne:%s Il ya %s '[' et %s ']' seulement."%(filepath,line,lbrak_nbr,rbrak_nbr))
+                    print("\n-Fichier:%s ligne:%s Il ya %s '[' et %s ']' seulement."%(filepath,line,lbrak_nbr,rbrak_nbr))
                 else:
-                    print("Fichier:%s ligne:%s Il ya seulement %s '[' et %s ']'."%(filepath,line,lbrak_nbr,rbrak_nbr))
+                    print("\n-Fichier:%s ligne:%s Il ya seulement %s '[' et %s ']'."%(filepath,line,lbrak_nbr,rbrak_nbr))
                 return("~PARSE~ERR~",None,None)
 
              if lcurly_nbr != rcurly_nbr:
                 if lcurly_nbr >rcurly_nbr:
-                    print("Fichier:%s ligne:%s Il ya %s '{' et %s '}' seulement."%(filepath,line,lcurly_nbr,rcurly_nbr))
+                    print("\n-Fichier:%s ligne:%s Il ya %s '{' et %s '}' seulement."%(filepath,line,lcurly_nbr,rcurly_nbr))
                 else:
-                    print("Fichier:%s ligne:%s Il ya seulement %s '{' et %s '}'."%(filepath,line,lcurly_nbr,rcurly_nbr))
+                    print("\n-Fichier:%s ligne:%s Il ya seulement %s '{' et %s '}'."%(filepath,line,lcurly_nbr,rcurly_nbr))
                 return("~PARSE~ERR~",None,None)
 
              for o,c in zip(lbraks,rbraks):
     #             print("o:%s c:%s"%(o,c))
                  if o > c:
-                       print("Fichier:%s ligne:%s Mauvaise syntax."%(filepath,line))
+                       print("\n-Fichier:%s ligne:%s Mauvaise syntax."%(filepath,line))
                        return("~PARSE~ERR~",None,None)
              for o,c in zip(lcurlys,rcurlys):
     #             print("o:%s c:%s"%(o,c))
                  if o > c:
-                       print("Fichier:%s ligne:%s Mauvaise syntax."%(filepath,line))
+                       print("\n-Fichier:%s ligne:%s Mauvaise syntax."%(filepath,line))
                        return("~PARSE~ERR~",None,None)
 
              return(True,lbraks,rbraks)
@@ -839,8 +838,8 @@ def Special_Syntax(txt,filepath=None,line=None):
                        else:
                            fullquotes = add_quotes(fullbraks)
 
-                       PRINT("\nfullbraks:%s\n"%fullbraks)
-                       PRINT("\nfullquotes:%s\n"%fullquotes)
+#                       PRINT("\nfullbraks:%s\n"%fullbraks)
+#                       PRINT("\nfullquotes:%s\n"%fullquotes)
 
 
                        protolist = to_list(fullquotes)
@@ -861,7 +860,7 @@ def Special_Syntax(txt,filepath=None,line=None):
 
     def extract_curly(str_to_check):
 
-        PRINT("\nstr_to_check:\n",str_to_check)
+#        PRINT("\nstr_to_check:\n",str_to_check)
         def rnd_str(str_to_check,curly_dict):
              while True:
                   characters = string.ascii_letters + string.digits
@@ -918,56 +917,78 @@ def Special_Syntax(txt,filepath=None,line=None):
 
     def Unfold_cmd(cmd_lst,curlys):
 
-        unfolded = []
+         unfolded = []
 
-        for lst in cmd_lst:
-            tmp_lst = []
+         for lst in cmd_lst:
+             tmp_lst = []
 
-            if isinstance(lst,list):
-                for item in lst:
-                    skip = False
-                    for k,i in curlys.items():
-                        if k in item:
-                           skip = True
-                           if isinstance(i,list):
-                               for j in i:
-                                   tmp_lst.append(item.replace(k,j))
-                           else:
-                               tmp_lst.append(item.replace(k,i))
+             for item in lst:
+                     skip = False
 
-                           break
-                    if not skip:
-                        tmp_lst.append(item)
+                     for k,i in curlys.items():
+                         if k in item:
 
-                unfolded.append(tmp_lst)
-            #else:
-        return(unfolded)
+                            skip = True
+                            if isinstance(i,list):
+                                for j in i:
+                                    tmp_lst.append(item.replace(k,j))
+                            else:
+                                tmp_lst.append(item.replace(k,i))
+
+                            break
+                     if not skip:
+                         tmp_lst.append(item)
+
+             unfolded.append(tmp_lst)
+
+         for lst in unfolded:
+             for item in lst:
+                 for k in curlys:
+                     if k in item:
+                        return(Unfold_cmd(unfolded,curlys))
+
+         return(unfolded)
+
+    def join_and_replace(tojoin):
+          joined = "".join(tojoin)
+          if "  " in joined:
+              replaced = joined
+              while True:
+                 replaced = replaced.replace("  "," ")
+                 if not "  " in replaced:
+                    joined_and_replaced = replaced
+                    break
+#                 else:
+#                      print("replaced:",replaced)
+#                      input("")
+          else:
+              joined_and_replaced = joined
+
+          return(joined_and_replaced)
+
 
     parsed_cmd,curlys = parse_cmd(txt)
 
     if parsed_cmd:
          final_list = []
          if parsed_cmd == "~PARSE~ERR~":
+             PRINT("\n-Trinity:Special_Syntax():~PARSE~ERR~:txt:\n%s\n"%txt)
              return(None)
-         PRINT("\ntxt:\n%s\n"%txt)
-         PRINT("\nparsed_cmd:\n%s\n"%parsed_cmd)
+#         PRINT("\ntxt:\n%s\n"%txt)
+#         PRINT("\nparsed_cmd:\n%s\n"%parsed_cmd)
          if curlys:
-             PRINT("\ncurlys is full:")
-             for i,j in curlys.items():
-                 PRINT("%s:%s"%(i,j))
+#             PRINT("\n-Trinity:curlys is full:")
+#             for i,j in curlys.items():
+#                 PRINT("%s:%s"%(i,j))
              unfolded = Unfold_cmd(parsed_cmd,curlys)
              prod = product(*unfolded)
-             final_list = ["".join(i) for i in prod]
-             PRINT("\nfinal_list:")
-             for f in final_list:
-                 print(f)
+             final_list = [join_and_replace(i) for i in prod]
+             PRINT("\n-Trinity:Output Special Syntax for:\n%s\n\n%s"%(txt,final_list))
              return(final_list)
          else:
              prod = product(*parsed_cmd)
-             final_list = ["".join(i) for i in prod]
-             PRINT("\nfinal_list:")
-             for f in final_list:
-                 print(f)
+             final_list = [join_and_replace(i) for i in prod]
+             PRINT("\n-Trinity:Output Special Syntax for:\n%s\n\n%s"%(txt,final_list))
              return(final_list)
     else:
 #        PRINT("no advanced syntax:\n",txt)
@@ -1722,6 +1743,8 @@ def Add_Trigger():
 
     print("\n-Trinity:Dans la fonction Add_Trigger.\n")
 
+    First_time = True
+
     def seeknreturn(var_to_check,list_elements):
           found_lst = []
           for element in list_elements:
@@ -1738,7 +1761,8 @@ def Add_Trigger():
 
 
 
-    def checktrigger(trigger,funcname):
+    def checktrigger(to_check,funcname,s_syntax=None):
+ 
 
 
               def minitts(tx,fname):
@@ -1754,7 +1778,7 @@ def Add_Trigger():
                            response = client.synthesize_speech(input=text_input,voice=voice_params,audio_config=audio_config)
                            audio_response = response.audio_content
                            try:
-                               with open("%s/local_sounds/cmd/triggers/%s"%(script_path,fname), "wb") as out:
+                               with open("%s/local_sounds/cmd/triggers/%s"%(SCRIPT_PATH,fname), "wb") as out:
                                     out.write(audio_response)
                            except Exception as e:
                                PRINT("\n-Trinity:Error:%s"%str(e))
@@ -1798,91 +1822,172 @@ def Add_Trigger():
                         PRINT("\n-Trinity:Error getwav %s ne correspond pas a une fonction."%f)
                         return()
 
-                   os.system("aplay -q %s/local_sounds/cmd/triggers/%s.wav"%(script_path,trigcat))
+                   os.system("aplay -q %s/local_sounds/cmd/triggers/%s.wav"%(SCRIPT_PATH,trigcat))
 
                    for t in trigparts:
                         t = unidecode(t.replace(" ","_").replace("-","_").replace("*","_").replace("'","_"))
                         wavname = trigcat + "_" + t + ".wav"
-                        if os.path.exists("%s/local_sounds/cmd/triggers/%s"%(script_path,wavname)):
-                             os.system("aplay -q %s/local_sounds/cmd/triggers/%s"%(script_path,wavname))
+                        if os.path.exists("%s/local_sounds/cmd/triggers/%s"%(SCRIPT_PATH,wavname)):
+                             os.system("aplay -q %s/local_sounds/cmd/triggers/%s"%(SCRIPT_PATH,wavname))
                         else:
-                             print("\n-Trinity:Error Wave file not found:%s/local_sounds/cmd/triggers/%s"%(script_path,wavname)) 
+                             print("\n-Trinity:Error Wave file not found:%s/local_sounds/cmd/triggers/%s"%(SCRIPT_PATH,wavname)) 
                              minitts(tx,wavname)
-                             if os.path.exists("%s/local_sounds/cmd/triggers/%s"%(script_path,wavname)):
-                                  os.system("aplay -q %s/local_sounds/cmd/triggers/%s"%(script_path,wavname))
+                             if os.path.exists("%s/local_sounds/cmd/triggers/%s"%(SCRIPT_PATH,wavname)):
+                                  os.system("aplay -q %s/local_sounds/cmd/triggers/%s"%(SCRIPT_PATH,wavname))
                    return()
+
+
+              if isinstance(to_check,list):
+                   PRINT("\n-Trinity:checktrigger():Verification d'une liste de déclencheurs.")
+                   Triggers = to_check
+              else:
+                   Triggers = [to_check]
+
+              if s_syntax:
+                  trigger_cmd = s_syntax
+              else:
+                  trigger_cmd = to_check
 
               new_ambiguity = {}
 
-              trigger = unidecode(trigger.lower().replace(","," ").replace("!"," ").replace("?"," ").replace("  "," "))
+              for trigger in Triggers:
+
+                   trigger = unidecode(trigger.lower().replace(","," ").replace("!"," ").replace("?"," ").replace("  "," ").replace("."," "))
+
+                   ask_to_action = seeknreturn(trigger,action_words)
+
+                   ask_to_add = seeknreturn(trigger,add_words)
+
+                   ask_for_name = seeknreturn(trigger,trinity_name)
+
+                   ask_for_mean = seeknreturn(trigger,trinity_mean)
+
+                   ask_for_creator = seeknreturn(trigger,trinity_creator)
+
+                   ask_for_help = seeknreturn(trigger,trinity_help)
+
+                   ask_for_prompt = seeknreturn(trigger,prompt_request)
+
+                   ask_for_rnd = seeknreturn(trigger,rnd_request)
+
+                   ask_for_repeat = seeknreturn(trigger,repeat_request)
+
+                   ask_for_history = seeknreturn(trigger,search_history_request)
+
+                   ask_for_web = seeknreturn(trigger,web_request)
+
+                   ask_to_read_link = seeknreturn(trigger,read_link_request)
+
+                   ask_to_play_wav = seeknreturn(trigger,play_wav_request)
+
+                   ask_to_wait = seeknreturn(trigger,wait_words)
 
 
-              ask_to_action = seeknreturn(trigger,action_words)
+                   if ask_to_action :
+                        if ask_to_wait and funcname != "ask_to_wait":
 
-              ask_to_add = seeknreturn(trigger,add_words)
+                            if "ask_to_wait" in new_ambiguity:
+                                  new_ambiguity["ask_to_wait"].append((trigger,ask_to_wait))
+                            else:
+                                  new_ambiguity["ask_to_wait"] = [(trigger,ask_to_wait)]
 
-              ask_for_name = seeknreturn(trigger,trinity_name)
+                        if ask_for_name and funcname != "ask_for_name":
 
-              ask_for_mean = seeknreturn(trigger,trinity_mean)
+                            if "ask_for_name" in new_ambiguity:
+                                 new_ambiguity["ask_for_name"].append((trigger,ask_for_name))
+                            else:
+                                 new_ambiguity["ask_for_name"] = [(trigger,ask_for_name)]
 
-              ask_for_creator = seeknreturn(trigger,trinity_creator)
+                        if ask_for_mean and funcname != "ask_for_mean":
 
-              ask_for_help = seeknreturn(trigger,trinity_help)
+                            if "ask_for_mean" in new_ambiguity:
+                                new_ambiguity["ask_for_mean"].append((trigger,ask_for_mean)) 
+                            else:
+                                  new_ambiguity["ask_for_mean"] = [(trigger,ask_for_mean)]
 
-              ask_for_prompt = seeknreturn(trigger,prompt_request)
+                        if ask_for_creator and funcname != "ask_for_creator":
 
-              ask_for_rnd = seeknreturn(trigger,rnd_request)
+                            if "ask_for_creator" in new_ambiguity:
+                                  new_ambiguity["ask_for_creator"].append((trigger,ask_for_creator))
+                            else:
+                                  new_ambiguity["ask_for_creator"] = [(trigger,ask_for_creator)]
 
-              ask_for_repeat = seeknreturn(trigger,repeat_request)
+                        if ask_for_rnd and funcname != "ask_for_rnd":
 
-              ask_for_history = seeknreturn(trigger,search_history_request)
+                            if "ask_for_rnd" in new_ambiguity:
+                                  new_ambiguity["ask_for_rnd"].append((trigger,ask_for_rnd))
+                            else:
+                                  new_ambiguity["ask_for_rnd"] = [(trigger,ask_for_rnd)]
 
-              ask_for_web = seeknreturn(trigger,web_request)
+                        if ask_for_repeat and funcname != "ask_for_repeat":
 
-              ask_to_read_link = seeknreturn(trigger,read_link_request)
+                            if "ask_for_repeat" in new_ambiguity:
+                                  new_ambiguity["ask_for_repeat"].append((trigger,ask_for_repeat))
+                            else:
+                                  new_ambiguity["ask_for_repeat"] = [(trigger,ask_for_repeat)]
 
-              ask_to_play_wav = seeknreturn(trigger,play_wav_request)
+                        if ask_for_prompt and funcname != "ask_for_prompt":
 
-              ask_to_wait = seeknreturn(trigger,wait_words)
+                            if "ask_for_prompt" in new_ambiguity:
+                                  new_ambiguity["ask_for_prompt"].append((trigger,ask_for_prompt))
+                            else:
+                                  new_ambiguity["ask_for_prompt"] =[(trigger,ask_for_prompt)]
 
+                        if ask_for_help and funcname != "ask_for_help":
 
-              if ask_to_action :
-                   if ask_to_wait and funcname != "ask_to_wait":
-                             new_ambiguity["ask_to_wait"] = ask_to_wait
-                   if ask_for_name and funcname != "ask_for_name":
-                             new_ambiguity["ask_for_name"] = ask_for_name 
-                   if ask_for_mean and funcname != "ask_for_mean":
-                             new_ambiguity["ask_for_mean"] = ask_for_mean
-                   if ask_for_creator and funcname != "ask_for_creator":
-                             new_ambiguity["ask_for_creator"] = ask_for_creator
-                   if ask_for_rnd and funcname != "ask_for_rnd":
-                             new_ambiguity["ask_for_rnd"] = ask_for_rnd
-                   if ask_for_repeat and funcname != "ask_for_repeat":
-                             new_ambiguity["ask_for_repeat"] = ask_for_repeat
-                   if ask_for_prompt and funcname != "ask_for_prompt":
-                             new_ambiguity["ask_for_prompt"] =ask_for_prompt
-                   if ask_for_help and funcname != "ask_for_help":
-                             new_ambiguity["ask_for_help"] = ask_for_help
-                   if ask_to_play_wav and funcname != "ask_to_play_wav":
-                             new_ambiguity["ask_to_play_wav"] = ask_to_play_wav
-                   if ask_for_history and funcname != "ask_for_history":
-                             new_ambiguity["ask_for_history"] =  ask_for_history
-                   if ask_to_read_link and funcname != "ask_to_read_link":
-                              new_ambiguity["ask_to_read_link"] = ask_to_read_link
-                   if ask_for_web and funcname != "ask_for_web":
-                             new_ambiguity["ask_for_web"] = ask_for_web
-                   if ask_to_add and funcname != "ask_to_add":
-                             new_ambiguity["ask_for_web"] = ask_to_add
+                            if "ask_for_help" in new_ambiguity:
+                                  new_ambiguity["ask_for_help"].append((trigger,ask_for_help))
+                            else:
+                                  new_ambiguity["ask_for_help"] = [(trigger,ask_for_help)]
+
+                        if ask_to_play_wav and funcname != "ask_to_play_wav":
+
+                            if "ask_to_play_wav" in new_ambiguity:
+                                  new_ambiguity["ask_to_play_wav"].append((trigger,ask_to_play_wav))
+                            else:
+                                  new_ambiguity["ask_to_play_wav"] = [(trigger,ask_to_play_wav)]
+
+                        if ask_for_history and funcname != "ask_for_history":
+
+                            if "ask_for_history" in new_ambiguity:
+                                  new_ambiguity["ask_for_history"].append((trigger,ask_for_history))
+                            else:
+                                  new_ambiguity["ask_for_history"] = [(trigger,ask_for_history)]
+
+                        if ask_to_read_link and funcname != "ask_to_read_link":
+
+                            if "ask_to_read_link" in new_ambiguity:
+                                   new_ambiguity["ask_to_read_link"].append((trigger,ask_to_read_link))
+                            else:
+                                   new_ambiguity["ask_to_read_link"] = [(trigger,ask_to_read_link)]
+
+                        if ask_for_web and funcname != "ask_for_web":
+
+                            if "ask_for_web" in new_ambiguity:
+                                  new_ambiguity["ask_for_web"].append((trigger,ask_for_web))
+                            else:
+                                  new_ambiguity["ask_for_web"] = [(trigger,ask_for_web)]
+
+                        if ask_to_add and funcname != "ask_to_add":
+
+                            if "ask_to_add" in new_ambiguity:
+                                 new_ambiguity["ask_to_add"].append((trigger,ask_to_add))
+                            else:
+                                  new_ambiguity["ask_to_add"] = [(trigger,ask_to_add)]
+
               if len(new_ambiguity) == 0:
 
                     print("\n-Parfait,cette phrase semble déclencher la fonction:",funcname)  
-                    os.system("aplay -q %s/local_sounds/cmd/valid.wav"%script_path)
-                    os.system("aplay -q %s/local_sounds/cmd/save.wav"%script_path)
+                    os.system("aplay -q %s/local_sounds/cmd/valid.wav"%SCRIPT_PATH)
+                    os.system("aplay -q %s/local_sounds/cmd/save.wav"%SCRIPT_PATH)
                     while True:
-                       rusure =input("\n-Sauvegarde cette phrase dans la base de données ?:\n\n%s\n\n-Votre choix:(oui/non/abandonner)"%trigger).lower()
+                       rusure =input("\n-Sauvegarder cette phrase dans la base de données ?:\n\n%s\n\n-Votre choix:(oui/non/abandonner):"%trigger_cmd).lower()
                        if rusure in ["oui","non","abandonner"]:
                           if rusure == "oui": 
-                               Write_csv(trigger,funcname,ALTFILE)
+
+                               for trigger in Triggers:
+                                   Write_csv(trigger,funcname,ALTFILE)
+
                                return(True)
                           elif rusure == "non":
                                return(False)
@@ -1891,18 +1996,24 @@ def Add_Trigger():
 
               else:
 
-                    os.system("aplay -q %s/local_sounds/cmd/new_ambiguity.wav"%script_path)
-                    for fnc,trigged in new_ambiguity.items():
-                             print("\n\n-La fonction %s est déclenchée par cette partie: %s"%(fnc,trigged))
-                             getwav(fnc,trigged)
+                    os.system("aplay -q %s/local_sounds/cmd/new_ambiguity.wav"%SCRIPT_PATH)
 
-                    os.system("aplay -q %s/local_sounds/cmd/new_ambiguity2.wav"%script_path)
+                    print("\n-Cette phrase à déclenchée plusieurs commandes en même temps:\n%s\n"%trigger_cmd)
+
+                    for fnc,trigged in new_ambiguity.items():
+                             for t,p in trigged:
+                                 if s_syntax:
+                                    print("\n-Déclencheur généré:\n%s\n"%t)
+                                 print("\n\n-La fonction %s est déclenchée par cette partie: %s"%(fnc,p))
+                             if not s_syntax:
+                                 getwav(fnc,p)
+
+                    os.system("aplay -q %s/local_sounds/cmd/new_ambiguity2.wav"%SCRIPT_PATH)
 
 #              print("\n\n-mini touchdown\n\n")
  
 
-
-    os.system("aplay -q %s/local_sounds/question/newtrigger.wav"%script_path)
+    os.system("aplay -q %s/local_sounds/question/newtrigger.wav"%SCRIPT_PATH)
 
     functions = [
          ('trinity_name', 'pour avoir le nom du script de Trinity',"Salut ça va ?Comment tu t'appelle?","comment * t'appelle","trinity_name"),
@@ -1945,8 +2056,10 @@ def Add_Trigger():
     while True:
 #             print("\n\n===============\n\n")
 
-             os.system("aplay -q %s/local_sounds/cmd/instruction.wav"%script_path)
-             print("\n\n===============\n\n==Ajouter un nouveau déclencheur pour la fonction: %s ==\n\n-Gardez la partie qui identifie l'action %s dans votre phrase."%(selected_function,selected_description))
+         if First_time:
+             First_time = False
+             os.system("aplay -q %s/local_sounds/cmd/instruction.wav"%SCRIPT_PATH)
+             print("\n\n\n\n==Ajouter un nouveau déclencheur pour la fonction: %s ==\n\n\n-Gardez la partie qui identifie l'action %s dans votre phrase."%(selected_function,selected_description))
              print("\n-Par example si votre phrase complète ressemble à ceci:\n\n\t-",exemple1)
              print("\n-J'aimerais que vous ne gardiez que cela:\n\n\t-",exemple2)
              print("\n-Le symbole * est utilisé içi afin de ne pas tenir compte des mots qu'il peut y avoir à cette position.\n\n")
@@ -1959,17 +2072,156 @@ def Add_Trigger():
              else:
                  for k in fnc_verb:
                     print(k)
-             print("\n-Si votre phrase utilise l'un de ces verbes meme sous une forme conjugué il n'est pas nécessaire de l'écrire.\n-Vous pouvez néanmoins le faire si vous souhaitez que votre déclencheur soit plus précis.\n\n-Les accents et caractére spéciaux et ponctuation sont automatiquement enlevés.\n")
-             new_trigger = input("\n-Nouveau déclencheur pour la fonction %s :"%selected_function)
-             valid = checktrigger(new_trigger,seekname)
-             if valid:
-                  return(selected_function)
+             print("\n-Si votre phrase utilise l'un de ces verbes même sous une forme conjugué il n'est pas nécessaire de l'écrire.\n-Vous pouvez néanmoins le faire si vous souhaitez que votre déclencheur soit plus précis.\n\n-Les accents et caractére spéciaux et ponctuations sont automatiquement enlevés.\n")
+
+             print("\n-Il est aussi possible de générer plusieurs déclencheurs en même temps en utilisant la syntaxe avancée par exemple:\n")
+
+             print("\n\t-Nouveau déclencheur:Salutation!*Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Salutation!*Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Salutation!*Tout va bien?")
+             print("\t-Nouveau déclencheur:Salutation!Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Salutation!Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Salutation!Tout va bien?")
+             print("\t-Nouveau déclencheur:Salutation.*Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Salutation.*Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Salutation.*Tout va bien?")
+             print("\t-Nouveau déclencheur:Salutation.Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Salutation.Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Salutation.Tout va bien?")
+             print("\t-Nouveau déclencheur:Salut!*Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Salut!*Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Salut!*Tout va bien?")
+             print("\t-Nouveau déclencheur:Salut!Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Salut!Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Salut!Tout va bien?")
+             print("\t-Nouveau déclencheur:Salut.*Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Salut.*Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Salut.*Tout va bien?")
+             print("\t-Nouveau déclencheur:Salut.Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Salut.Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Salut.Tout va bien?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour Monsieur!*Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour Monsieur!*Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour Monsieur!*Tout va bien?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour Monsieur!Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour Monsieur!Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour Monsieur!Tout va bien?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour Monsieur.*Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour Monsieur.*Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour Monsieur.*Tout va bien?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour Monsieur.Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour Monsieur.Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour Monsieur.Tout va bien?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour Madame!*Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour Madame!*Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour Madame!*Tout va bien?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour Madame!Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour Madame!Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour Madame!Tout va bien?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour Madame.*Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour Madame.*Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour Madame.*Tout va bien?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour Madame.Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour Madame.Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour Madame.Tout va bien?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour!*Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour!*Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour!*Tout va bien?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour!Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour!Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour!Tout va bien?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour.*Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour.*Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour.*Tout va bien?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour.Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour.Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Bien le Bonjour.Tout va bien?")
+             print("\t-Nouveau déclencheur:Bonjour Monsieur!*Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Bonjour Monsieur!*Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Bonjour Monsieur!*Tout va bien?")
+             print("\t-Nouveau déclencheur:Bonjour Monsieur!Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Bonjour Monsieur!Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Bonjour Monsieur!Tout va bien?")
+             print("\t-Nouveau déclencheur:Bonjour Monsieur.*Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Bonjour Monsieur.*Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Bonjour Monsieur.*Tout va bien?")
+             print("\t-Nouveau déclencheur:Bonjour Monsieur.Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Bonjour Monsieur.Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Bonjour Monsieur.Tout va bien?")
+             print("\t-Nouveau déclencheur:Bonjour Madame!*Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Bonjour Madame!*Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Bonjour Madame!*Tout va bien?")
+             print("\t-Nouveau déclencheur:Bonjour Madame!Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Bonjour Madame!Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Bonjour Madame!Tout va bien?")
+             print("\t-Nouveau déclencheur:Bonjour Madame.*Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Bonjour Madame.*Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Bonjour Madame.*Tout va bien?")
+             print("\t-Nouveau déclencheur:Bonjour Madame.Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Bonjour Madame.Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Bonjour Madame.Tout va bien?")
+             print("\t-Nouveau déclencheur:Bonjour!*Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Bonjour!*Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Bonjour!*Tout va bien?")
+             print("\t-Nouveau déclencheur:Bonjour!Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Bonjour!Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Bonjour!Tout va bien?")
+             print("\t-Nouveau déclencheur:Bonjour.*Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Bonjour.*Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Bonjour.*Tout va bien?")
+             print("\t-Nouveau déclencheur:Bonjour.Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Bonjour.Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Bonjour.Tout va bien?")
+             print("\t-Nouveau déclencheur:Coucou!*Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Coucou!*Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Coucou!*Tout va bien?")
+             print("\t-Nouveau déclencheur:Coucou!Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Coucou!Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Coucou!Tout va bien?")
+             print("\t-Nouveau déclencheur:Coucou.*Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Coucou.*Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Coucou.*Tout va bien?")
+             print("\t-Nouveau déclencheur:Coucou.Tout va comme il faut ?")
+             print("\t-Nouveau déclencheur:Coucou.Tout va comme vous voulez ?")
+             print("\t-Nouveau déclencheur:Coucou.Tout va bien?\n")
+
+
+             print("\n-Tous ces déclencheurs ont été générés par cette commande:")
+             print("\n    -Nouveau déclencheur:[Salut{ation/}/{Bien le /}Bonjour{ Monsieur/ Madame/}/Coucou][!/.][*/]Tout va [comme {il faut/vous voulez} /bien]?\n\n")
+
+
+             print("\n\n-Les symboles '[' et ']' servent à créer une liste d'éléments séparé par le symbole '/'.")
+             print("-Les symboles '{' et '}' sont utilisés dans une liste pour créer une sous-liste d'éléments séparé par le symbole '/'.\n")
+         else:
+             os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/prompt/2.wav")
+
+         new_trigger = input("\n-Nouveau déclencheur pour la fonction %s :"%selected_function)
+         checksyntax = Special_Syntax(new_trigger,SCRIPT_PATH+"Trinity.py",Get_Line())
+         if not checksyntax:
+             while True:
+                 new_trigger = input("\n-Nouveau déclencheur pour la fonction %s :"%selected_function)
+                 checksyntax = Special_Syntax(new_trigger,SCRIPT_PATH+"Trinity.py",Get_Line())
+                 if checksyntax:break
+         if isinstance(checksyntax,list):
+
+             valid = checktrigger(checksyntax,seekname,new_trigger)
+         else:
+             valid = checktrigger(checksyntax,seekname)
+
+         if valid:
+              return(selected_function)
 
 
 
 
-
-
+def Get_Line():
+    try:
+        frame = inspect.currentframe()
+        numero_ligne = frame.f_back.f_lineno
+        return(numero_ligne)
+    except Exception as e:
+        PRINT("-Trinity:Error:Get_Line():%s"%str(e))
+        return(0)
 
 
 
@@ -2002,7 +2254,7 @@ def Commandes(txt):
                 if syn in sentence:
                    found.append(syn)
             if len(found) == 0:
-                 os.system("aplay -q %s/local_sounds/cmd/triggers/atleast.wav"%(script_path))
+                 os.system("aplay -q %s/local_sounds/cmd/triggers/atleast.wav"%(SCRIPT_PATH))
                  if not altlst:
                       print("\n-Trinity:Votre phrase doit contenir au minimum l'un des mot suivant:\n\n%s\n\n"%(syntoprint))
                       return(False)
@@ -2032,7 +2284,7 @@ def Commandes(txt):
                            response = client.synthesize_speech(input=text_input,voice=voice_params,audio_config=audio_config)
                            audio_response = response.audio_content
                            try:
-                               with open("%s/local_sounds/cmd/triggers/%s"%(script_path,fname), "wb") as out:
+                               with open("%s/local_sounds/cmd/triggers/%s"%(SCRIPT_PATH,fname), "wb") as out:
                                     out.write(audio_response)
                            except Exception as e:
                                PRINT("\n-Trinity:Error:%s"%str(e))
@@ -2070,19 +2322,26 @@ def Commandes(txt):
                         PRINT("\n-Trinity:Error getwav %s ne correspond pas a une fonction."%f)
                         return()
 
-                   os.system("aplay -q %s/local_sounds/cmd/triggers/%s.wav"%(script_path,trigcat))
+                   os.system("aplay -q %s/local_sounds/cmd/triggers/%s.wav"%(SCRIPT_PATH,trigcat))
 
                    for t in trigparts:
                         t = unidecode(t.replace(" ","_").replace("-","_").replace("*","_").replace("'","_"))
                         wavname = trigcat + "_" + t + ".wav"
-                        if os.path.exists("%s/local_sounds/cmd/triggers/%s"%(script_path,wavname)):
-                             os.system("aplay -q %s/local_sounds/cmd/triggers/%s"%(script_path,wavname))
+                        if os.path.exists("%s/local_sounds/cmd/triggers/%s"%(SCRIPT_PATH,wavname)):
+                             os.system("aplay -q %s/local_sounds/cmd/triggers/%s"%(SCRIPT_PATH,wavname))
                         else:
-                             print("\n-Trinity:Error Wave file not found:%s/local_sounds/cmd/triggers/%s"%(script_path,wavname)) 
+                             print("\n-Trinity:Error Wave file not found:%s/local_sounds/cmd/triggers/%s"%(SCRIPT_PATH,wavname)) 
                              minitts(tx,wavname)
-                             if os.path.exists("%s/local_sounds/cmd/triggers/%s"%(script_path,wavname)):
-                                  os.system("aplay -q %s/local_sounds/cmd/triggers/%s"%(script_path,wavname))
+                             if os.path.exists("%s/local_sounds/cmd/triggers/%s"%(SCRIPT_PATH,wavname)):
+                                  os.system("aplay -q %s/local_sounds/cmd/triggers/%s"%(SCRIPT_PATH,wavname))
                    return()
+
+
+              if isinstance(trigger,list):
+                 print("check special syntax trigger:")
+                 for i in trigger:
+                     print(i)
+                 sys.exit()
 
 
               new_ambiguity = {}
@@ -2161,8 +2420,8 @@ def Commandes(txt):
               if len(new_ambiguity) == 0:
 
                     print("\n-Trinity:Parfait,cette phrase semble déclencher la fonction:",funcname)  
-                    os.system("aplay -q %s/local_sounds/cmd/valid.wav"%script_path)
-                    os.system("aplay -q %s/local_sounds/cmd/save.wav"%script_path)
+                    os.system("aplay -q %s/local_sounds/cmd/valid.wav"%SCRIPT_PATH)
+                    os.system("aplay -q %s/local_sounds/cmd/save.wav"%SCRIPT_PATH)
                     while True:
                        rusure =input("\n-Sauvegarder cette phrase dans la base de données ?:\n\n%s\n\n-Votre choix:(oui/non/abandonner)"%trigger).lower()
                        if rusure in ["oui","non","abandonner"]:
@@ -2176,12 +2435,12 @@ def Commandes(txt):
 
               else:
 
-                    os.system("aplay -q %s/local_sounds/cmd/new_ambiguity.wav"%script_path)
+                    os.system("aplay -q %s/local_sounds/cmd/new_ambiguity.wav"%SCRIPT_PATH)
                     for fnc,trigged in new_ambiguity.items():
                              print("\n-Trinity:La fonction %s est déclenchée par cette partie: %s"%(fnc,trigged))
                              getwav(fnc,trigged)
 
-                    os.system("aplay -q %s/local_sounds/cmd/new_ambiguity2.wav"%script_path)
+                    os.system("aplay -q %s/local_sounds/cmd/new_ambiguity2.wav"%SCRIPT_PATH)
 
 #              print("\n\n-mini touchdown\n\n")
  
@@ -2190,7 +2449,7 @@ def Commandes(txt):
           print("\n\n===============\n\n")
 
           if not asked:
-               os.system("aplay -q %s/local_sounds/cmd/question_trigger.wav"%script_path)
+               os.system("aplay -q %s/local_sounds/cmd/question_trigger.wav"%SCRIPT_PATH)
                while True:
                    helpme = input("-Pouvez-vous m'aider à mieux intégrer cette phrase dans ma base de données?\n-Cela ne prendra pas longtemps.\n\nVotre Choix (oui/non):").lower()
                    if helpme in  ["oui","non"]:
@@ -2204,7 +2463,7 @@ def Commandes(txt):
                helpme = True
 
           if helpme:
-             os.system("aplay -q %s/local_sounds/cmd/instruction.wav"%script_path)
+             os.system("aplay -q %s/local_sounds/cmd/instruction.wav"%SCRIPT_PATH)
              print("\n\n===============\n\n==Ajouter un nouveau declencheur pour la fonction: %s ==\n\n-Trinity:Pouvez-vous garder uniquement la partie qui identifie l'action dans votre phrase?"%funcname)
              print("\n-Trinity:Par example si vous auriez dis:\n\n\t-Peux-tu s'il te plaît chercher un truc sur Albert Einstein in wikipedia ce serait super cool!")
              print("\n-Trinity:J'aurais voulue que vous ne gardiez que cela:\n\n\t-Peux-tu * chercher * dans wikipedia")
@@ -2215,7 +2474,7 @@ def Commandes(txt):
              if valid:
                   return(funcname)
           else:
-               os.system("aplay -q %s/local_sounds/cmd/sorry.wav"%script_path)
+               os.system("aplay -q %s/local_sounds/cmd/sorry.wav"%SCRIPT_PATH)
                Write_csv(new_trigger,funcname,ALTFILE)
                return(funcname)
     def disambiguify(actions,function_names,txt,action_trigger= None):
@@ -2286,23 +2545,23 @@ def Commandes(txt):
            print("\n-Trinity:Votre phrase:",txt)
 
 
-       os.system("aplay -q %s"%(script_path+"/local_sounds/cmd/ambiguty.wav"))
+       os.system("aplay -q %s"%(SCRIPT_PATH+"/local_sounds/cmd/ambiguty.wav"))
        while True:
            for n,(fnc) in enumerate(ordered_list):
                 print("\n-Trinity:Commande:%s\n-Déclenchée par %s parties:%s\n-Score de Confiance:%s"%(fnc,len(triggered_parts[fnc]),triggered_parts[fnc],score_function[fnc]))
                 print("\n==\n-Trinity:Pour choisir cette commande (%s) tapez:%s\n==\n"%(fnc,n))
 
                 if n+1 == 1:
-                    os.system("aplay -q %s/local_sounds/cmd/intro_%s.wav"%(script_path,fnc))
+                    os.system("aplay -q %s/local_sounds/cmd/intro_%s.wav"%(SCRIPT_PATH,fnc))
                 elif n+1 > 1 and n+1 < len(ordered_list):
-                    os.system("aplay -q %s/local_sounds/cmd/%s.wav"%(script_path,fnc))
+                    os.system("aplay -q %s/local_sounds/cmd/%s.wav"%(SCRIPT_PATH,fnc))
                 elif n+1 == len(ordered_list):
-                    os.system("aplay -q %s/local_sounds/cmd/outro_%s.wav"%(script_path,fnc))
+                    os.system("aplay -q %s/local_sounds/cmd/outro_%s.wav"%(SCRIPT_PATH,fnc))
 
 
            print("\n==\n-Trinity:Si ce n'était pas une commande tapez:%s\n==\n"%len(sorted_score))
 
-           os.system("aplay -q %s/local_sounds/cmd/hit%s.wav"%(script_path,len(sorted_score)))
+           os.system("aplay -q %s/local_sounds/cmd/hit%s.wav"%(SCRIPT_PATH,len(sorted_score)))
 
 
            response = input("\n-Trinity:Choisissez la bonne réaction pour cette phrase:")
@@ -2533,34 +2792,34 @@ def Commandes(txt):
               return(True)
 
        elif goto == "ask_for_name":
-          os.system("aplay -q %s"%(script_path+"/local_sounds/saved_answer/trinity.wav"))
+          os.system("aplay -q %s"%(SCRIPT_PATH+"/local_sounds/saved_answer/trinity.wav"))
           return(True)
 
        elif goto == "ask_for_mean":
-          os.system("aplay -q %s"%(script_path+"/local_sounds/saved_answer/matrix.wav"))
+          os.system("aplay -q %s"%(SCRIPT_PATH+"/local_sounds/saved_answer/matrix.wav"))
           return(True)
        elif goto == "ask_for_creator":
-          os.system("aplay -q %s"%(script_path+"/local_sounds/saved_answer/botmaster.wav"))
+          os.system("aplay -q %s"%(SCRIPT_PATH+"/local_sounds/saved_answer/botmaster.wav"))
           return(True)
 
        elif goto == "ask_for_rnd":
           rnd = str(random.randint(1,2))
-          ouinon = script_path+"/local_sounds/ouinon/"+rnd+".wav"
+          ouinon = SCRIPT_PATH+"/local_sounds/ouinon/"+rnd+".wav"
           os.system("aplay -q %s"%ouinon)
           return(True)
        elif goto == "ask_for_repeat":
-          os.system("aplay -q %s"%script_path+"local_sounds/repeat/isaid.wav")
-          os.system("aplay -q %s"%script_path+"tmp/current_answer.wav")
+          os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/repeat/isaid.wav")
+          os.system("aplay -q %s"%SCRIPT_PATH+"tmp/current_answer.wav")
           return(True)
 
        elif goto == "ask_for_prompt":
               Fallback_Prompt()
               return(True)
        elif goto == "ask_for_help":
-              os.system("aplay -q %s"%(script_path+"/local_sounds/saved_answer/help.wav"))
+              os.system("aplay -q %s"%(SCRIPT_PATH+"/local_sounds/saved_answer/help.wav"))
               return(True)
        elif goto == "ask_to_play_wav":
-              os.system("aplay -q %s"%script_path+"local_sounds/question/sound_file.wav")
+              os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/question/sound_file.wav")
               sound_input = input("Entrez le chemin du fichier à lire:")
               if sound_input.endswith(".wav"):
                   Play_Response(sound_input,stayawake=False,savehistory=False)
@@ -2580,7 +2839,7 @@ def Commandes(txt):
                return(True)
 
        elif goto == "ask_to_read_link":
-                  ReadLink(txt=decoded)
+                  ReadLink(txtinput=decoded)
 
                   return(True)
        elif goto == "ask_for_web":
@@ -2591,7 +2850,7 @@ def Commandes(txt):
                       decoded = decoded.replace(element," ")
 
                decoded = decoded.replace("wikipedia"," ")
-               os.system("aplay -q %s"%script_path+"local_sounds/server/wikipedia.wav")
+               os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/server/wikipedia.wav")
 
                for element in to_remove:
                    if element in decoded:
@@ -2655,13 +2914,13 @@ def GetTitleLink(txt,site=None):
                       break
 
          except Exception as e:
-                   os.system("aplay -q %s"%script_path+"local_sounds/errors/err_Google.wav")
+                   os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/errors/err_Google.wav")
                    PRINT("\n-Trinity:Custom search Error:",str(e))
                    SearchFallback = True
 
          if len(title_search) == 0:
                  PRINT("\n-Trinity:-Google() no result from google")
-                 os.system("aplay -q %s"%script_path+"local_sounds/errors/err_no_result_google.wav")
+                 os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/errors/err_no_result_google.wav")
                  SearchFallback = True
          else:
                return(title_search)
@@ -2687,7 +2946,7 @@ def GetTitleLink(txt,site=None):
 
              if len(title_search) == 0:
                  PRINT("\n-Trinity:GetTitleLink no result from google")
-                 os.system("aplay -q %s"%script_path+"local_sounds/errors/err_no_result_google.wav")
+                 os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/errors/err_no_result_google.wav")
                  return(None)
 
              else:
@@ -2696,7 +2955,7 @@ def GetTitleLink(txt,site=None):
 
 
          except Exception as e:
-              os.system("aplay -q %s"%script_path+"local_sounds/errors/err_google.wav")
+              os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/errors/err_google.wav")
               PRINT("\n-Trinity:Error:",str(e))
               return(None)
 
@@ -2718,7 +2977,7 @@ def ReadLink(txtinput=None,titleinput=None,urlinput=None):
 
     if not urlinput:
          urlinput = ""
-         for word in txt.split():
+         for word in txtinput.split():
 
              match = re.match(regex, word)
              if match:
@@ -2728,13 +2987,13 @@ def ReadLink(txtinput=None,titleinput=None,urlinput=None):
     if len(urlinput) > 0:
        if "wikipedia" in urlinput:
                if not titleinput:
-                   wiki_title = GetTitleLink(txt,"wikipedia")
+                   wiki_title = GetTitleLink(txtinput,"wikipedia")
                else:
                    wiki_title = titleinput
 
                if wiki_title:
                    PRINT("\n-Trinity:wiki_title:",wiki_title)
-                   return(Wikipedia(txt,title=wiki_title))
+                   return(Wikipedia(txtinput,Title=wiki_title))
 
                else:
                    PRINT("\n-Trinity:no title using txtinput:",txtinput)
@@ -2750,20 +3009,20 @@ def ReadLink(txtinput=None,titleinput=None,urlinput=None):
                     for tag in soup.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']):
                          text_data += tag.get_text()
                     if len(text_data) >0:
-                       os.system("aplay -q %s"%script_path+"/local_sounds/ok/reading_link.wav")
+                       os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/ok/reading_link.wav")
                        last_sentence.put(txtinput+" %s"%urlinput)
                        Text_To_Speech(text_data,stayawake=True)
                        return()
                     else:
-                        os.system("aplay -q %s"%script_path+"local_sounds/errors/err_read_link_no_txt.wav")
+                        os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/errors/err_read_link_no_txt.wav")
                         return()
                 except Exception as e:
                       PRINT("\n-Trinity:Error:",str(e))
-                      os.system("aplay -q %s"%script_path+"local_sounds/errors/err_read_link_request.wav")
+                      os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/errors/err_read_link_request.wav")
 
 
     else:
-         os.system("aplay -q %s"%script_path+"local_sounds/question/read_link_url.wav")
+         os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/question/read_link_url.wav")
 
          url_input = input("Entrez un lien:")
 
@@ -2776,24 +3035,24 @@ def ReadLink(txtinput=None,titleinput=None,urlinput=None):
 
 
     if len(urlinput) > 0:
-           if "wikipedia" in urlinput:
+#           if "wikipedia" in urlinput: ##TO REWRITE
 
 
-               if not titleinput:
-                   wiki_title = GetTitleLink(txt,"wikipedia")
-               else:
-                   wiki_title = titleinput
+#               if not titleinput: ####ToCHECKurlinputVStxtinput
+#                   wiki_title = GetTitleLink(txtinput,"wikipedia")
+#               else:
+#                   wiki_title = titleinput
+#
+#               if wiki_title:
+#                   PRINT("\n-Trinity:wiki_title:",wiki_title)
+#                   return(Wikipedia(txtinput,title=wiki_title))
 
-               if wiki_title:
-                   PRINT("\n-Trinity:wiki_title:",wiki_title)
-                   return(Wikipedia(txt,title=wiki_title))
+#               else:
+#                   PRINT("\n-Trinity:Pas de titre title utilisation de txtinput:",txtintput)
+#                   return(Wikipedia(txtinput))
 
-               else:
-                   PRINT("\n-Trinity:Pas de titre title utilisation de txtinput:",txtintput)
-                   return(Wikipedia(txtinput))
-
-           else:
-
+#           else:
+           if 1 == 1:
                 try:
 
                     response = requests.get(urlinput)
@@ -2802,19 +3061,19 @@ def ReadLink(txtinput=None,titleinput=None,urlinput=None):
                     for tag in soup.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']):
                          text_data += tag.get_text()
                     if len(text_data) >0:
-                       os.system("aplay -q %s"%script_path+"/local_sounds/ok/reading_link.wav")
+                       os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/ok/reading_link.wav")
                        last_sentence.put(txtinput+" %s"%urlinput)
                        Text_To_Speech(text_data,stayawake=True)
                        return()
                     else:
-                        os.system("aplay -q %s"%script_path+"local_sounds/errors/err_read_link_no_txt.wav")
+                        os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/errors/err_read_link_no_txt.wav")
                         return()
                 except Exception as e:
                       PRINT("\n-Trinity:Error:",str(e))
-                      os.system("aplay -q %s"%script_path+"local_sounds/errors/err_read_link_request.wav")
+                      os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/errors/err_read_link_request.wav")
                       return()
     else:
-              os.system("aplay -q %s"%script_path+"local_sounds/errors/err_url_not_valid.wav")
+              os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/errors/err_url_not_valid.wav")
               return()
 
 
@@ -2869,8 +3128,8 @@ def Google(tosearch,rnbr=50): #,tstmode = True):
          while True:
              time.sleep(0.5)
 
-             os.system("aplay -q  "+script_path+"local_sounds/question/search_history_cmd.wav")
-             os.system("aplay -q  "+script_path+"local_sounds/question/do_i_read_link.wav")
+             os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/question/search_history_cmd.wav")
+             os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/question/do_i_read_link.wav")
 
              Start_Thread_Record()
 
@@ -2887,10 +3146,10 @@ def Google(tosearch,rnbr=50): #,tstmode = True):
 
 
                    if "non" in txt and not "oui" in txt:
-                         os.system("aplay -q %s"%script_path+"/local_sounds/ok/1.wav")
+                         os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/ok/1.wav")
                          return(False)
                    elif "oui" in txt and not "non" in txt:
-                         os.system("aplay -q %s"%script_path+"/local_sounds/ok/1.wav")
+                         os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/ok/1.wav")
                          return([description,title,url])
 
 
@@ -2905,19 +3164,19 @@ def Google(tosearch,rnbr=50): #,tstmode = True):
                    opinion = score_sentiment.get()
 
                    if opinion == None:
-                             os.system("aplay -q %s"%script_path+"/local_sounds/question/repeat.wav")
+                             os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/question/repeat.wav")
                    elif opinion == False:
-                         os.system("aplay -q %s"%script_path+"/local_sounds/ok/1.wav")
+                         os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/ok/1.wav")
                          return(False)
                    elif opinion == True:
-                         os.system("aplay -q %s"%script_path+"/local_sounds/ok/1.wav")
+                         os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/ok/1.wav")
                          return([description,title,url])
 
 
          
 
     def miniprompt(full):
-        os.system("aplay -q %s"%script_path+"/local_sounds/prompt/2.wav")
+        os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/prompt/2.wav")
         user_input = input("Que voulez vous faire avec les résultats? :")
         if len(str(user_input)) > 2:
 
@@ -3180,7 +3439,7 @@ def Google(tosearch,rnbr=50): #,tstmode = True):
                    for element in exit_words:
                        if element in txt_input:
                             PRINT("\n-Trinity:Found exit match cmd :",element)
-                   os.system("aplay -q %s"%script_path+"/local_sounds/ok/1.wav")
+                   os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/ok/1.wav")
                    return(True)
 
          if ask_to_read_results:
@@ -3191,7 +3450,7 @@ def Google(tosearch,rnbr=50): #,tstmode = True):
 
                    lst_all = [" cent","100","complete","tout les","en entier","au total","en tout","combien","le reste"]
                    if any(element in txt_input.lower() for element in lst_all):
-                         os.system("aplay -q %s"%script_path+"/local_sounds/ok/google_full.wav")
+                         os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/ok/google_full.wav")
                          readlist(full,100)
                          return(False)
 
@@ -3205,7 +3464,7 @@ def Google(tosearch,rnbr=50): #,tstmode = True):
                                  continue
 
                         if chosen_one:
-                              os.system("aplay -q %s"%script_path+"/local_sounds/ok/custom_google.wav")
+                              os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/ok/custom_google.wav")
                               readlist(full,chosen_one)
                               return(False)
 
@@ -3215,7 +3474,7 @@ def Google(tosearch,rnbr=50): #,tstmode = True):
                               break
 
                    if chosen_one:
-                        os.system("aplay -q %s"%script_path+"/local_sounds/ok/printed_google.wav")
+                        os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/ok/printed_google.wav")
                         quit = readres(full,chosen_one)
                         return(quit)
                    else:
@@ -3226,16 +3485,16 @@ def Google(tosearch,rnbr=50): #,tstmode = True):
                             except:
                                  continue
                    if chosen_one:
-                       os.system("aplay -q %s"%script_path+"/local_sounds/ok/printed_google.wav")
+                       os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/ok/printed_google.wav")
                        quit = readres(full,chosen_one)
                        return(quit)
                    else:
-                      os.system("aplay -q %s"%script_path+"/local_sounds/errors/err_number_notfound.wav")
+                      os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/errors/err_number_notfound.wav")
                       return(False)
 
          if  not ask_to_wait and not ask_to_exit and not ask_to_read_results and not ask_for_prompt:
 
-           os.system("aplay -q %s"%script_path+"/local_sounds/history/err_cmd.wav")
+           os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/history/err_cmd.wav")
            return(False)
 
 
@@ -3280,13 +3539,13 @@ def Google(tosearch,rnbr=50): #,tstmode = True):
 
 
               except Exception as e:
-                   os.system("aplay -q %s"%script_path+"local_sounds/errors/err_Google.wav")
+                   os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/errors/err_Google.wav")
                    PRINT("\n-Trinity:Custom search Error:",str(e))
                    SearchFallback = True
 
          if len(google_result) == 0:
                  PRINT("\n-Trinity:-Google() no result from google")
-                 os.system("aplay -q %s"%script_path+"local_sounds/errors/err_no_result_google.wav")
+                 os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/errors/err_no_result_google.wav")
                  return()
 
 
@@ -3308,17 +3567,17 @@ def Google(tosearch,rnbr=50): #,tstmode = True):
 
              if len(google_result) == 0:
                  PRINT("\n-Trinity:-Google() no result from google")
-                 os.system("aplay -q %s"%script_path+"local_sounds/errors/err_no_result_google.wav")
+                 os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/errors/err_no_result_google.wav")
                  return()
 
          except Exception as e:
-              os.system("aplay -q %s"%script_path+"local_sounds/errors/err_Google.wav")
+              os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/errors/err_Google.wav")
               PRINT("\n-Trinity:Googlesearch Error:",str(e))
               return()
 
 
 
-    os.system("aplay -q %s"%script_path+"local_sounds/ok/googleres.wav")
+    os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/ok/googleres.wav")
 
 
     full = google_result[:100]
@@ -3337,7 +3596,7 @@ def Google(tosearch,rnbr=50): #,tstmode = True):
     while True:
          time.sleep(0.5)
 
-         os.system("aplay -q  "+script_path+"local_sounds/question/search_history_cmds.wav")
+         os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/question/search_history_cmds.wav")
 
          Start_Thread_Record()
 
@@ -3362,7 +3621,6 @@ def Google(tosearch,rnbr=50): #,tstmode = True):
 
 def Wikipedia(tosearch,Title= None ,FULL=None):
 
-
     tosearch = tosearch.strip()
     PRINT("\n-Trinity:Dans la fonction Wikipedia.")
     PRINT("\n-Trinity:tosearch:",tosearch)
@@ -3378,7 +3636,7 @@ def Wikipedia(tosearch,Title= None ,FULL=None):
           
         if not wiki_search:
             PRINT("\n-Trinity:Wikipedia no result from google")
-            os.system("aplay -q %s"%script_path+"local_sounds/errors/err_no_result_wiki.wav")
+            os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/errors/err_no_result_wiki.wav")
             return()
 
         wikipedia.set_lang("fr")
@@ -3393,7 +3651,7 @@ def Wikipedia(tosearch,Title= None ,FULL=None):
                PRINT("\n-Trinity:wiki reponse:",r)
         else:
             PRINT("\n-Trinity:no result from wikipedia")
-            os.system("aplay -q %s"%script_path+"local_sounds/errors/err_no_result_wiki.wav")
+            os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/errors/err_no_result_wiki.wav")
             return()
 
  
@@ -3402,7 +3660,7 @@ def Wikipedia(tosearch,Title= None ,FULL=None):
             try:
                 if not FULL:
 
-                    os.system("aplay -q %s"%script_path+"local_sounds/question/wikipedia.wav")
+                    os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/question/wikipedia.wav")
 
 
                     Start_Thread_Record()
@@ -3429,19 +3687,19 @@ def Wikipedia(tosearch,Title= None ,FULL=None):
                     if opinion == None:
                              choice = random.choice(["summary", "full"])
                              if choice == "summary":
-                                     os.system("aplay -q %s"%script_path+"/local_sounds/ouinon/wiki_summary.wav")
+                                     os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/ouinon/wiki_summary.wav")
                              if choice == "full":
-                                     os.system("aplay -q %s"%script_path+"/local_sounds/ouinon/wiki_full.wav")
+                                     os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/ouinon/wiki_full.wav")
                     elif opinion == False:
                          choice = "summary"
-                         os.system("aplay -q %s"%script_path+"/local_sounds/ok/wiki_summary.wav")
+                         os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/ok/wiki_summary.wav")
                     elif opinion == True:
                          choice = "full"
-                         os.system("aplay -q %s"%script_path+"/local_sounds/ok/wiki_full.wav")
+                         os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/ok/wiki_full.wav")
 
                 elif FULL == True:
                      choice = "full"
-                     os.system("aplay -q %s"%script_path+"/local_sounds/ouinon/wiki_full.wav")
+                     os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/ouinon/wiki_full.wav")
 
                 if choice == "summary":
 
@@ -3457,7 +3715,7 @@ def Wikipedia(tosearch,Title= None ,FULL=None):
                                 summary = wikipedia.summary(title=query_list[0].replace(" ","").replace("_",""),auto_suggest=True)
                             except Exception as e:
                                 PRINT("\n-Trinity:Error:",str(e))
-                                os.system("aplay -q %s"%script_path+"local_sounds/errors/err_wiki.wav")
+                                os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/errors/err_wiki.wav")
                                 return()
 
                     last_sentence.put(tosearch)
@@ -3480,7 +3738,7 @@ def Wikipedia(tosearch,Title= None ,FULL=None):
                                 content = page.content
                             except Exception as e:
                                 PRINT("\n-Trinity:Error:",str(e))
-                                os.system("aplay -q %s"%script_path+"local_sounds/errors/err_wiki.wav")
+                                os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/errors/err_wiki.wav")
                                 return()
 
                     if "== Notes" in content:
@@ -3502,16 +3760,16 @@ def Wikipedia(tosearch,Title= None ,FULL=None):
 
                     else:
                          PRINT("\n-Trinity:no result from content wikipedia")
-                         os.system("aplay -q %s"%script_path+"local_sounds/errors/err_no_result_wiki.wav")
+                         os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/errors/err_no_result_wiki.wav")
                          return()
             except Exception as e:
-                os.system("aplay -q %s"%script_path+"local_sounds/errors/err_wiki.wav")
+                os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/errors/err_wiki.wav")
                 PRINT("Error:",str(e))
                 return()
 
     except Exception as e:
        local_sounds/errors/err_func_wiki.wav
-       os.system("aplay -q %s"%script_path+"local_sounds/errors/err_func_wiki.wav")
+       os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/errors/err_func_wiki.wav")
        PRINT("\n-Trinity:Error:",str(e))
        return()
 
@@ -3519,7 +3777,7 @@ def Wikipedia(tosearch,Title= None ,FULL=None):
 
 def Fallback_Prompt():
     PRINT("\n-Trinity:Dans la fonction Fallback_Prompt")
-    os.system("aplay -q %s"%script_path+"/local_sounds/prompt/2.wav")
+    os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/prompt/2.wav")
 #    while True:
     if 1 == 1:
         user_input = input("\n-Trinity:Comment puis-je vous aider ?:")
@@ -3545,9 +3803,9 @@ def Check_Transcript(transcripts,transcripts_confidence,words,words_confidence,E
 
     if len(Err_msg) > 0:
         if Err_msg.startswith("Speech_To_Text:"):
-            os.system("aplay -q  %s"%script_path+"/local_sounds/errors/err_stt.wav")
+            os.system("aplay -q  %s"%SCRIPT_PATH+"/local_sounds/errors/err_stt.wav")
             Text_To_Speech(Err_msg,stayawake=True)
-            os.system("aplay -q  %s"%script_path+"/local_sounds/errors/err_prompt.wav")
+            os.system("aplay -q  %s"%SCRIPT_PATH+"/local_sounds/errors/err_prompt.wav")
             return(Fallback_Prompt())
 
     if len(transcripts) > 0:
@@ -3575,7 +3833,7 @@ def Check_Transcript(transcripts,transcripts_confidence,words,words_confidence,E
         return(transcripts.replace("\\",""),final_confidence)
         
     else:
-      os.system("aplay -q  %s"%script_path+"/local_sounds/errors/err_no_respons.wav")
+      os.system("aplay -q  %s"%SCRIPT_PATH+"/local_sounds/errors/err_no_respons.wav")
       #      Go_Back_To_Sleep()
       return("",False)
 
@@ -3631,13 +3889,13 @@ def Repeat(txt):
        if no:
           go_prompt = any(element in txt.lower() for element in prompt_request)
           if go_prompt:
-              os.system("aplay -q %s"%script_path+"/local_sounds/ok/1.wav")
+              os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/ok/1.wav")
               return(Fallback_Prompt())
           else:
-              os.system("aplay -q %s"%script_path+"/local_sounds/ok/1.wav")
+              os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/ok/1.wav")
               Go_Back_To_Sleep()
        else:
-               os.system("aplay -q %s"%script_path+"/local_sounds/ok/1.wav")
+               os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/ok/1.wav")
 
                cmd = Commandes(txt)
                if cmd:
@@ -3645,13 +3903,13 @@ def Repeat(txt):
                       return(Fallback_Prompt())
                   elif cmd == "random":
                        rnd = str(random.randint(1,2))
-                       ouinon = script_path+"/local_sounds/ouinon/"+rnd+".wav"
+                       ouinon = SCRIPT_PATH+"/local_sounds/ouinon/"+rnd+".wav"
                        os.system("aplay -q %s"%ouinon)
                else:
                      return(To_Gpt(txt))
     else:
 
-               os.system("aplay -q %s"%script_path+"/local_sounds/ok/1.wav")
+               os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/ok/1.wav")
                #go_to_function.put("Speech_To_Text")
                cmd = Commandes(txt)
                if cmd:
@@ -3676,7 +3934,7 @@ def Bad_Stt(txt):
 
 
             try:
-                with open(script_path+fname, "wb") as out:
+                with open(SCRIPT_PATH+fname, "wb") as out:
                      out.write(audio_response)
             except Exception as e:
                 PRINT("\n-Trinity:Error:",str(e))
@@ -3687,12 +3945,12 @@ def Bad_Stt(txt):
             PRINT("\n-Trinity:Error:%s"%str(e))
             Err = True
             try:
-                os.system('pico2wave -l fr-FR -w %s "%s"'%(script_path+fname,txt))
+                os.system('pico2wave -l fr-FR -w %s "%s"'%(SCRIPT_PATH+fname,txt))
             except Exception as e:
                 PRINT("\n-Trinity:Error:",str(e))
                 sys.exit()
 
-    os.system("aplay -q %s"%script_path+fname)
+    os.system("aplay -q %s"%SCRIPT_PATH+fname)
 
 
 
@@ -3705,12 +3963,12 @@ def Bad_Confidence(txt):
     PRINT("\n-Trinity:Orig_sentence:",Orig_sentence)
 
     rnd = str(random.randint(1,10))
-    bad_sound = script_path+"/local_sounds/badconf/"+rnd+".wav"
+    bad_sound = SCRIPT_PATH+"/local_sounds/badconf/"+rnd+".wav"
     os.system("aplay -q %s"%bad_sound)
 
     Bad_Stt(txt)
 
-    question_sound = script_path+"/local_sounds/question/1.wav"
+    question_sound = SCRIPT_PATH+"/local_sounds/question/1.wav"
     os.system("aplay -q %s"%question_sound)
 
     Start_Thread_Record()
@@ -3730,45 +3988,45 @@ def Bad_Confidence(txt):
              choice = random.choice(["repeat", "send","prompt"])
              if choice == "send":
                  if len(Orig_sentence) > 0:
-                     os.system("aplay -q %s"%script_path+"/local_sounds/ok/1.wav")
+                     os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/ok/1.wav")
                      return(To_Gpt(Orig_sentence))
                  else:
-                     os.system("aplay -q %s"%script_path+"local_sounds/forgot/1.wav")
+                     os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/forgot/1.wav")
                      choice = random.choice(["repeat","prompt"])
                      if choice == "repeat":
-                         os.system("aplay -q %s"%script_path+"/local_sounds/repeat/1.wav")
+                         os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/repeat/1.wav")
                          return(Trinity("Repeat"))
                      if choice == "prompt":
-                         os.system("aplay -q %s"%script_path+"/local_sounds/prompt/1.wav")
+                         os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/prompt/1.wav")
                          return(Fallback_Prompt())
 
 
              if choice == "repeat":
-                 os.system("aplay -q %s"%script_path+"/local_sounds/repeat/1.wav")
+                 os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/repeat/1.wav")
                  return(Trinity("Repeat"))
              if choice == "prompt":
-                 os.system("aplay -q %s"%script_path+"/local_sounds/prompt/1.wav")
+                 os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/prompt/1.wav")
                  return(Fallback_Prompt())
     elif opinion == False:
              choice = random.choice(["repeat","prompt"])
              if choice == "repeat":
-                 os.system("aplay -q %s"%script_path+"/local_sounds/repeat/1.wav")
+                 os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/repeat/1.wav")
                  return(Trinity("Repeat"))
              if choice == "prompt":
-                 os.system("aplay -q %s"%script_path+"/local_sounds/prompt/1.wav")
+                 os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/prompt/1.wav")
                  return(Fallback_Prompt())
     elif opinion == True:
-                 os.system("aplay -q %s"%script_path+"/local_sounds/ok/1.wav")
+                 os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/ok/1.wav")
                  if len(Orig_sentence) > 0:
                      return(To_Gpt(Orig_sentence))
                  else:
-                     os.system("aplay -q %s"%script_path+"local_sounds/forgot/1.wav")
+                     os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/forgot/1.wav")
                      choice = random.choice(["repeat","prompt"])
                      if choice == "repeat":
-                         os.system("aplay -q %s"%script_path+"/local_sounds/repeat/1.wav")
+                         os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/repeat/1.wav")
                          return(Trinity("Repeat"))
                      if choice == "prompt":
-                         os.system("aplay -q %s"%script_path+"/local_sounds/prompt/1.wav")
+                         os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/prompt/1.wav")
                          return(Fallback_Prompt())
 
 
@@ -3878,7 +4136,7 @@ def Text_To_Speech(txtinput,stayawake=False,savehistory=True):
     txt_list = Split_Text(parsed_response)
     ln_txt_list = len(txt_list)
     wav_list = []
-    final_wav = script_path + "/tmp/current_answer.wav"
+    final_wav = SCRIPT_PATH + "/tmp/current_answer.wav"
     Err = False
 
     for n,txt in enumerate(txt_list):
@@ -3900,26 +4158,26 @@ def Text_To_Speech(txtinput,stayawake=False,savehistory=True):
 
 
             try:
-                with open(script_path+fname, "wb") as out:
+                with open(SCRIPT_PATH+fname, "wb") as out:
                      out.write(audio_response)
             except Exception as e:
                 PRINT("\n-Trinity:Error:",str(e))
                 sys.exit()
 
-            wav_list.append(script_path+fname)
+            wav_list.append(SCRIPT_PATH+fname)
 
         except Exception as e:
             PRINT("\n-Trinity:Error:%s"%str(e))
             Err = True
             try:
-                os.system('pico2wave -l fr-FR -w %s "%s"'%(script_path+fname,txt))
+                os.system('pico2wave -l fr-FR -w %s "%s"'%(SCRIPT_PATH+fname,txt))
             except Exception as e:
                 PRINT("\n-Trinity:Error:",str(e))
                 sys.exit()
-            wav_list.append(script_path+fname)
+            wav_list.append(SCRIPT_PATH+fname)
 
     if Err:
-        os.system("aplay -q  "+script_path+"local_sounds/errors/err_tts.wav")
+        os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/errors/err_tts.wav")
 
 
 
@@ -4095,17 +4353,17 @@ def preprocess(txt):
 def Standing_By(self_launched=False):
     PRINT("\n-Trinity:Dans la fonction Standing_By")
 
-#    word_key = script_path+"/models/Trinity_en_linux_v2_2_0.ppn"
-    word_key = script_path+"/models/trinity_fr_raspberry-pi_v3_0_0.ppn"
-    pvfr = script_path+"/models/porcupine_params_fr.pv"
+#    word_key = SCRIPT_PATH+"/models/Trinity_en_linux_v2_2_0.ppn"
+    word_key = SCRIPT_PATH+"/models/trinity_fr_raspberry-pi_v3_0_0.ppn"
+    pvfr = SCRIPT_PATH+"/models/porcupine_params_fr.pv"
     porcupine = None
     keyword_index = None
 
     if self_launched:
-        os.system("aplay -q %s"%script_path+"local_sounds/wait/selfwait.wav")
+        os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/wait/selfwait.wav")
 
     else:
-        os.system("aplay -q %s"%script_path+"local_sounds/history/wait.wav")
+        os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/history/wait.wav")
 
 
     try:
@@ -4127,7 +4385,7 @@ def Standing_By(self_launched=False):
             if keyword_index == 0:
                 PRINT("\n-Trinity:keyword_index:",keyword_index)
                 rnd = str(random.randint(1,15))
-                wake_sound = script_path+"/local_sounds/wakesounds/"+rnd+".wav"
+                wake_sound = SCRIPT_PATH+"/local_sounds/wakesounds/"+rnd+".wav"
                 os.system("aplay -q %s"%wake_sound)
                 break
 
@@ -4178,10 +4436,10 @@ def SearchHistory(tosearch):
          PRINT("\n-Trinity:toplay:\n %s \n"%toplay)
 
          nbrtoplay = len(toplay)
-         os.system("aplay -q %slocal_sounds/history/playlist_%s.wav"%(script_path,str(nbrtoplay)))
+         os.system("aplay -q %slocal_sounds/history/playlist_%s.wav"%(SCRIPT_PATH,str(nbrtoplay)))
 
          for n,wavfile in enumerate(toplay):
-             os.system("aplay -q %slocal_sounds/history/play_%s.wav"%(script_path,str(n+1)))
+             os.system("aplay -q %slocal_sounds/history/play_%s.wav"%(SCRIPT_PATH,str(n+1)))
              if wavfile.endswith(".wav"):
                   os.system("aplay -q %s"%wavfile)
              else:
@@ -4276,7 +4534,7 @@ def SearchHistory(tosearch):
                    for element in exit_words:
                        if element in txt_input:
                             PRINT("\n-Trinity:Found exit match cmd :",element)
-                   os.system("aplay -q %s"%script_path+"/local_sounds/ok/1.wav")
+                   os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/ok/1.wav")
                    return(True)
 
          if ask_to_play:
@@ -4303,7 +4561,7 @@ def SearchHistory(tosearch):
 
                                        hist_bingo = args[3]
 
-                                       os.system("aplay -q  "+script_path+"local_sounds/history/choose_%s.wav"%(str(rnd_nbr + 1)))
+                                       os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/history/choose_%s.wav"%(str(rnd_nbr + 1)))
 
                                        playlist([hist_wav])
                                        return(True)
@@ -4392,7 +4650,7 @@ def SearchHistory(tosearch):
                                        res_str = "\n-(Résultat numéro %s)\n    Catégories:%s\n    Texte utilisateur synthétisé:%s\n     Réponse:%s\n   Score:%s"%(str(n+1),hist_cats,hist_txt,hist_answer,hist_bingo)
                                        
 
-                                       os.system("aplay -q  "+script_path+"local_sounds/history/choose_%s.wav"%(str(rnd_nbr + 1)))
+                                       os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/history/choose_%s.wav"%(str(rnd_nbr + 1)))
                                        Text_To_Speech(res_str,stayawake=True,savehistory=False)
                                        return()
 
@@ -4421,11 +4679,11 @@ def SearchHistory(tosearch):
 
          if not ask_to_search and not ask_to_play and not ask_to_wait and not ask_to_exit and not ask_to_read_results and not ask_for_prompt:
            
-           os.system("aplay -q %s"%script_path+"/local_sounds/history/err_cmd.wav")
+           os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/history/err_cmd.wav")
            return()
 
     def miniprompt(top5,full):
-        os.system("aplay -q %s"%script_path+"/local_sounds/prompt/2.wav")
+        os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/prompt/2.wav")
         user_input = input("Que voulez vous faire avec l'historique? :")
         if len(str(user_input)) > 2:
 
@@ -4437,14 +4695,14 @@ def SearchHistory(tosearch):
 
 
 
-    files = [f for f in os.listdir(script_path+"/history/") if os.path.isfile(os.path.join(script_path+"/history/", f))]
+    files = [f for f in os.listdir(SCRIPT_PATH+"/history/") if os.path.isfile(os.path.join(SCRIPT_PATH+"/history/", f))]
 
 
     MatchResults =[]
 
     for file in files:
         try:
-            with open(script_path+"/history/"+file) as f:
+            with open(SCRIPT_PATH+"/history/"+file) as f:
                   data = [line.strip() for line in f]
 
 
@@ -4484,17 +4742,17 @@ def SearchHistory(tosearch):
          MatchedNbr = 5
 
     if len(SortedMatched) == 1:
-         os.system("aplay -q  "+script_path+"local_sounds/history/found_one.wav")
+         os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/history/found_one.wav")
     elif len(SortedMatched) == 2:
-         os.system("aplay -q  "+script_path+"local_sounds/history/found_two.wav")
+         os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/history/found_two.wav")
     elif len(SortedMatched) == 3:
-         os.system("aplay -q  "+script_path+"local_sounds/history/found_three.wav")
+         os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/history/found_three.wav")
     elif len(SortedMatched) == 4:
-         os.system("aplay -q  "+script_path+"local_sounds/history/found_four.wav")
+         os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/history/found_four.wav")
     elif len(SortedMatched) >= 5:
-         os.system("aplay -q  "+script_path+"local_sounds/history/found_five.wav")
+         os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/history/found_five.wav")
     else:
-        os.system("aplay -q  "+script_path+"local_sounds/history/no_result.wav")
+        os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/history/no_result.wav")
         return()
 
     TopFive = SortedMatched[:MatchedNbr]
@@ -4530,9 +4788,9 @@ def SearchHistory(tosearch):
 
 
          if len(TopFive) >1:
-             os.system("aplay -q  "+script_path+"local_sounds/question/search_history_cmds.wav")
+             os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/question/search_history_cmds.wav")
          else:
-             os.system("aplay -q  "+script_path+"local_sounds/question/search_history_cmd.wav")
+             os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/question/search_history_cmd.wav")
 
 
 
@@ -4584,31 +4842,31 @@ def History(answer):
    rnd_name = str(''.join(random.choice(string.ascii_letters + string.digits) for _ in range(16))) + ".wav"
 
    new_wav = SAVED_ANSWER + rnd_name
-   current_wav = script_path + "/tmp/current_answer.wav"
+   current_wav = SCRIPT_PATH + "/tmp/current_answer.wav"
 
    os.system("cp %s %s"%(current_wav,new_wav))
 
-   if os.path.exists(script_path+"/history/"+Cat_File):
-       with open(script_path+"/history/"+Cat_File,"a+") as f:
+   if os.path.exists(SCRIPT_PATH+"/history/"+Cat_File):
+       with open(SCRIPT_PATH+"/history/"+Cat_File,"a+") as f:
             data = "\n"
             data += "***" + str(Cat_List)
             data += "***" + Lemmatizer
             data += "***" + answer
             data += "***" + new_wav
             PRINT("\n-Trinity:data:",data)
-            PRINT("\n-Trinity:wrote to ",script_path+"/history/"+Cat_File)
+            PRINT("\n-Trinity:wrote to ",SCRIPT_PATH+"/history/"+Cat_File)
             f.write(data)
  
    else:
 
-       with open(script_path+"/history/"+Cat_File,"w") as f:
+       with open(SCRIPT_PATH+"/history/"+Cat_File,"w") as f:
             data = "\n"
             data += "***" + str(Cat_List)
             data += "***" +Lemmatizer
             data += "***" + answer
             data += "***" + new_wav
             PRINT("\n-Trinity:data:",data)   
-            PRINT("\n-Trinity:wrote to ",script_path+"/history/"+Cat_File)
+            PRINT("\n-Trinity:wrote to ",SCRIPT_PATH+"/history/"+Cat_File)
             f.write(data)
 
 def Check_History(question):
@@ -4634,8 +4892,8 @@ def Check_History(question):
    Best_Answer = []
    Best_Wav = []
   
-   if os.path.exists(script_path+"/history/"+Cat_File):
-       with open(script_path+"/history/"+Cat_File,"r") as f:
+   if os.path.exists(SCRIPT_PATH+"/history/"+Cat_File):
+       with open(SCRIPT_PATH+"/history/"+Cat_File,"r") as f:
              data = [line.strip() for line in f]
 
 
@@ -4702,9 +4960,9 @@ def Check_History(question):
 
 
 
-                            os.system("aplay -q %s"%script_path+"local_sounds/already/1.wav")
+                            os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/already/1.wav")
                             os.system("aplay -q %s"%final_wav)
-                            os.system("aplay -q %s"%script_path+"local_sounds/question/amigood.wav")
+                            os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/question/amigood.wav")
 
                             Start_Thread_Record()
 
@@ -4719,13 +4977,13 @@ def Check_History(question):
                                       score_sentiment.put(False)
                                 opinion = score_sentiment.get()
                                 if opinion == None:
-                                        os.system("aplay -q %s"%script_path+"local_sounds/notok/1.wav")
+                                        os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/notok/1.wav")
                                         return(False)
                                 elif opinion == False:
-                                        os.system("aplay -q %s"%script_path+"local_sounds/notok/1.wav")
+                                        os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/notok/1.wav")
                                         return(False)
                                 else:
-                                        os.system("aplay -q %s"%script_path+"local_sounds/ok/1.wav")
+                                        os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/ok/1.wav")
                                         return(True)
 
 
@@ -4841,8 +5099,8 @@ def GetConf():
    folder = False
    conf = False
 
-   if os.path.exists(script_path+"/datas/conf.trinity"):
-           with open(script_path+"/datas/conf.trinity","r") as f:
+   if os.path.exists(SCRIPT_PATH+"/datas/conf.trinity"):
+           with open(SCRIPT_PATH+"/datas/conf.trinity","r") as f:
               f = f.readlines()
 
            for l in f:
@@ -4874,7 +5132,7 @@ def GetConf():
               if option == "SAVED_ANSWER":
 
                       if conf.lower() == "default":
-                         SAVED_ANSWER = script_path+"/local_sounds/saved_answer/"
+                         SAVED_ANSWER = SCRIPT_PATH+"/local_sounds/saved_answer/"
                       else:
                           SAVED_ANSWER = conf
 
@@ -4918,7 +5176,7 @@ def GetConf():
 
 
    else:
-           with open(script_path+"conf.trinity","w") as f:
+           with open(SCRIPT_PATH+"conf.trinity","w") as f:
                 data = """SAVED_ANSWER = default
 GPT4FREE_SERVERS_STATUS = Active #Active or Unknown or All or None
 GPT4FREE_SERVERS_AUTH = False #True or False or All
@@ -4927,7 +5185,7 @@ XCB_ERROR_FIX = False"""
                 f.write(data)
 
            DEBUG = False
-           SAVED_ANSWER = script_path+"/local_sounds/saved_answer/"
+           SAVED_ANSWER = SCRIPT_PATH+"/local_sounds/saved_answer/"
            GPT4FREE_SERVERS_STATUS = "Active"
            GPT4FREE_SERVERS_AUTH = False
            XCB_ERROR_FIX = False
@@ -4950,9 +5208,9 @@ def Xcb_Fix(mode):
 
 if __name__ == "__main__":
 
-    script_path = os.path.dirname(__file__)
-    if script_path.endswith("."):
-       script_path = script_path[:-1]
+    SCRIPT_PATH = os.path.dirname(__file__)
+    if SCRIPT_PATH.endswith("."):
+       SCRIPT_PATH = SCRIPT_PATH[:-1]
 
 
     DISPLAY = ""
@@ -4961,23 +5219,13 @@ if __name__ == "__main__":
     GPT4FREE_SERVERS_AUTH = False
     DEBUG = False
     XCB_ERROR_FIX = False
-    SAVED_ANSWER = script_path +"/local_sounds/saved_answer/"
+    SAVED_ANSWER = SCRIPT_PATH +"/local_sounds/saved_answer/"
 
     GetConf()
 
     if GPT4FREE_SERVERS_STATUS:
         Providers_To_Use = Check_Free_Servers()
 
-
-    PRINT("\n-Trinity:DEBUG:",DEBUG)
-    PRINT("-Trinity:GPT4FREE_SERVERS_STATUS:%s"%GPT4FREE_SERVERS_STATUS)
-    PRINT("-Trinity:GPT4FREE_SERVERS_AUTH:%s"%GPT4FREE_SERVERS_AUTH)
-    PRINT("-Trinity:XCB_ERROR_FIX:%s"%XCB_ERROR_FIX)
-    PRINT("-Trinity:SAVED_ANSWER:%s"%SAVED_ANSWER)
-    if GPT4FREE_SERVERS_STATUS:
-         PRINT("-Trinity:Free Gpt servers:")
-         for i in Providers_To_Use:
-              PRINT("\t",i)
 
     FRAME_DURATION = 480
     FRAME_RATE = 16000
@@ -5021,24 +5269,32 @@ if __name__ == "__main__":
     synonyms_list = []
     fnc_verb = {}
 
-    CMDFILE = script_path + "/datas/cmd.trinity"
-    ALTFILE = script_path + "/datas/alt_cmd.trinity"
-    TRIFILE = script_path + "/datas/alt_trigger.trinity"
-    ACTFILE = script_path + "/datas/action.trinity"
-    PREFILE = script_path + "/datas/prefix.trinity"
-    SYNFILE = script_path + "/datas/synonym.trinity"
+    CMDFILE = SCRIPT_PATH + "/datas/cmd.trinity"
+    ALTFILE = SCRIPT_PATH + "/datas/alt_cmd.trinity"
+    TRIFILE = SCRIPT_PATH + "/datas/alt_trigger.trinity"
+    ACTFILE = SCRIPT_PATH + "/datas/action.trinity"
+    PREFILE = SCRIPT_PATH + "/datas/prefix.trinity"
+    SYNFILE = SCRIPT_PATH + "/datas/synonym.trinity"
 
     Load_Csv()
-
-
-
-
 
     if XCB_ERROR_FIX:
          Xcb_Fix("unset")
 
-    os.system("aplay -q %s"%script_path+"local_sounds/boot/psx.wav")
+    os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/boot/psx.wav")
     signal.signal(signal.SIGINT, signal_handler)
+
+    PRINT("\n-Trinity:DEBUG:",DEBUG)
+    PRINT("-Trinity:GPT4FREE_SERVERS_STATUS:%s"%GPT4FREE_SERVERS_STATUS)
+    PRINT("-Trinity:GPT4FREE_SERVERS_AUTH:%s"%GPT4FREE_SERVERS_AUTH)
+    PRINT("-Trinity:XCB_ERROR_FIX:%s"%XCB_ERROR_FIX)
+    PRINT("-Trinity:SAVED_ANSWER:%s"%SAVED_ANSWER)
+    if GPT4FREE_SERVERS_STATUS:
+         PRINT("-Trinity:Free Gpt servers to use:")
+         for i in Providers_To_Use:
+              PRINT("\t",i)
+
+
 #####
     Trinity()
 #####
