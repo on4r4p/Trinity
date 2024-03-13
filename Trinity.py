@@ -11,6 +11,8 @@ from nltk import pos_tag
 
 from difflib import SequenceMatcher
 
+from datetime import datetime
+
 from bs4 import BeautifulSoup
 
 from shutil import move
@@ -289,9 +291,21 @@ def Check_Free_Servers():
 def FreeGpt(input):
      PRINT("\n-Trinity:Dans la fonction FreeGpt")
 
+
      global Current_Provider_Id
      global Blacklisted
 
+     def save_blacklist(server,err):
+        err_file = str(SAVED_ANSWER+"/saved_error/g4f_providers.errors").replace("//","/")
+        try:
+            with open(err_file, "a+", newline="") as f:
+                now = "===== " +str(datetime.now().strftime("%Y-%m-%d-%H:%M:%S")) +" =====\n"
+                serverr = "g4f provider:%s error:%s\n"%(str(server),err)
+                f.write(now)
+                f.write(serverr)
+        except Exception as e:
+            print("\n-Trinity:Error:save_blacklist():%s"%str(e))
+        
      Answer_Known = Check_History(input)
 
      if Answer_Known or not No_Input.empty():
@@ -328,7 +342,7 @@ def FreeGpt(input):
              messages=[{"role": "user", "content": str(input)}])
 
              if len(response) < 1:
-                 PRINT("\n-Trinity:No answer from :",Providers_To_Use[Current_Provider_Id])
+                 PRINT("\n-Trinity:len(response) < 1:No answer from :",Providers_To_Use[Current_Provider_Id])
                  provider_name = Providers_To_Use[Current_Provider_Id].replace("g4f.Provider.","")
                  wait = SCRIPT_PATH+"/local_sounds/providers/"+str(provider_name)+".wav"
                  os.system("aplay -q %s"%wait)
@@ -342,6 +356,7 @@ def FreeGpt(input):
                  provider_name = Providers_To_Use[Current_Provider_Id].replace("g4f.Provider.","")
                  wait = SCRIPT_PATH+"/local_sounds/providers/"+str(provider_name)+".wav"
                  os.system("aplay -q %s"%wait)
+                 save_blacklist(Providers_To_Use[Current_Provider_Id],str(e))
                  Blacklisted.append(Providers_To_Use[Current_Provider_Id])
                  Current_Provider_Id += 1
         p_cnt += 1
@@ -4158,6 +4173,7 @@ def Text_To_Speech(txtinput,stayawake=False,savehistory=True):
     parsed_response = parse_response(str(txtinput))
     PRINT("\n-After Parse:\n%s\n\n"%parsed_response)
 
+#    err_list = []#TODO
     txt_list = Split_Text(parsed_response)
     ln_txt_list = len(txt_list)
     wav_list = []
@@ -4170,16 +4186,18 @@ def Text_To_Speech(txtinput,stayawake=False,savehistory=True):
 
     Err_Tts = False
     Err_Skip = False
+    Err_Pysox = False
     Err_Sample = False
     Err_Concatenation = False
 
     for n,txt in enumerate(txt_list):
         time.sleep(0.5)
         leadn = str(n).zfill(4)
-        if len(txt_list) > 1:
-                fname = "/tmp/answer"+str(leadn)+".wav"
-        else:
-                fname = "/tmp/current_answer.wav"
+#        if len(txt_list) > 1:
+#                fname = "/tmp/answer"+str(leadn)+".wav"
+#        else:
+#                fname = "/tmp/current_answer.wav"
+        fname = "/tmp/answer"+str(leadn)+".wav"
         Err_cnt = 0
         while True:
              Retry = False
@@ -4199,9 +4217,9 @@ def Text_To_Speech(txtinput,stayawake=False,savehistory=True):
                      with open(SCRIPT_PATH+fname, "wb") as out:
                           out.write(audio_response)
                      wav_list.append(SCRIPT_PATH+fname)
-                     
                  except Exception as e:
-                     PRINT("\n-Trinity:Error:",str(e))
+                     PRINT("\n-Trinity:Error:",str(e)) #TODO
+#                     err_list.append("Err_cnt:%s write(gtss)file:%s err:%s"%(str(Err_cnt),SCRIPT_PATH+fname,str(e)))
                      Err_cnt +=1
                      Retry = True
 
@@ -4250,25 +4268,36 @@ def Text_To_Speech(txtinput,stayawake=False,savehistory=True):
 
 #    print("to_sox:",to_sox)
 
-
-    try:
-         cbn = sox.Combiner()
-         cbn.convert(samplerate=24000, n_channels=1)
+    if len(to_sox) > 1:
          try:
-             cbn.set_input_format(file_type=['wav' for i in to_sox])
+              cbn = sox.Combiner()
+              cbn.convert(samplerate=24000, n_channels=1)
+              try:
+                  cbn.set_input_format(file_type=['wav' for i in to_sox])
+              except Exception as e:
+                  print("\n-Trinity:Error:",str(e))
+              cbn.build(to_sox,final_wav, 'concatenate')
          except Exception as e:
-             print("\n-Trinity:Error:",str(e))
-         cbn.build(to_sox,final_wav, 'concatenate')
-    except Exception as e:
-         print("\n-Trinity:Error:Concatenation:",str(e))
-         Err_Concatenation = True
-
+              print("\n-Trinity:Error:Concatenation:",str(e))
+              Err_Concatenation = True
+    elif len(to_sox) == 1:
+             try:
+                 sample = sox.Transformer()
+                 sample.set_output_format(rate=24000)
+                 sample.build(to_sox[0],final_wav)
+             except Exception as e:
+                 PRINT("\n-Trinity:to_sox:\n%s"%to_sox[0])
+                 print("\n-Trinity:Error:pysox:",str(e))
+                 Err_Pysox = True
 
 
     if Err_Tts:
         os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/errors/err_tts.wav")
     if Err_Skip:
         os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/errors/err_skip_sox.wav")
+        Move_To_Error_Folder = True
+    if Err_Pysox:
+        os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/errors/err_answer_sox.wav")
         Move_To_Error_Folder = True
     if Err_Sample:
         os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/errors/err_sample_sox.wav")
@@ -4287,21 +4316,48 @@ def Text_To_Speech(txtinput,stayawake=False,savehistory=True):
 
 
 
-    if Move_To_Error_Folder:
+    if Move_To_Error_Folder and len(to_sox)>0:
+
+       while True:
+              characters = string.ascii_letters + string.digits
+              rnd = ''.join(random.choice(characters) for _ in range(5))
+              rnd_folder = err_folder+rnd
+              if not os.path.exists(rnd_folder):
+                  try:
+                     os.makedirs(rnd_folder)
+                     err_folder = rnd_folder
+                     break
+                  except Exception as e:
+                      print("\n-Trinity:Error:os.makedirs(rnd_folder):%s"%str(e))
+                      break
+
        PRINT("\n-Trinity:Déplacements des fichiers wav temporaire vers %s"%err_folder)
+
+       err_move = False
        for w in wav_files:
            try:
               move(tmp_folder+str(w), err_folder)
            except Exception as e:
               print("\n-Trinity:Error:Move:",str(e))
+              err_move = True
 
+       if err_move:
+           os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/errors/err_while_moving_to_err.wav")
+       else:
+           os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/errors/err_move_to_err.wav")
     else:
        PRINT("\n-Trinity:Effacement des fichiers wav temporaire de %s"%tmp_folder)
+
+       err_del = False
        for w in wav_files:
            try:
               os.remove(tmp_folder+str(w))
            except Exception as e:
               print("\n-Trinity:Error:Move:",str(e))
+              err_del = True
+
+       if err_del:
+          os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/errors/err_del_wav.wav")
 
     if len(to_sox) > 0:
 
