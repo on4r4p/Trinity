@@ -5384,78 +5384,61 @@ def Check_Update():
    datas_folder = SCRIPT_PATH + "/datas/"
    gitobj = Github()
 
-   PRINT("\n-Trinity:Vérification de mise à jour pour Gpt4free:")
-
+   to_update = []
    Gpt4free_Is_Up = False
-
+   Gpt4free_current_version = ""
+   Gpt4free_latest_version = ""
    try:
-       repo_gpt4free = gitobj.get_repo("xtekky/gpt4free")
-       last_gpt4free = repo_gpt4free.get_commits()[0]
-       sha_gpt4free = last_gpt4free.sha
-
-       PRINT("\n-Trinity:Github last commit gpt4free sha:%s"%sha_gpt4free)
-
-       if os.path.exists(datas_folder+"sha.gpt4free.trinity"):
-            current_sha_gpt4free = ""
-
-            with open(datas_folder+"sha.gpt4free.trinity","r") as f:
-                current_sha_gpt4free = f.read()
-            PRINT("\n-Trinity:gpt4free sha from %s:%s"%(datas_folder+"sha.gpt4free.trinity",current_sha_gpt4free))
-
-            if sha_gpt4free == current_sha_gpt4free:
-                Gpt4free_Is_Up = True
-       else:
-           with open(datas_folder+"sha.gpt4free.trinity","w") as f:
-                f.write(sha_gpt4free)
-                Gpt4free_Is_Up = True
+       if hasattr(g4f, "version"):
+           if hasattr(g4f.version, "utils"):
+               if hasattr(g4f.version.utils, "current_version"):
+                   Gpt4free_current_version = g4f.version.utils.current_version
+               if hasattr(g4f.version.utils, "latest_version"):
+                   Gpt4free_latest_version = g4f.version.utils.latest_version
+       if Gpt4free_current_version == Gpt4free_latest_version:
+           Gpt4free_Is_Up = True
 
    except Exception as e:
-       print("\n-Trinity:Error:Check_Update gpt4free:%s"%str(e))
-   
-
-   PRINT("\n-Trinity:Vérification de mise à jour pour Trinity:")
+       print("\n-Trinity:Error:Check_Update n'a pas pu déterminer la version de gpt4free:%s"%str(e))
+       Gpt4free_Is_Up = True
 
    Trinity_Is_Up = False
 
    try:
        repo_trinity = gitobj.get_repo("on4r4p/Trinity")
-       last_trinity = repo_trinity.get_commits()[0]
+       last_trinity = repo_trinity.get_commits()[1]
        sha_trinity = last_trinity.sha
 
-       PRINT("\n-Trinity:Github last commit Trinity sha:%s"%sha_trinity)
-
-       if os.path.exists(datas_folder+"sha.trinity"):
-            current_sha_trinity = ""
-
-            with open(datas_folder+"sha.trinity","r") as f:
-                current_sha_trinity = f.read()
-            PRINT("\n-Trinity:Trinity sha from %s:%s"%(datas_folder+"sha.trinity",current_sha_trinity))
-
-            if sha_trinity == current_sha_trinity:
-                Trinity_Is_Up = True
-       else:
-           with open(datas_folder+"sha.trinity","w") as f:
-                f.write(sha_trinity)
-                Trinity_Is_Up = True
+       if sha_trinity == LAST_SHA:
+           Trinity_Is_Up = True
 
    except Exception as e:
-       print("\n-Trinity:Error:Check_Update trinity:%s"%str(e))
+       print("\n-Trinity:Error:Check_Update n'a pas pu déterminer la version de Trinity:%s"%str(e))
+       Trinity_Is_Up = True
 
+   PRINT("\n-Trinity:Vérification de mise à jour pour Gpt4free:\n")
    if not Gpt4free_Is_Up:
-       print("\n-Trinity:Error:Une nouvelle version de gpt4free à été publié.\n-Trinity:Mettez à jour votre version pour continuer.\n-Trinity:Ou changez CHECK_UPDATE à False dans datas/conf.trinity.")
+       to_update.append("gpt4free")
+       try:
+           if hasattr(g4f.version.utils, "check_version"):
+               g4f.version.utils.check_version()
+               print()
+       except:
+           pass
    else:
        print("\n-Trinity:La version de gpt4free est à jour .")
 
+   PRINT("\n-Trinity:Vérification de mise à jour pour Trinity:")
    if not Trinity_Is_Up:
-       print("\n-Trinity:Error:Une nouvelle version de Trinity à été publié.\n-Trinity:Mettez à jour votre version pour continuer.\n-Trinity:Ou changez CHECK_UPDATE à False dans datas/conf.trinity.")
+       to_update.append("Trinity")
+       PRINT("\n-Trinity:Github SHA doesn't match:\n%s=!%s\n"%(LAST_SHA,sha_trinity))
    else:
        print("\n-Trinity:La version de Trinity est à jour .")
 
-
-   if not Gpt4free_Is_Up:
+   if len(to_update) >0:
+       print("\n-Trinity:Error:Une nouvelle version pour %s a été publiée.\n-Trinity:Mettez à jour votre version pour continuer.\n-Trinity:Ou changez CHECK_UPDATE à False dans datas/conf.trinity."%" et ".join(to_update))
        sys.exit()
-   elif not Trinity_Is_Up:
-      sys.exit()
+
 
 if __name__ == "__main__":
 
@@ -5464,6 +5447,7 @@ if __name__ == "__main__":
        SCRIPT_PATH = SCRIPT_PATH[:-1]
 
 
+    LAST_SHA = "2bc5f9c159ca08486a01612829b4199646854633"
     DISPLAY = ""
     Providers_To_Use = []
     GPT4FREE_SERVERS_STATUS = "Active"
