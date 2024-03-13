@@ -15,6 +15,8 @@ from bs4 import BeautifulSoup
 
 from shutil import move
 
+from github import Github
+
 from google.cloud import speech_v1p1beta1 as speech
 from google.cloud import language_v1
 from queue import Queue
@@ -235,7 +237,7 @@ def Check_Free_Servers():
            for ua in unknown_with_auth:
                 PRINT(ua)
      if unknown_no_auth:
-           PRINT("\n-Trinity:Free serversunknown_no_auth:\n")
+           PRINT("\n-Trinity:Free servers unknown_no_auth:\n")
            for un in unknown_no_auth:
                 PRINT(un)
 
@@ -3827,6 +3829,7 @@ def Check_Transcript(transcripts,transcripts_confidence,words,words_confidence,E
         if transcripts_confidence == 0.0:
            #TODO
            #Google didnt care to give us a level of confidence...
+           PRINT("\n-Trinity:Transcript no confidence level\n.")
            pass
         elif transcripts_confidence < 0.7:
            PRINT("\n-Trinity:Transcript has bad confidence\n.")
@@ -4293,7 +4296,7 @@ def Text_To_Speech(txtinput,stayawake=False,savehistory=True):
               print("\n-Trinity:Error:Move:",str(e))
 
     else:
-
+       PRINT("\n-Trinity:Effacement des fichiers wav temporaire de %s"%tmp_folder)
        for w in wav_files:
            try:
               os.remove(tmp_folder+str(w))
@@ -5237,8 +5240,9 @@ def GetConf():
    global SAVED_ANSWER
    global GPT4FREE_SERVERS_STATUS
    global GPT4FREE_SERVERS_AUTH
+   global CHECK_UPDATE
 
-   options = ["DEBUG","XCB_ERROR_FIX","SAVED_ANSWER","GPT4FREE_SERVERS_STATUS","GPT4FREE_SERVERS_AUTH"]
+   options = ["DEBUG","XCB_ERROR_FIX","SAVED_ANSWER","GPT4FREE_SERVERS_STATUS","GPT4FREE_SERVERS_AUTH","CHECK_UPDATE"]
    folder = False
    conf = False
 
@@ -5315,6 +5319,14 @@ def GetConf():
                    else:
                           print("-Trinity:Error GPT4FREE_SERVERS_STATUS has to be All,True or False.")
 
+              elif option == "CHECK_UPDATE":
+                   if conf.lower() == "true":
+                           CHECK_UPDATE = True
+                   elif conf.lower() == "false":
+                           CHECK_UPDATE = False
+                   else:
+                          print("-Trinity:Error CHECK_UPDATE has to be either True or False.")
+
               elif option == "DEBUG":
                    if conf.lower() == "true":
                            DEBUG = True
@@ -5338,11 +5350,13 @@ def GetConf():
                 data = """SAVED_ANSWER = default
 GPT4FREE_SERVERS_STATUS = Active #Active or Unknown or All or None
 GPT4FREE_SERVERS_AUTH = False #True or False or All
+CHECK_UPDATE = True
 DEBUG = False
 XCB_ERROR_FIX = False"""
                 f.write(data)
 
            DEBUG = False
+           CHECK_UPDATE = True
            SAVED_ANSWER = SCRIPT_PATH+"/local_sounds/saved_answer/"
            GPT4FREE_SERVERS_STATUS = "Active"
            GPT4FREE_SERVERS_AUTH = False
@@ -5364,6 +5378,85 @@ def Xcb_Fix(mode):
             except:
                 pass
 
+def Check_Update():
+   PRINT("\n-Trinity:Dans Check_Update().")
+
+   datas_folder = SCRIPT_PATH + "/datas/"
+   gitobj = Github()
+
+   PRINT("\n-Trinity:Vérification de mise à jour pour Gpt4free:")
+
+   Gpt4free_Is_Up = False
+
+   try:
+       repo_gpt4free = gitobj.get_repo("xtekky/gpt4free")
+       last_gpt4free = repo_gpt4free.get_commits()[0]
+       sha_gpt4free = last_gpt4free.sha
+
+       PRINT("\n-Trinity:Github last commit gpt4free sha:%s"%sha_gpt4free)
+
+       if os.path.exists(datas_folder+"sha.gpt4free.trinity"):
+            current_sha_gpt4free = ""
+
+            with open(datas_folder+"sha.gpt4free.trinity","r") as f:
+                current_sha_gpt4free = f.read()
+            PRINT("\n-Trinity:gpt4free sha from %s:%s"%(datas_folder+"sha.gpt4free.trinity",current_sha_gpt4free))
+
+            if sha_gpt4free == current_sha_gpt4free:
+                Gpt4free_Is_Up = True
+       else:
+           with open(datas_folder+"sha.gpt4free.trinity","w") as f:
+                f.write(sha_gpt4free)
+                Gpt4free_Is_Up = True
+
+   except Exception as e:
+       print("\n-Trinity:Error:Check_Update gpt4free:%s"%str(e))
+   
+
+   PRINT("\n-Trinity:Vérification de mise à jour pour Trinity:")
+
+   Trinity_Is_Up = False
+
+   try:
+       repo_trinity = gitobj.get_repo("on4r4p/Trinity")
+       last_trinity = repo_trinity.get_commits()[0]
+       sha_trinity = last_trinity.sha
+
+       PRINT("\n-Trinity:Github last commit Trinity sha:%s"%sha_trinity)
+
+       if os.path.exists(datas_folder+"sha.trinity"):
+            current_sha_trinity = ""
+
+            with open(datas_folder+"sha.trinity","r") as f:
+                current_sha_trinity = f.read()
+            PRINT("\n-Trinity:Trinity sha from %s:%s"%(datas_folder+"sha.trinity",current_sha_trinity))
+
+            if sha_trinity == current_sha_trinity:
+                Trinity_Is_Up = True
+       else:
+           with open(datas_folder+"sha.trinity","w") as f:
+                f.write(sha_trinity)
+                Trinity_Is_Up = True
+
+   except Exception as e:
+       print("\n-Trinity:Error:Check_Update trinity:%s"%str(e))
+
+   if not Gpt4free_Is_Up:
+       print("\n-Trinity:Error:Une nouvelle version de gpt4free à été publié.\n-Trinity:Mettez à jour votre version pour continuer.\n-Trinity:Ou changez CHECK_UPDATE à False dans datas/conf.trinity.")
+   else:
+       print("\n-Trinity:La version de gpt4free est à jour .")
+
+   if not Trinity_Is_Up:
+       print("\n-Trinity:Error:Une nouvelle version de Trinity à été publié.\n-Trinity:Mettez à jour votre version pour continuer.\n-Trinity:Ou changez CHECK_UPDATE à False dans datas/conf.trinity.")
+   else:
+       print("\n-Trinity:La version de Trinity est à jour .")
+
+
+   if not Gpt4free_Is_Up:
+       sys.exit()
+   elif not Trinity_Is_Up:
+      sys.exit()
+
 if __name__ == "__main__":
 
     SCRIPT_PATH = os.path.dirname(__file__)
@@ -5375,6 +5468,7 @@ if __name__ == "__main__":
     Providers_To_Use = []
     GPT4FREE_SERVERS_STATUS = "Active"
     GPT4FREE_SERVERS_AUTH = False
+    CHECK_UPDATE = True
     DEBUG = False
     XCB_ERROR_FIX = False
     SAVED_ANSWER = SCRIPT_PATH +"/local_sounds/saved_answer/"
@@ -5442,7 +5536,8 @@ if __name__ == "__main__":
     os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/boot/psx.wav")
     signal.signal(signal.SIGINT, signal_handler)
 
-    PRINT("\n-Trinity:DEBUG:",DEBUG)
+    PRINT("\n-Trinity:CHECK_UPDATE:%s"%CHECK_UPDATE)
+    PRINT("-Trinity:DEBUG:%s"%DEBUG)
     PRINT("-Trinity:GPT4FREE_SERVERS_STATUS:%s"%GPT4FREE_SERVERS_STATUS)
     PRINT("-Trinity:GPT4FREE_SERVERS_AUTH:%s"%GPT4FREE_SERVERS_AUTH)
     PRINT("-Trinity:XCB_ERROR_FIX:%s"%XCB_ERROR_FIX)
@@ -5451,7 +5546,8 @@ if __name__ == "__main__":
          PRINT("-Trinity:Free Gpt servers to use:")
          for i in Providers_To_Use:
               PRINT("\t",i)
-
+    if CHECK_UPDATE:
+       Check_Update()
 
 #####
     Trinity()

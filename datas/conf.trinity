@@ -1,5 +1,6 @@
 SAVED_ANSWER = default
 GPT4FREE_SERVERS_STATUS = Active #Active or Unknown or All or None
 GPT4FREE_SERVERS_AUTH = False #True or False or All
+CHECK_UPDATE = True
 DEBUG = True
 XCB_ERROR_FIX = True
