@@ -5506,7 +5506,7 @@ if __name__ == "__main__":
        SCRIPT_PATH = SCRIPT_PATH[:-1]
 
 
-    LAST_SHA = "7e1f0f8c1a653fa20fc9b5e5f1207d6ac7c5bc01"
+    LAST_SHA = "6c30de466ed9aabcb1da45f2830b823bf5e49594"
     DISPLAY = ""
     Providers_To_Use = []
     GPT4FREE_SERVERS_STATUS = "Active"
