@@ -5406,10 +5406,11 @@ def Check_Update():
 
    try:
        repo_trinity = gitobj.get_repo("on4r4p/Trinity")
-       last_trinity = repo_trinity.get_commits()[1]
-       sha_trinity = last_trinity.sha
+       commits_trinity = repo_trinity.get_commits()
+       last_trinity = commits_trinity[1].sha
+       next_trinity = commits_trinity[0].sha
 
-       if sha_trinity == LAST_SHA:
+       if last_trinity == LAST_SHA:
            Trinity_Is_Up = True
 
    except Exception as e:
@@ -5431,8 +5432,10 @@ def Check_Update():
    PRINT("\n-Trinity:Vérification de mise à jour pour Trinity:")
    if not Trinity_Is_Up:
        to_update.append("Trinity")
-       PRINT("\n-Trinity:Github SHA doesn't match:\n%s=!%s\n"%(LAST_SHA,sha_trinity))
+       PRINT("\n-Trinity:Github SHA doesn't matched:\n%s=!%s\n"%(LAST_SHA,last_trinity))
    else:
+#       PRINT("\n-Trinity:Github SHA matched:\n%s==%s\n"%(LAST_SHA,last_trinity))
+       PRINT("\n-Trinity:next_sha:%s\n"%(next_trinity))
        print("\n-Trinity:La version de Trinity est à jour .")
 
    if len(to_update) >0:
@@ -5447,7 +5450,7 @@ if __name__ == "__main__":
        SCRIPT_PATH = SCRIPT_PATH[:-1]
 
 
-    LAST_SHA = "2bc5f9c159ca08486a01612829b4199646854633"
+    LAST_SHA = "7e1f0f8c1a653fa20fc9b5e5f1207d6ac7c5bc01"
     DISPLAY = ""
     Providers_To_Use = []
     GPT4FREE_SERVERS_STATUS = "Active"
