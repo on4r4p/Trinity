@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import g4f,pyaudio,pvporcupine,os,time,sys,struct,random,webrtcvad,subprocess,re,csv,string,wikipedia,googlesearch,requests,signal,inspect
+import g4f,pyaudio,pvporcupine,os,time,sys,struct,random,webrtcvad,subprocess,re,csv,string,wikipedia,googlesearch,requests,signal,inspect,sox
 import google.cloud.texttospeech as tts
 
 from nltk.corpus import stopwords
@@ -12,6 +12,8 @@ from nltk import pos_tag
 from difflib import SequenceMatcher
 
 from bs4 import BeautifulSoup
+
+from shutil import move
 
 from google.cloud import speech_v1p1beta1 as speech
 from google.cloud import language_v1
@@ -2003,8 +2005,8 @@ def Add_Trigger():
                     for fnc,trigged in new_ambiguity.items():
                              for t,p in trigged:
                                  if s_syntax:
-                                    print("\n-Déclencheur généré:\n%s\n"%t)
-                                 print("\n\n-La fonction %s est déclenchée par cette partie: %s"%(fnc,p))
+                                    print("\n\n-Déclencheur généré:\n%s\n"%t)
+                                 print("\n-La fonction %s est déclenchée par cette partie: %s"%(fnc,p))
                              if not s_syntax:
                                  getwav(fnc,p)
 
@@ -3815,15 +3817,18 @@ def Check_Transcript(transcripts,transcripts_confidence,words,words_confidence,E
         if len(words) > 0 and len(words_confidence) > 0:
             for w,wc in zip(words,words_confidence):
                     PRINT("\n-Trinity:confidence:%s word:%s"%(wc,w))
-                    if wc < 0.9:
+                    if wc < 0.6:
                           PRINT("\n-Trinity:That word has bad confidence : %s %s"%(w,wc))
                           bad_word_conf.append(w)
             avg_conf = sum(words_confidence)/len(words_confidence)
             PRINT("\n-Trinity:Average words confidence :%s"%avg_conf)
 
 
-
-        if transcripts_confidence < 0.9:
+        if transcripts_confidence == 0.0:
+           #TODO
+           #Google didnt care to give us a level of confidence...
+           pass
+        elif transcripts_confidence < 0.7:
            PRINT("\n-Trinity:Transcript has bad confidence\n.")
            final_confidence = False
         else:
@@ -4124,6 +4129,22 @@ def Speech_To_Text(audio):
 
 def Text_To_Speech(txtinput,stayawake=False,savehistory=True):
 
+
+    def Resample(file):
+        try:
+            to_rename = SCRIPT_PATH + "/tmp/resampled.wav"
+            sample = sox.Transformer()
+            sample.set_output_format(rate=24000)
+            sample.build(file,to_rename)
+            print("\n-Trinity:%s resampled to 24000."%file)
+            os.rename(to_rename,file)
+            print("\n-Trinity:%s saved."%file)
+            return(True)
+        except Exception as e:
+            print("\n-Trinity:Error:Resample:",str(e))
+            return(False)
+
+
     PRINT("\n-Trinity:Dans la fonction Text_To_Speech")
 
 
@@ -4133,62 +4154,174 @@ def Text_To_Speech(txtinput,stayawake=False,savehistory=True):
 
     parsed_response = parse_response(str(txtinput))
     PRINT("\n-After Parse:\n%s\n\n"%parsed_response)
+
     txt_list = Split_Text(parsed_response)
     ln_txt_list = len(txt_list)
     wav_list = []
+    to_sox = []
+
     final_wav = SCRIPT_PATH + "/tmp/current_answer.wav"
-    Err = False
+
+
+    Move_To_Error_Folder = False
+
+    Err_Tts = False
+    Err_Skip = False
+    Err_Sample = False
+    Err_Concatenation = False
 
     for n,txt in enumerate(txt_list):
         time.sleep(0.5)
+        leadn = str(n).zfill(4)
         if len(txt_list) > 1:
-                fname = "/tmp/answer"+str(n)+".wav"
+                fname = "/tmp/answer"+str(leadn)+".wav"
         else:
                 fname = "/tmp/current_answer.wav"
-        try:
+        Err_cnt = 0
+        while True:
+             Retry = False
+             try:
 
-            client = tts.TextToSpeechClient()
-            audio_config = tts.AudioConfig(audio_encoding=tts.AudioEncoding.LINEAR16)
+                 client = tts.TextToSpeechClient()
+                 audio_config = tts.AudioConfig(audio_encoding=tts.AudioEncoding.LINEAR16)
 
-            text_input = tts.SynthesisInput(text=txt)
-            voice_params = tts.VoiceSelectionParams(language_code="fr-FR", name="fr-FR-Neural2-A")
+                 text_input = tts.SynthesisInput(text=txt)
+                 voice_params = tts.VoiceSelectionParams(language_code="fr-FR", name="fr-FR-Neural2-A")
 
-            response = client.synthesize_speech(input=text_input,voice=voice_params,audio_config=audio_config)
-            audio_response = response.audio_content
+                 response = client.synthesize_speech(input=text_input,voice=voice_params,audio_config=audio_config)
+                 audio_response = response.audio_content
 
 
-            try:
-                with open(SCRIPT_PATH+fname, "wb") as out:
-                     out.write(audio_response)
-            except Exception as e:
-                PRINT("\n-Trinity:Error:",str(e))
-                sys.exit()
+                 try:
+                     with open(SCRIPT_PATH+fname, "wb") as out:
+                          out.write(audio_response)
+                     wav_list.append(SCRIPT_PATH+fname)
+                     
+                 except Exception as e:
+                     PRINT("\n-Trinity:Error:",str(e))
+                     Err_cnt +=1
+                     Retry = True
 
-            wav_list.append(SCRIPT_PATH+fname)
+             except Exception as e:
+                 PRINT("\n-Trinity:Error:%s"%str(e))
+                 Err_cnt += 1
+                 Retry = True
 
-        except Exception as e:
-            PRINT("\n-Trinity:Error:%s"%str(e))
-            Err = True
-            try:
-                os.system('pico2wave -l fr-FR -w %s "%s"'%(SCRIPT_PATH+fname,txt))
-            except Exception as e:
-                PRINT("\n-Trinity:Error:",str(e))
-                sys.exit()
-            wav_list.append(SCRIPT_PATH+fname)
+             if Err_cnt == 2:
+                 Err_Tts = True
+                 Err_cnt = 0
+                 try:
+                     os.system('pico2wave -l fr-FR -w %s "%s"'%(SCRIPT_PATH+fname,txt))
+                     #RESAMPLE 16000 to 24000
+                     wav_list.append(SCRIPT_PATH+fname)
+                     Retry = False
+                 except Exception as e:
+                     PRINT("\n-Trinity:Error:",str(e))
+                     Retry = False
+                     Err_Skip = True
 
-    if Err:
+             if not Retry:
+                break
+             else:
+                time.sleep(0.5)
+
+    for f in wav_list:
+        if os.path.exists(f):
+              try:
+                   sample_rate = int(sox.file_info.sample_rate(f))
+                   if sample_rate != 24000:
+                      resampled = Resample(f)
+                      if resampled:
+                         to_sox.append(f)
+                      else:
+                         Err_Sample = True
+                   else:
+                        to_sox.append(f)
+              except Exception as e:
+                 print("\n-Trinity:Error:",str(e))
+                 Err_Sample = True
+        else:
+            print("\n-Trinity:Error:Le fichier %s n'existe pas.",str(f))
+            Err_Skip = True
+
+
+#    print("to_sox:",to_sox)
+
+
+    try:
+         cbn = sox.Combiner()
+         cbn.convert(samplerate=24000, n_channels=1)
+         try:
+             cbn.set_input_format(file_type=['wav' for i in to_sox])
+         except Exception as e:
+             print("\n-Trinity:Error:",str(e))
+         cbn.build(to_sox,final_wav, 'concatenate')
+    except Exception as e:
+         print("\n-Trinity:Error:Concatenation:",str(e))
+         Err_Concatenation = True
+
+
+
+    if Err_Tts:
         os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/errors/err_tts.wav")
+    if Err_Skip:
+        os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/errors/err_skip_sox.wav")
+        Move_To_Error_Folder = True
+    if Err_Sample:
+        os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/errors/err_sample_sox.wav")
+        Move_To_Error_Folder = True
+    if Err_Concatenation:
+        os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/errors/err_conc_sox.wav")
+        Move_To_Error_Folder = True
+
+
+    tmp_folder = str(SCRIPT_PATH+"/tmp/").replace("//","/")
+    err_folder = str(SAVED_ANSWER+"/saved_error/").replace("//","/")
+
+    to_skip = ["current_answer.wav","last_bad_stt.wav"]
+
+    wav_files = [f for f in os.listdir(tmp_folder) if f.endswith('.wav') and f not in to_skip]
 
 
 
-    if len(txt_list) > 1:
+    if Move_To_Error_Folder:
+       PRINT("\n-Trinity:Déplacements des fichiers wav temporaire vers %s"%err_folder)
+       for w in wav_files:
+           try:
+              move(tmp_folder+str(w), err_folder)
+           except Exception as e:
+              print("\n-Trinity:Error:Move:",str(e))
 
-         wavs_path = " ".join(wav_list)
-         cmd = str(wavs_path) + " "+ str(final_wav)
-         PRINT("\n-Trinity:sox ",cmd)
-         os.system("sox "+ str(cmd))
+    else:
 
-    return(Play_Response(audio_response=final_wav,stay_awake=stayawake,save_history=savehistory,answer_txt=txtinput))
+       for w in wav_files:
+           try:
+              os.remove(tmp_folder+str(w))
+           except Exception as e:
+              print("\n-Trinity:Error:Move:",str(e))
+
+    if len(to_sox) > 0:
+
+        if Err_Concatenation:
+            return(Play_Response(stay_awake=stayawake,save_history=savehistory,answer_txt=txtinput))
+
+        else:
+            return(Play_Response(audio_response=final_wav,stay_awake=stayawake,save_history=savehistory,answer_txt=txtinput))
+
+    else:
+
+       os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/errors/err_no_audio_sox.wav")
+
+       if len(txtinput) > 0:
+
+            os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/errors/err_no_audio_but_txt_sox.wav")
+            print("\n\n-Trinity:Réponse:\n",txtinput)
+
+            return(Play_Response(stay_awake=stayawake,save_history=savehistory,answer_txt=txtinput))
+       else:
+           return(Play_Response(stay_awake=stayawake,save_history=False))
+
+#    return(Play_Response(audio_response=final_wav,stay_awake=stayawake,save_history=savehistory,answer_txt=txtinput))
 
 
 
@@ -4196,10 +4329,14 @@ def Text_To_Speech(txtinput,stayawake=False,savehistory=True):
 def Play_Response(audio_response=None,stay_awake=False,save_history=True,answer_txt=None):
     PRINT("\n-Trinity:Dans la fonction Play_Response")
 
-    os.system("aplay -q  "+audio_response)
+    if audio_response:
+        os.system("aplay -q  "+audio_response)
 
     if save_history:
-       History(answer_txt)
+       if audio_response:
+           History(answer_txt)
+       else:
+           History(answer_txt,no_audio=True)
 
     if not stay_awake:
         Go_Back_To_Sleep(True)
@@ -4809,7 +4946,7 @@ def SearchHistory(tosearch):
          else:
              Go_Back_To_Sleep(go_trinity=False)
 
-def History(answer):
+def History(answer,no_audio=False):
 
    PRINT("\n-Trinity:Dans la fonction History")
 
@@ -4839,12 +4976,18 @@ def History(answer):
 
    PRINT("\n-Trinity:lemmatized last sentence:",Lemmatizer)
 
-   rnd_name = str(''.join(random.choice(string.ascii_letters + string.digits) for _ in range(16))) + ".wav"
+   if no_audio:
 
-   new_wav = SAVED_ANSWER + rnd_name
-   current_wav = SCRIPT_PATH + "/tmp/current_answer.wav"
+       new_wav = SCRIPT_PATH + "/local_sounds/errors/err_no_audio_saved.wav"
 
-   os.system("cp %s %s"%(current_wav,new_wav))
+   else:
+
+        rnd_name = str(''.join(random.choice(string.ascii_letters + string.digits) for _ in range(16))) + ".wav"
+
+        new_wav = SAVED_ANSWER + rnd_name
+        current_wav = SCRIPT_PATH + "/tmp/current_answer.wav"
+
+        os.system("cp %s %s"%(current_wav,new_wav))
 
    if os.path.exists(SCRIPT_PATH+"/history/"+Cat_File):
        with open(SCRIPT_PATH+"/history/"+Cat_File,"a+") as f:
@@ -5136,6 +5279,20 @@ def GetConf():
                       else:
                           SAVED_ANSWER = conf
 
+                      if not os.path.exists(SAVED_ANSWER):
+                          print("\n-Trinity:Error:GetConf:Le dossier:%s n'existe pas."%SAVED_ANSWER)
+                          sys.exit()
+                      else:
+                          saved_error = str(SAVED_ANSWER+"/saved_error").replace("//","/")
+                          if not os.path.exists(saved_error):
+                             print("\n-Trinity:Error:GetConf:Le dossier:%s n'existe pas."%saved_error)
+                             print("\n-Trinity:Création du dossier:",saved_error)
+                             try:
+                                 os.makedirs(saved_error)
+                             except Exception as e:
+                                 print("\n-Trinity:Error:Impossible de créer le dossier:%s :%s"%(saved_error,str(e)))
+                                 sys.exit()
+
               elif  option == "GPT4FREE_SERVERS_STATUS":
                    if conf.lower() == "all":
                         GPT4FREE_SERVERS_STATUS = "All"
@@ -5173,6 +5330,7 @@ def GetConf():
                            XCB_ERROR_FIX = False
                    else:
                           print("-Trinity:Error XCB_ERROR_FIX has to be either True or False.")
+
 
 
    else:
