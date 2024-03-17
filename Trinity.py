@@ -1047,6 +1047,7 @@ def Special_Syntax(txt,filepath=None,line=None):
 
 def Load_Csv():
 
+    global History_List
     global trinity_name
     global trinity_mean
     global trinity_creator
@@ -1069,6 +1070,7 @@ def Load_Csv():
     global synonyms_list
     global fnc_verb
 
+    History_List = []
     trinity_name = []
     trinity_mean = []
     trinity_creator = []
@@ -1093,6 +1095,42 @@ def Load_Csv():
 
 
     PRINT("\n-Trinity:Dans la fonction Load_Csv .")
+
+
+
+    if os.path.exists(SCRIPT_PATH+"/history"):
+       hist_folder = SCRIPT_PATH+"/history"
+       hist_files = [f for f in os.listdir(hist_folder)]
+       for file in hist_files:
+           filepath = os.path.join(hist_folder,file)
+           try:
+                with open(filepath, newline="") as csvfile:
+                       reader = csv.DictReader(csvfile)
+                       for row in reader:
+                           try:
+                               hist_file = row["hist_file"]
+                               hist_cats = row["hist_cats"]
+                               hist_txt = row["hist_txt"]
+                               hist_answer = row["hist_answer"]
+                               hist_epok = row["hist_epok"]
+                               hist_tstamp = row["hist_tstamp"]
+                               hist_wav = row["hist_wav"]
+                               History_List.append( (hist_file,hist_cats,hist_txt,hist_answer,hist_epok,hist_tstamp,hist_wav)  )
+                           except Exception as e:
+                               print("\n-Trinity:Error:loadcsv:file:%s %s"%(filepath,str(e)))
+                               input("stopeu")
+     #                      print("\nhist_file:\n",hist_file)
+     #                      print("hist_cats:\n",hist_cats)
+     #                      print("hist_txt:\n",hist_txt)
+     #                      print("hist_answer:\n",hist_answer)
+     #                      print("hist_epok:\n",hist_epok)
+     #                      print("hist_tstamp:\n",hist_tstamp)
+     #                      print("hist_wav:\n",hist_wav)
+           except Exception as e:
+                 print("\n-Trinity:Error:loadcsv:file:%s %s"%(filepath,str(e)))
+
+                 input("stop")
+
 
     if os.path.exists(SYNFILE):
          with open(SYNFILE, newline="") as f:
@@ -2854,7 +2892,7 @@ def Commandes(txt):
                decoded = decoded.replace("  ","")
 
 
-               SearchHistory(decoded)
+               Search_History(decoded)
                return(True)
 
        elif goto == "ask_to_read_link":
@@ -4393,9 +4431,9 @@ def Play_Response(audio_response=None,stay_awake=False,save_history=True,answer_
 
     if save_history:
        if audio_response:
-           History(answer_txt)
+           Save_History(answer_txt)
        else:
-           History(answer_txt,no_audio=True)
+           Save_History(answer_txt,no_audio=True)
 
     if not stay_awake:
         Go_Back_To_Sleep(True)
@@ -4599,7 +4637,7 @@ def Standing_By(self_launched=False):
 
 
 
-def SearchHistory(tosearch):
+def Search_History(tosearch):
     Exit = False
 
     PRINT("\n-Trinity:Dans la fonction SearchHistory tosearch %s in history."%tosearch)
@@ -4639,35 +4677,33 @@ def SearchHistory(tosearch):
              if wavfile.endswith(".wav"):
                   os.system("aplay -q %s"%wavfile)
              else:
-                  try:
-                      args = [element for element in match.strip().split("***") if element]
-                      hist_wav = args[2]
-                      os.system("aplay -q %s"%hist_wav)
-                  except Exception as e:
-                      PRINT("\n-Trinity:Error playlist:",str(e))
+                  hist_file = args[0]
+                  hist_cats = args[1]
+                  hist_txt = args[2]
+                  hist_answer = args[3]
+                  hist_epok = args[4]
+                  hist_tstamp = args[5]
+                  hist_wav = args[6]
+                  hist_bingo = args[7]
+                  os.system("aplay -q %s"%hist_wav)
 
     def readlist(toread):
          PRINT("\n-Trinity: toread:",toread)
-         for match in toread:
+         for args in toread:
 
-            args = [element for element in match.strip().split("***") if element]
-            try:
+            hist_file = args[0]
+            hist_cats = args[1]
+            hist_txt = args[2]
+            hist_answer = args[3]
+            hist_epok = args[4]
+            hist_tstamp = args[5]
+            hist_wav = args[6]
+            hist_bingo = args[7]
 
-                hist_cats = args[0]
+            totts = "Catégories:%s Texte utilisateur synthétisé:%s Date:%s Score:%s"%(hist_cats,hist_txt,hist_tstamp,hist_bingo)
 
-                hist_txt = args[1]
+            Text_To_Speech(totts,stayawake=True,savehistory=False)
 
-                hist_wav = args[2]
-
-                hist_bingo = args[3]
-
-                totts = "Catégories:%s Texte utilisateur synthétisé:%s Score:%s"%(hist_cats,hist_txt,hist_bingo)
-
-                Text_To_Speech(totts,stayawake=True,savehistory=False)
-
-            except Exception as e:
-               PRINT("Error read list:",str(e))
-               continue
 
 
     def minicmd(txt_input,top5,full):
@@ -4724,7 +4760,7 @@ def SearchHistory(tosearch):
                             txt_input = txt_input.replace(element," ") 
                             PRINT("\n-Trinity:Found search match cmd :",element)
                    Exit = True
-                   return(SearchHistory(txt_input))
+                   return(Search_History(txt_input))
           
          if ask_to_exit:
                    for element in exit_words:
@@ -4744,23 +4780,24 @@ def SearchHistory(tosearch):
                                  found_nbr_lst.append(nbr)
                                  copy_txt_input = seekndestroy(copy_txt_input,word)
                              else:
-                                       rnd_nbr = random.randint(0,4)
-                                       chosen_line = top5[rnd_nbr]
+                                 rnd_nbr = random.randint(0,4)
+                                 chosen_line = top5[rnd_nbr]
 
-                                       args = [element for element in chosen_line.strip().split("***") if element]
+                                 args = [a for a in chosen_line]
 
-                                       hist_cats = args[0]
+                                 hist_file = args[0]
+                                 hist_cats = args[1]
+                                 hist_txt = args[2]
+                                 hist_answer = args[3]
+                                 hist_epok = args[4]
+                                 hist_tstamp = args[5]
+                                 hist_wav = args[6]
+                                 hist_bingo = args[7]
 
-                                       hist_txt = args[1]
+                                 os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/history/choose_%s.wav"%(str(rnd_nbr + 1)))
 
-                                       hist_wav = args[2]
-
-                                       hist_bingo = args[3]
-
-                                       os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/history/choose_%s.wav"%(str(rnd_nbr + 1)))
-
-                                       playlist([hist_wav])
-                                       return(True)
+                                 playlist([hist_wav])
+                                 return(True)
 
                    if len(found_nbr_lst) > 0:
                        track_num = 0
@@ -4795,29 +4832,21 @@ def SearchHistory(tosearch):
                            answer = "Il y a %s résultats en tout correspondant à votre recherche . Les voici:"%total_res
                            Text_To_Speech(answer,stayawake=True,savehistory=False)
                            
-                           for n,line in enumerate(full) :
-                               if len(line) >0:
-                                   args = [element for element in line.strip().split("***") if element]
-                                   try:
+                           for n,args in enumerate(full) :
+                               hist_file = args[0]
+                               hist_cats = args[1]
+                               hist_txt = args[2]
+                               hist_answer = args[3]
+                               hist_epok = args[4]
+                               hist_tstamp = args[5]
+                               hist_wav = args[6]
+                               hist_bingo = args[7]
 
-                                       hist_cats = args[0]
-
-                                       hist_txt = args[1]
-
-                                       hist_answer = args[2]
-
-                                       hist_wav = args[3]
-
-                                       hist_bingo = args[4]
-
-                                       print("\n-(Résultat numéro %s)\n    Categories:%s\n    Texte utilisateur synthétisé:%s\n    Réponse:%s\n    Score:%s"%(str(n+1),hist_cats,hist_txt,hist_answer,hist_bingo))
+                               print("\n-(Résultat numéro %s)\n    Categories:%s\n    Texte utilisateur synthétisé:%s\n    Réponse:%s\n    Date:%s\n    Score:%s"%(str(n+1),hist_cats,hist_txt,hist_answer,hist_tstamp,hist_bingo))
 
 
-                                   except Exception as e:
-                                        PRINT("\n-Trinity:Error :",str(e))
-                                        continue
                            return()
-
+                                                                             
 
                    found_nbr_lst = []
                    copy_txt_input = txt_input
@@ -4828,27 +4857,23 @@ def SearchHistory(tosearch):
                                  found_nbr_lst.append(nbr)
                                  copy_txt_input = seekndestroy(copy_txt_input,word)
                              else:
-                                       rnd_nbr = random.randint(0,4)
-                                       chosen_line = top5[rnd_nbr]
+                                 rnd_nbr = random.randint(0,4)
+                                 chosen_line = top5[rnd_nbr]
+                                 args = [a for a in chosen_line]
+                                 hist_file = args[0]
+                                 hist_cats = args[1]
+                                 hist_txt = args[2]
+                                 hist_answer = args[3]
+                                 hist_epok = args[4]
+                                 hist_tstamp = args[5]
+                                 hist_wav = args[6]
+                                 hist_bingo = args[7]
 
-                                       args = [element for element in chosen_line.strip().split("***") if element]
+                                 res_str = "\n-(Résultat numéro %s)\n    Catégories:%s\n    Texte utilisateur synthétisé:%s\n     Réponse:%s\n   Date:%s\n    Score:%s"%(str(n+1),hist_cats,hist_txt,hist_answer,hist_tstamp,hist_bingo)
 
-                                       hist_cats = args[0]
-
-                                       hist_txt = args[1]
-
-                                       hist_answer = args[2]
-
-                                       hist_wav = args[3]
-
-                                       hist_bingo = args[4]
-
-                                       res_str = "\n-(Résultat numéro %s)\n    Catégories:%s\n    Texte utilisateur synthétisé:%s\n     Réponse:%s\n   Score:%s"%(str(n+1),hist_cats,hist_txt,hist_answer,hist_bingo)
-                                       
-
-                                       os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/history/choose_%s.wav"%(str(rnd_nbr + 1)))
-                                       Text_To_Speech(res_str,stayawake=True,savehistory=False)
-                                       return()
+                                 os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/history/choose_%s.wav"%(str(rnd_nbr + 1)))
+                                 Text_To_Speech(res_str,stayawake=True,savehistory=False)
+                                 return()
 
 
 
@@ -4889,49 +4914,38 @@ def SearchHistory(tosearch):
         else:
               miniprompt(top5,full)
 
-
-
-    files = [f for f in os.listdir(SCRIPT_PATH+"/history/") if os.path.isfile(os.path.join(SCRIPT_PATH+"/history/", f))]
+####
 
 
     MatchResults =[]
 
-    for file in files:
-        try:
-            with open(SCRIPT_PATH+"/history/"+file) as f:
-                  data = [line.strip() for line in f]
+    for args in History_List:
+
+         hist_file = args[0]
+         hist_cats = args[1]
+         hist_txt = args[2]
+         hist_answer = args[3]
+         hist_epok = args[4]
+         hist_tstamp = args[5]
+         hist_wav = args[6]
 
 
-            for line in data :
-                if len(line) >0:
-                    args = [element for element in line.strip().split("***") if element]
-                    try:
+         bingoat = 0
+         for word in tosearch.split(" "):
+             if len(word.replace(" ","")) > 0:
+                 if word.lower() in hist_txt.lower():
+                     bingoat += 1
+                 if word.lower() in hist_answer.lower():
+                     bingoat += 1
+         if bingoat > 0:
+                MatchResults.append((hist_file,hist_cats,hist_txt,hist_answer,hist_epok,hist_tstamp,hist_wav,bingoat))
 
-                        hist_cats = args[0]
-     
-                        hist_txt = args[1]
-     
-                        hist_answer = args[2]
-
-                        hist_wav = args[3]
-
-                    except Exception as e:
-                         continue
-                    bingoat = 0
-                    for word in tosearch.split(" "):
-                        if len(word.replace(" ","")) > 0:
-                            if word.lower() in hist_txt.lower():
-                                 bingoat += 1
-                            if word.lower() in hist_answer.lower():
-                                 bingoat += 1
-                    if bingoat > 0:
-                       MatchResults.append(line+"***"+str(bingoat))
-
-        except Exception as e:
-           PRINT("\n-Trinity:Error:",str(e))
-
-    SortedMatched = sorted(MatchResults, key=lambda s: int(re.findall(r'\d+', s)[-1] if re.findall(r'\d+', s) else 0), reverse=True)
-    MatchedNbr = len(SortedMatched)
+    if len(MatchResults) > 0:
+        SortedMatched = sorted(MatchResults,key=lambda x: x[7], reverse=True)
+        MatchedNbr = len(SortedMatched)
+    else:
+        SortedMatched = []
+        MatchedNbr = 0
 
 
     if MatchedNbr > 5:
@@ -4953,43 +4967,28 @@ def SearchHistory(tosearch):
 
     TopFive = SortedMatched[:MatchedNbr]
 
-    for n,match in enumerate(TopFive):
+    for n,args in enumerate(TopFive):
+         hist_file = args[0]
+         hist_cats = args[1]
+         hist_txt = args[2]
+         hist_answer = args[3]
+         hist_epok = args[4]
+         hist_tstamp = args[5]
+         hist_wav = args[6]
+         hist_bingo = args[7]
 
-            args = [element for element in match.strip().split("***") if element]
-            try:
-
-                hist_cats = args[0]
-
-                hist_txt = args[1]
-
-                hist_answer = args[2]
-
-                hist_wav = args[3]
-
-                hist_bingo = args[4]
-
-                print("\n-(Résultat %s)\n    Catégories:%s\n    Texte utilisateur Synthétisé:%s\n    Réponse:%s\n    Fichier audio:%s\n    Score:%s\n"%(str(n+1),hist_cats,hist_txt,hist_answer,hist_wav,hist_bingo))
-
-            except Exception as e:
-                PRINT("\n-Trinity:Error:",str(e))
-                continue
+         print("\n-(Résultat %s)\n    Catégories:%s\n    Texte utilisateur Synthétisé:%s\n    Réponse:%s\n    Date:%s\n    Fichier audio:%s\n    Score:%s\n"%(str(n+1),hist_cats,hist_txt,hist_answer,hist_tstamp,hist_wav,hist_bingo))
 
 
     Standing_By(self_launched=True)
 
     while True:
-
-
          time.sleep(0.5)
-
 
          if len(TopFive) >1:
              os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/question/search_history_cmds.wav")
          else:
              os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/question/search_history_cmd.wav")
-
-
-
 
          Start_Thread_Record()
 
@@ -5005,7 +5004,9 @@ def SearchHistory(tosearch):
          else:
              Go_Back_To_Sleep(go_trinity=False)
 
-def History(answer,no_audio=False):
+def Save_History(answer,no_audio=False):
+
+   global History_List
 
    PRINT("\n-Trinity:Dans la fonction History")
 
@@ -5025,11 +5026,14 @@ def History(answer,no_audio=False):
    if len(Current_Category) == 0:
        Classify(txt)
 
-   Cat_File = str(Current_Category[0]).replace("-",".").replace("&","and").replace(",",".")
+   Cat_File = str(Current_Category[0]).replace("-",".").replace("&","and").replace(",",".").replace(")",".").replace("(",".")
+
    if Cat_File.startswith("."):
         Cat_File = Cat_File[1:]
 
    Cat_List = ".".join(Current_Category)
+   if Cat_List.startswith("."):
+      Cat_List = Cat_List[1:] 
 
    Lemmatizer = preprocess(txt)
 
@@ -5038,7 +5042,7 @@ def History(answer,no_audio=False):
    if no_audio:
 
        new_wav = SCRIPT_PATH + "/local_sounds/errors/err_no_audio_saved.wav"
-
+       
    else:
 
         rnd_name = str(''.join(random.choice(string.ascii_letters + string.digits) for _ in range(16))) + ".wav"
@@ -5048,28 +5052,40 @@ def History(answer,no_audio=False):
 
         os.system("cp %s %s"%(current_wav,new_wav))
 
-   if os.path.exists(SCRIPT_PATH+"/history/"+Cat_File):
-       with open(SCRIPT_PATH+"/history/"+Cat_File,"a+") as f:
-            data = "\n"
-            data += "***" + str(Cat_List)
-            data += "***" + Lemmatizer
-            data += "***" + answer
-            data += "***" + new_wav
-            PRINT("\n-Trinity:data:",data)
-            PRINT("\n-Trinity:wrote to ",SCRIPT_PATH+"/history/"+Cat_File)
-            f.write(data)
- 
-   else:
+   tformat = "%Y-%m-%d %H:%M:%S"
+   now = datetime.now()
 
-       with open(SCRIPT_PATH+"/history/"+Cat_File,"w") as f:
-            data = "\n"
-            data += "***" + str(Cat_List)
-            data += "***" +Lemmatizer
-            data += "***" + answer
-            data += "***" + new_wav
-            PRINT("\n-Trinity:data:",data)   
-            PRINT("\n-Trinity:wrote to ",SCRIPT_PATH+"/history/"+Cat_File)
-            f.write(data)
+   hist_epok = now.timestamp()
+
+   hist_tstamp = time.strftime(tformat, time.localtime(hist_epok))
+
+#  hist_file,hist_cats,hist_txt,hist_answer,hist_epok,hist_tstamp,hist_wav
+
+   try:
+        with open(SCRIPT_PATH+"/history/"+Cat_File, "a+", newline="") as csvfile:
+             fieldnames = ["hist_file","hist_cats", "hist_txt","hist_answer","hist_epok","hist_tstamp","hist_wav"]
+             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+             if csvfile.tell() == 0:
+                 writer.writeheader()
+
+             writer.writerow({
+                  "hist_file": Cat_File,
+                  "hist_cats": Cat_List,
+                  "hist_txt": Lemmatizer,
+                  "hist_answer": answer,
+                  "hist_epok": hist_epok,
+                  "hist_tstamp": hist_tstamp,
+                  "hist_wav": new_wav
+
+                  })
+
+             PRINT("\n-Trinity:wrote history to:%s"%(SCRIPT_PATH+"/history/"+Cat_File))
+             History_List.append( (Cat_File,Cat_List,Lemmatizer,answer,hist_epok,hist_tstamp,new_wav) )
+             PRINT("\n-Trinity:History_List updated:%s"%len(History_List))
+
+   except Exception as e:
+       print("\n-Trinity:Save_History:Error:%s"%str(e))
 
 def Check_History(question):
 
@@ -5086,32 +5102,31 @@ def Check_History(question):
    else:
        Categories = Current_Category
 
-   Cat_File = str(Current_Category[0])
-   Joined_Cat = "_".join(Current_Category)
+   Cat_File = str(Current_Category[0]).replace("-",".").replace("&","and").replace(",",".").replace(")",".").replace("(",".")
+   if Cat_File.startswith("."):
+        Cat_File = Cat_File[1:]
+
+   Joined_Cat = ".".join(Current_Category)
+   if Joined_Cat.startswith("."):
+      Joined_Cat = Joined_Cat[1:]
 
    Best_Score = []
    Best_Txt = []
    Best_Answer = []
    Best_Wav = []
+
+   for args in History_List:
   
-   if os.path.exists(SCRIPT_PATH+"/history/"+Cat_File):
-       with open(SCRIPT_PATH+"/history/"+Cat_File,"r") as f:
-             data = [line.strip() for line in f]
+         hist_file = args[0]
+         hist_cats = args[1]
+         hist_txt = args[2]
+         hist_answer = args[3]
+         hist_epok = args[4]
+         hist_tstamp = args[5]
+         hist_wav = args[6]
 
-
-       for line in data :
-           if len(line) >0:
-               args = [element for element in line.strip().split("***") if element]
-               try:
-                   hist_cats = args[0]
-
-                   hist_txt = args[1]
-
-                   hist_answer = args[2]
-
-                   hist_wav = args[3]
-
-                   if hist_cats == Joined_Cat:
+         if Cat_File == hist_file:
+               if hist_cats == Joined_Cat:
                         score = similar(lemmatized,hist_txt)
                         if "wikipedia" in hist_txt:
                             if score > 0.85:
@@ -5140,57 +5155,44 @@ def Check_History(question):
                                 Best_Answer(hist_answer)
                                 Best_Wav.append(hist_wav)
 
-                   else:
-                       pass
-               except Exception as e:
-                   PRINT("\n-Trinity:Error: ",str(e))
-                   continue
-
-       final_score = 0
-       final_wav = ""
-       for s in Best_Score:
+   final_score = 0
+   final_wav = ""
+   for s in Best_Score:
            if s > final_score:
                 final_score = s
 
-       for s,t,w in zip(Best_Score,Best_Txt,Best_Answer,Best_Wav):
+   for s,t,w in zip(Best_Score,Best_Txt,Best_Answer,Best_Wav):
             if s == final_score:
                 PRINT("\n-Trinity:Best matches :",t)
                 final_wav = w
 
-       if len(final_wav) > 0:
+   if len(final_wav) > 0:
 
+       os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/already/1.wav")
+       os.system("aplay -q %s"%final_wav)
+       os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/question/amigood.wav")
 
+       Start_Thread_Record()
 
-
-                            os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/already/1.wav")
-                            os.system("aplay -q %s"%final_wav)
-                            os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/question/amigood.wav")
-
-                            Start_Thread_Record()
-
-                            if Wait_for("audio"):
-                                audio = audio_datas.get()
-                                transcripts,transcripts_confidence,words,words_confidence,Err_msg = Speech_To_Text(audio)
-                                txt,fconf =Check_Transcript(transcripts,transcripts_confidence,words,words_confidence,Err_msg)
-                                if len(txt) > 0:
-                                      Question(txt)
-                                      Wait_for("question")
-                                else:
-                                      score_sentiment.put(False)
-                                opinion = score_sentiment.get()
-                                if opinion == None:
-                                        os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/notok/1.wav")
-                                        return(False)
-                                elif opinion == False:
-                                        os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/notok/1.wav")
-                                        return(False)
-                                else:
-                                        os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/ok/1.wav")
-                                        return(True)
-
-
-
-
+       if Wait_for("audio"):
+           audio = audio_datas.get()
+           transcripts,transcripts_confidence,words,words_confidence,Err_msg = Speech_To_Text(audio)
+           txt,fconf =Check_Transcript(transcripts,transcripts_confidence,words,words_confidence,Err_msg)
+           if len(txt) > 0:
+               Question(txt)
+               Wait_for("question")
+           else:
+               score_sentiment.put(False)
+           opinion = score_sentiment.get()
+           if opinion == None:
+               os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/notok/1.wav")
+               return(False)
+           elif opinion == False:
+               os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/notok/1.wav")
+               return(False)
+           else:
+               os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/ok/1.wav")
+               return(True)
    else:
         return(False)
 
@@ -5506,7 +5508,7 @@ if __name__ == "__main__":
        SCRIPT_PATH = SCRIPT_PATH[:-1]
 
 
-    LAST_SHA = "6c30de466ed9aabcb1da45f2830b823bf5e49594"
+    LAST_SHA = "57ac0b96206f7186466a86f73774c34e8eb65d8b"
     DISPLAY = ""
     Providers_To_Use = []
     GPT4FREE_SERVERS_STATUS = "Active"
@@ -5525,6 +5527,7 @@ if __name__ == "__main__":
     FRAME_DURATION = 480
     FRAME_RATE = 16000
 
+    History_List = []
     Current_Category = []
     Blacklisted = []
 
@@ -5585,6 +5588,8 @@ if __name__ == "__main__":
     PRINT("-Trinity:GPT4FREE_SERVERS_AUTH:%s"%GPT4FREE_SERVERS_AUTH)
     PRINT("-Trinity:XCB_ERROR_FIX:%s"%XCB_ERROR_FIX)
     PRINT("-Trinity:SAVED_ANSWER:%s"%SAVED_ANSWER)
+    PRINT("-Trinity:History categories loaded:%s"%len(History_List))
+
     if GPT4FREE_SERVERS_STATUS:
          PRINT("-Trinity:Free Gpt servers to use:")
          for i in Providers_To_Use:
