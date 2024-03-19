@@ -98,6 +98,7 @@ repeat_request,t'a dis quoi
 repeat_request,qu'*que t*a* dis
 repeat_request,vous aves dit quoi
 repeat_request,qu'*que vous* dis
+show_history_request,affiche l'historique
 search_history_request,rappelle* si *historique
 search_history_request,souviens * si *historique
 search_history_request,un*qui concerne *historique
@@ -126,17 +127,8 @@ search_history_request,si*je*ai*deja*parle*avec*toi*historique
 search_history_request,si*j'*ai*deja*parle*avec toi*historique
 search_history_request,si*je*ai*deja*parle*avec*vous*historique
 search_history_request,si*j'*ai*deja*parle*avec vous*historique
-read_link_request,le contenu
-read_link_request,ce qu*il*y*a dans
-read_link_request,ce qu*il*y*a sur
-read_link_request,ce qu*ya dans
-read_link_request,ce qu*ya sur
-read_link_request,ce que contient
+read_link_request,[ ce que contient / le contenu / ce qu*il*y*a{ dans / sur }/ ce qu*il*y*a{ dans / sur }/ ce qu*ya{ dans / sur }][*/ce /cette /un /une ] [*/page internet / page web / url/ site internet/ site web]
 read_link_request,l'interrieur
-read_link_request,cette page
-read_link_request,ce site
-read_link_request,dans ce 
-read_link_request,ce lien
 play_wav_request,fichier*audio
 play_wav_request,fichier*son
 play_wav_request,fichier*wav
@@ -144,7 +136,7 @@ play_wav_request,point*wav
 play_wav_request,ce fichier
 play_wav_request,enregistrement
 play_wav_request,lecture*fichier
-web_request,[ avec / sur ] * [ wikipedia / google / internet ]
+web_request,[ avec / sur / dans ][*/][ wikipedia / google / internet ][un{e/} /des /][page{s/} /info{s/} /truc{s/} /article{s/} ][avec /sur /dans /][wikipedia/google/internet/]
 web_request,[pag{e /es }/inf{o /os }]*[parl{e /ent /eraient }/concern{e /ent /eraient }]*[ wikipedia / google / internet ] 
 web_request,[pag{e/es}/inf{o/os}] * sur 
 web_request,quelque*chose* sur 

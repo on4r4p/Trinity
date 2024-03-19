@@ -1057,6 +1057,7 @@ def Load_Csv():
     global trinity_source_request
     global rnd_request
     global repeat_request
+    global show_history_request
     global search_history_request
     global read_link_request
     global play_wav_request
@@ -1080,6 +1081,7 @@ def Load_Csv():
     trinity_source_request = []
     rnd_request = []
     repeat_request = []
+    show_history_request = []
     search_history_request = []
     read_link_request = []
     play_wav_request = []
@@ -1250,6 +1252,15 @@ def Load_Csv():
                                        repeat_request.append(t)
                                else:
                                    repeat_request.append(trigger)
+                      elif function == "show_history_request":
+                           check_trigger = Special_Syntax(trigger,CMDFILE,line)
+                           if check_trigger:
+                               if isinstance(check_trigger,list):
+                                   for t in check_trigger:
+                                       show_history_request.append(t)
+                               else:
+                                   show_history_request.append(trigger)
+
                       elif function == "search_history_request":
                            check_trigger = Special_Syntax(trigger,CMDFILE,line)
                            if check_trigger:
@@ -1733,6 +1744,15 @@ def Load_Csv():
                                        repeat_request.append(t)
                                else:
                                    repeat_request.append(trigger)
+                      elif function == "show_history_request":
+                           check_trigger = Special_Syntax(trigger,CMDFILE,line)
+                           if check_trigger:
+                               if isinstance(check_trigger,list):
+                                   for t in check_trigger:
+                                       show_history_request.append(t)
+                               else:
+                                   show_history_request.append(trigger)
+
                       elif function == "ask_for_history":
                            check_trigger = Special_Syntax(trigger,CMDFILE,line)
                            if check_trigger:
@@ -1741,7 +1761,6 @@ def Load_Csv():
                                        search_history_request.append(t)
                                else:
                                    search_history_request.append(trigger)
-
                       elif function == "ask_to_read_link":
                            check_trigger = Special_Syntax(trigger,CMDFILE,line)
                            if check_trigger:
@@ -1930,6 +1949,8 @@ def Add_Trigger():
                    ask_for_repeat = seeknreturn(trigger,repeat_request)
 
                    ask_for_history = seeknreturn(trigger,search_history_request)
+
+                   ask_to_show_history = seeknreturn(trigger,show_history_request)
 
                    ask_for_web = seeknreturn(trigger,web_request)
 
@@ -2551,6 +2572,8 @@ def Commandes(txt):
                    trigger_function[fnc] = web_request 
                if fnc == "ask_to_play_wav":
                    trigger_function[fnc] = play_wav_request
+               if fnc == "ask_to_show_history":
+                   trigger_function[fnc] = show_history_request
                if fnc == "ask_for_history":
                    trigger_function[fnc] = search_history_request 
                if fnc == "ask_to_read_link":
@@ -2682,6 +2705,8 @@ def Commandes(txt):
                                        bonusyn = len(seeknreturn(newtxt,web_request)) 
                                    if function_tomatch == "ask_to_play_wav":
                                        bonusyn = len(seeknreturn(newtxt,play_wav_request))
+                                   if function_tomatch == "ask_to_show_history":
+                                       bonusyn = len(seeknreturn(newtxt,show_history_request))
                                    if function_tomatch == "ask_for_history":
                                        bonusyn = len(seeknreturn(newtxt,search_history_request)) 
                                    if function_tomatch == "ask_to_read_link":
@@ -2725,7 +2750,7 @@ def Commandes(txt):
 
 
     def seeknreturn(var_to_check,list_elements):
-          PRINT("\n-Trinity:Dans la fonction seeknreturn")
+#          PRINT("\n-Trinity:Dans la fonction seeknreturn")
           found_lst = []
           for element in list_elements:
                if "*" in element:
@@ -2752,7 +2777,7 @@ def Commandes(txt):
 
     ambiguity = []
 
-    filter = ["s'il te plait","si te plait","sil te plait","merci"]
+    filter = ["s'il te plait","si te plait","sil te plait","merci"," stp "]
 
     to_remove = [" fais ","estce"," peux faire "," recherche ","faismoi"," fais ","peux ","fais recherche "," parle ","s'il te plait"," stp "," svp"," sur ","sil plait"]
 
@@ -2777,6 +2802,8 @@ def Commandes(txt):
 
     ask_for_repeat = seeknreturn(decoded,repeat_request)
 
+    ask_to_show_history = seeknreturn(decoded,show_history_request)
+
     ask_for_history = seeknreturn(decoded,search_history_request)
 
     ask_for_web = seeknreturn(decoded,web_request)
@@ -2793,6 +2820,7 @@ def Commandes(txt):
 
 
     decoded = seekndestroy(filter, decoded)
+
 
     if ask_to_action or found_alt_trigger:
          ambiguity.append("ask_to_action")
@@ -2815,6 +2843,8 @@ def Commandes(txt):
              ambiguity.append("ask_for_help")
          if ask_to_play_wav:
              ambiguity.append("ask_to_play_wav")
+         if ask_to_show_history:
+             ambiguity.append("ask_to_show_history")
          if ask_for_history:
                  ambiguity.append("ask_for_history")
          if ask_to_read_link:
@@ -2883,16 +2913,23 @@ def Commandes(txt):
                   return(True)
               else:
                   return(True)
+
+       elif goto == "ask_to_show_history":
+
+           Show_History()
+           return(True)
+
+
        elif goto == "ask_for_history":
-               for element in to_remove:
-                  if element in decoded:
-                      decoded = decoded.replace(element," ")
+#               for element in to_remove:
+#                  if element in decoded:
+#                      decoded = decoded.replace(element," ")
 
 
                decoded = decoded.replace("  ","")
 
-
-               Search_History(decoded)
+               to_search = Isolate_Search_Request(decoded,ask_for_history)
+               Search_History(to_search)
                return(True)
 
        elif goto == "ask_to_read_link":
@@ -2902,27 +2939,31 @@ def Commandes(txt):
        elif goto == "ask_for_web":
 
            if "wikipedia" in decoded:
-               for element in to_remove:
-                  if element in decoded:
-                      decoded = decoded.replace(element," ")
+#               for element in to_remove:
+#                  if element in decoded:
+#                      decoded = decoded.replace(element," ")
 
-               decoded = decoded.replace("wikipedia"," ")
+               decoded = decoded.replace("wikipedia"," ").replace("  "," ")
                os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/server/wikipedia.wav")
 
-               for element in to_remove:
-                   if element in decoded:
-                      decoded = decoded.replace(element," ")
+#               for element in to_remove:
+#                   if element in decoded:
+#                      decoded = decoded.replace(element," ")
+               decoded = decoded.replace("  "," ")
 
-                      decoded = decoded.replace("  ","")
-               Wikipedia(decoded)
+               to_search = Isolate_Search_Request(decoded,ask_for_web)
+
+               Wikipedia(to_search)
 
                return(True)
            else:
-               for element in to_remove:
-                  if element in decoded:
-                      decoded = decoded.replace(element," ")
-               decoded = decoded.replace("  ","")
-               Google(decoded)
+#               for element in to_remove:
+#                  if element in decoded:
+#                      decoded = decoded.replace(element," ")
+               decoded = decoded.replace("  "," ")
+
+               to_search = Isolate_Search_Request(decoded,ask_for_web)
+               Google(to_search)
                return(True)
 
 
@@ -4204,7 +4245,7 @@ def Text_To_Speech(txtinput,stayawake=False,savehistory=True):
     PRINT("\n-Trinity:Dans la fonction Text_To_Speech")
 
 
-    PRINT("\n-Trinity:len(txtinput:",len(txtinput))
+    PRINT("\n-Trinity:len(txtinput):",len(txtinput))
 
     print("\n-Trinity:\n\n%s\n\n"%txtinput)
 
@@ -4637,6 +4678,166 @@ def Standing_By(self_launched=False):
 
 
 
+def Isolate_Search_Request(txt,triggers):
+
+
+    PRINT("\n-Trinity:Isolate_Search_Request():%s"%txt)
+
+
+    def check_artifact(to_check,original):
+       originalst = original.lower().split(" ")
+       to_check_lst = to_check.split(" ")
+       trigger_words = []
+       artifacts = []
+       fixed = []
+
+       for trigger in triggers:
+           for word in trigger.split(" "):
+               if word not in trigger_words:
+                     trigger_words.append(word)
+
+       for word in to_check_lst:
+           iwasthere = False
+           for orig_word in originalst:
+               if orig_word == word:
+                  iwasthere = True
+
+           if not iwasthere:
+               artifacts.append(word)
+
+       for bad_word in artifacts:
+          PRINT("\n-Trinity:check_artifact:artifact:%s"%word)
+          for orig_word in originalst:
+              if orig_word not in trigger_words:
+                    if orig_word in bad_word:
+                        fixed.append(orig_word)
+
+       if fixed:
+          fixed = " ".join(fixed)
+          PRINT("\n-Trinity:check_artifact:fixed:%s"%fixed)
+          return(fixed)
+       else:
+          return(to_check)
+
+    def clean(to_clean):
+         abc = """ &abcdefghijklmnopqrstuvwxyz0123456789-_"'/+."""
+         cleaned = ""
+         while True:
+              if to_clean.endswith(" "):
+                 to_clean = to_clean[:-1]
+                 continue
+              elif to_clean.startswith(" "):
+                 to_clean = to_clean[1:]
+                 continue
+              elif "  " in to_clean:
+                 to_clean = to_clean.replace("  "," ")
+                 continue
+              else:
+                 break
+
+         for c in to_clean: #??
+             if c in abc:
+                 cleaned += c
+
+         return(cleaned)
+
+    def remove(to_clean,remove_lst):
+
+          for to_rm in remove_lst:
+              pos = 0
+              bucket = ""
+              to_rm_lst = []
+              while True:
+                  if to_rm[pos] != "*":
+                      bucket += to_rm[pos]
+                  else:
+                      if pos > 0:
+                          if to_rm[pos-1] not in (" ","*"):
+                             bucket += " "
+                             to_rm_lst.append(bucket)
+                             bucket = ""
+                          else:
+                             to_rm_lst.append(bucket)
+                             bucket = ""
+                      else:
+                             bucket += " "
+                             to_rm_lst.append(bucket)
+                             bucket = ""
+                  pos += 1
+                  if pos >= len(to_rm):
+                             to_rm_lst.append(bucket)
+                             break
+              to_rm_lst = [rm.replace("  "," ") for rm in to_rm_lst]
+
+#              print("\nto_rm_lst:")
+
+              for rm in to_rm_lst:
+#                  print("'%s'"%rm)
+#                  to_clean = to_clean.replace(rm," ")
+#                  to_clean = " ".join([word for word in to_clean.split() if word != rm])
+                  pos_rm = to_clean.find(rm)
+                  while pos_rm != -1:
+                        to_clean = to_clean[:pos_rm] + to_clean[pos_rm + len(rm):]
+                        pos_rm = to_clean.find(rm)
+
+          return(clean(to_clean))
+
+
+    filter = ["s'il te plait","si te plait","sil te plait","merci"]
+
+    orig_txt = txt
+
+    txt = unidecode(txt.lower())
+
+    for f in filter:
+        txt = txt.replace(f," ")
+
+    txt = clean(txt)
+
+    txt = remove(txt,action_words)
+
+    txt = remove(txt,triggers)
+
+    txt = check_artifact(txt,orig_txt)
+
+    PRINT("\n-Trinity:Isolate_Search_Request():output:%s"%txt)
+    return(txt)
+
+
+def Reducto(txt):
+    if len(txt) > 300:
+         txt = txt[:300]+"(...)"
+    return(txt)
+
+
+def Show_History():
+    PRINT("\n-Trinity:Show_History()")
+    if len(History_List) == 0:
+        os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/errors/err_no_history.wav")
+        return()
+
+    history_sort_asc = sorted(History_List,key=lambda x: x[4])
+    history_sort_dsc =  history_sort_asc[::-1]
+
+    os.system("aplay -q %s"%SCRIPT_PATH+"/local_sounds/history/show_history.wav")
+    for n,args in enumerate(history_sort_asc):
+
+         hist_file = args[0]
+         hist_cats = args[1]
+         hist_txt = args[2]
+         hist_answer = Reducto(args[3])
+         hist_epok = args[4]
+         hist_tstamp = args[5]
+         hist_wav = args[6]
+         catres = "\n\n==Résultat %s== Catégories:"%str(n+1)
+         txtres = "\n==Résultat %s== Question synthétisé:\n"%str(n+1)
+         ansres = "\n\n==Résultat %s== Réponse:\n\n"%str(n+1) 
+         datres = "\n\n==Résultat %s== Date:"%str(n+1)
+         wavres = "\n==Résultat %s== Wav:"%str(n+1)
+
+         print("%s%s%s%s%s%s%s%s"%(catres,hist_cats,txtres,hist_txt,ansres,hist_answer,datres,hist_tstamp))
+
+
 def Search_History(tosearch):
     Exit = False
 
@@ -4836,13 +5037,19 @@ def Search_History(tosearch):
                                hist_file = args[0]
                                hist_cats = args[1]
                                hist_txt = args[2]
-                               hist_answer = args[3]
+                               hist_answer = Reducto(args[3])
                                hist_epok = args[4]
                                hist_tstamp = args[5]
                                hist_wav = args[6]
                                hist_bingo = args[7]
+                               catres = "\n\n==Résultat %s== Catégories:"%str(n+1)
+                               txtres = "\n==Résultat %s== Question synthétisé:\n"%str(n+1)
+                               ansres = "\n\n==Résultat %s== Réponse:\n\n"%str(n+1) 
+                               datres = "\n\n==Résultat %s== Date:"%str(n+1)
+                               wavres = "\n==Résultat %s== Wav:"%str(n+1)
+                               binres = "\n==Résultat %s== Score:"%str(n+1)
 
-                               print("\n-(Résultat numéro %s)\n    Categories:%s\n    Texte utilisateur synthétisé:%s\n    Réponse:%s\n    Date:%s\n    Score:%s"%(str(n+1),hist_cats,hist_txt,hist_answer,hist_tstamp,hist_bingo))
+                               print("%s%s%s%s%s%s%s%s%s%s%s%s"%(catres,hist_cats,txtres,hist_txt,ansres,hist_answer,datres,hist_tstamp,wavres,hist_wav,binres,hist_bingo))
 
 
                            return()
@@ -4863,13 +5070,17 @@ def Search_History(tosearch):
                                  hist_file = args[0]
                                  hist_cats = args[1]
                                  hist_txt = args[2]
-                                 hist_answer = args[3]
+                                 hist_answer = Reducto(args[3])
                                  hist_epok = args[4]
                                  hist_tstamp = args[5]
                                  hist_wav = args[6]
                                  hist_bingo = args[7]
 
-                                 res_str = "\n-(Résultat numéro %s)\n    Catégories:%s\n    Texte utilisateur synthétisé:%s\n     Réponse:%s\n   Date:%s\n    Score:%s"%(str(n+1),hist_cats,hist_txt,hist_answer,hist_tstamp,hist_bingo)
+
+
+
+
+                                 res_str = "\n-(Résultat numéro %s)\n    \n-Catégories:\n%s\n    \n-Texte utilisateur synthétisé:\n%s\n     \n-Réponse:\n%s\n   -Date:%s\n    Score:%s"%(str(n+1),hist_cats,hist_txt,hist_answer,hist_tstamp,hist_bingo)
 
                                  os.system("aplay -q  "+SCRIPT_PATH+"local_sounds/history/choose_%s.wav"%(str(rnd_nbr + 1)))
                                  Text_To_Speech(res_str,stayawake=True,savehistory=False)
@@ -4919,6 +5130,7 @@ def Search_History(tosearch):
 
     MatchResults =[]
 
+    PRINT("\n-Trinity:Search_History:%s"%tosearch)
     for args in History_List:
 
          hist_file = args[0]
@@ -4931,12 +5143,37 @@ def Search_History(tosearch):
 
 
          bingoat = 0
-         for word in tosearch.split(" "):
-             if len(word.replace(" ","")) > 0:
-                 if word.lower() in hist_txt.lower():
-                     bingoat += 1
-                 if word.lower() in hist_answer.lower():
-                     bingoat += 1
+         if " " in tosearch:
+              for n,word in enumerate(tosearch.split(" ")):
+
+                  if n == 0:
+                      word = "%s "%word
+                  elif n == len(tosearch.split(" "))-1:
+                      word = " %s"%word
+                  else:
+                      word = " %s "%word
+
+                  if word in hist_txt.lower():
+                          PRINT("\n-Trinity:Search_History:found partial result in hist_txt:[%s]"%word)
+                          bingoat += 1
+                  if word in hist_answer.lower():
+                          PRINT("\n-Trinity:Search_History:found partial result in hist_answer:[%s]"%word)
+                          bingoat += 1
+
+              if tosearch in hist_txt.lower():
+                          PRINT("\n-Trinity:Search_History:full match in hist_txt:[%s]"%tosearch)
+                          bingoat += 5
+              if tosearch in hist_answer.lower():
+                          PRINT("\n-Trinity:Search_History:full match in hist_txt:[%s]"%tosearch)
+                          bingoat += 5
+         else:
+              if tosearch in hist_txt.lower():
+                          PRINT("\n-Trinity:Search_History:full match in hist_txt:[%s]"%tosearch)
+                          bingoat += 1
+              if tosearch in hist_answer.lower():
+                          PRINT("\n-Trinity:Search_History:full match in hist_txt:[%s]"%tosearch)
+                          bingoat += 1
+
          if bingoat > 0:
                 MatchResults.append((hist_file,hist_cats,hist_txt,hist_answer,hist_epok,hist_tstamp,hist_wav,bingoat))
 
@@ -4971,13 +5208,19 @@ def Search_History(tosearch):
          hist_file = args[0]
          hist_cats = args[1]
          hist_txt = args[2]
-         hist_answer = args[3]
+         hist_answer = Reducto(args[3])
          hist_epok = args[4]
          hist_tstamp = args[5]
          hist_wav = args[6]
          hist_bingo = args[7]
+         catres = "\n\n==Résultat %s== Catégories:"%str(n+1)
+         txtres = "\n==Résultat %s== Question synthétisé:\n"%str(n+1)
+         ansres = "\n\n==Résultat %s== Réponse:\n\n"%str(n+1) 
+         datres = "\n\n==Résultat %s== Date:"%str(n+1)
+         wavres = "\n==Résultat %s== Wav:"%str(n+1)
+         binres = "\n==Résultat %s== Score:"%str(n+1)
 
-         print("\n-(Résultat %s)\n    Catégories:%s\n    Texte utilisateur Synthétisé:%s\n    Réponse:%s\n    Date:%s\n    Fichier audio:%s\n    Score:%s\n"%(str(n+1),hist_cats,hist_txt,hist_answer,hist_tstamp,hist_wav,hist_bingo))
+         print("%s%s%s%s%s%s%s%s%s%s%s%s"%(catres,hist_cats,txtres,hist_txt,ansres,hist_answer,datres,hist_tstamp,wavres,hist_wav,binres,hist_bingo))
 
 
     Standing_By(self_launched=True)
@@ -5554,6 +5797,7 @@ if __name__ == "__main__":
     trinity_source_request = []
     rnd_request = []
     repeat_request = []
+    show_history_request = []
     search_history_request = []
     read_link_request = []
     play_wav_request = []
