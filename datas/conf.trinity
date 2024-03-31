@@ -1,6 +1,8 @@
 SAVED_ANSWER = default
-GPT4FREE_SERVERS_STATUS = Active #Active or Unknown or All or None
-GPT4FREE_SERVERS_AUTH = False #True or False or All
+GPT4FREE_SERVERS_STATUS = All #Active or Unknown or All or None
+GPT4FREE_SERVERS_AUTH = ALL #True or False or All
 CHECK_UPDATE = True
-DEBUG = True
+DEBUG = False #Print debug stuffs
+CMD_DBG = False #Print commands results only for testing purpose
+SYNTAX_DBG = False #Print output of Special syntax found in database at launch
 XCB_ERROR_FIX = True

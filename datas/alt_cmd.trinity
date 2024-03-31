@@ -1,3 +1,9 @@
 trigger,function
-recherche * dans l'historique,ask_for_history
-comment * t'utilise,ask_for_help
+recherche * dans l'historique,F_search_history
+comment * t'utilise,F_trinity_help
+montre-moi l'historique,F_show_history
+montre moi l'historique,F_show_history
+affiche-moi l'historique,F_show_history
+affiche moi l'historique,F_show_history
+ouvre-moi l'historique,F_show_history
+ouvre moi l'historique,F_show_history
