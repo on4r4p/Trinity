@@ -211,22 +211,26 @@ def Check_Free_Servers():
         markdown = response.text.splitlines()
         print("\n\n")
         for line in markdown:
-            if "g4f.Provider." in line:
-                if "https://img.shields.io/badge/Active-brightgreen" in line:
-                    provider = "g4f.Provider." + line.split("g4f.Provider.")[1].split("`")[0]
-                    if "❌" in line:
-                        active_no_auth.append(provider)
-                    else:
-                        active_with_auth.append(provider)
-                if "https://img.shields.io/badge/Unknown-grey" in line:
-                    provider = "g4f.Provider." + line.split("g4f.Provider.")[1].split("`")[0]
-                    if "❌" in line:
-                        unknown_no_auth.append(provider)
-                    else:
-                        unknown_with_auth.append(provider)
+            try:
+                 if "g4f.Provider." in line:
+                     if "https://img.shields.io/badge/Active-brightgreen" in line:
+                         provider = "g4f.Provider." + line.split("g4f.Provider.")[1].split("`")[0]
+                         if "❌" in line:
+                             active_no_auth.append(provider)
+                         else:
+                             active_with_auth.append(provider)
+                     if "https://img.shields.io/badge/Unknown-grey" in line:
+                         provider = "g4f.Provider." + line.split("g4f.Provider.")[1].split("`")[0]
+                         if "❌" in line:
+                             unknown_no_auth.append(provider)
+                         else:
+                             unknown_with_auth.append(provider)
+            except Exception as e:
+                PRINT("\n-Trinity Error:Check_Free_Servers():Error:%s"%str(e))
+                
 
     except Exception as e:
-        print("\n-Trinity Error:", str(e))
+        print("\n-Trinity Error:Check_Free_Servers()", str(e))
 
     if active_with_auth:
         PRINT("\n-Trinity:Free servers active_with_auth:\n")
@@ -288,6 +292,7 @@ def Check_Free_Servers():
             "g4f.Provider.You",
         ]
 
+    providers_to_return = [p for p in providers_to_return if p.startswith("g4f.Provider.")]
     return providers_to_return
 
 
@@ -5984,7 +5989,7 @@ if __name__ == "__main__":
     if SCRIPT_PATH.endswith("."):
         SCRIPT_PATH = SCRIPT_PATH[:-1]
 
-    LAST_SHA = "b1f6d02f94c2fdede84fe9ea137f2abf7352a680"
+    LAST_SHA = "70c9171303c9144c6d5d46532e244bf47f8c0ef2"
     DISPLAY = ""
     Providers_To_Use = []
     GPT4FREE_SERVERS_STATUS = "Active"
