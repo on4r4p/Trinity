@@ -137,18 +137,7 @@ F_play_audio,ce fichier
 F_play_audio,enregistrement
 F_play_audio,lecture*fichier
 F_search_web,[ avec / sur / dans ][*/][ wikipedia / google / internet ][un{e/} /des /][page{s/} /info{s/} /truc{s/} /article{s/} /][avec /sur /dans /][wikipedia/google/internet/]
-F_search_web,[pag{e /es }/inf{o /os }]*[parl{e /ent /eraient }/concern{e /ent /eraient }]*[ wikipedia / google / internet ] 
-F_search_web,[pag{e/es}/inf{o/os}] * sur 
-F_search_web,quelque*chose* sur 
-F_search_web,quelque chose * concern
-F_search_web,quelque * chose * parle
-F_search_web,truc qui parle
-F_search_web,truc qui parlant
-F_search_web,truc concern
-F_search_web,article * concern
-F_search_web,article * google
-F_search_web,article * parl
-F_search_web,article * sur
+F_search_web,[pag{e /es }/inf{o /os }]*[parl{e /ent /ant /eraient }/concern{e /ent /eraient }/en rapport ]*[ wikipedia / google / internet ] 
 F_wait,attends
 F_wait,attendre
 F_wait,laisse-moi

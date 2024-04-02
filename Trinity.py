@@ -2605,6 +2605,27 @@ def Check_Ambiguity(txt_input, to_match=None, to_get=None):
 
 
 
+def Dbg_Search():
+
+    PRINT("\n\n-Trinity:Dans la fonction Dbg_Search()")
+    while True:
+         print("\n\t-1: F_search_history")
+         print("\t-2: F_search_web")
+         user_input = input("\n-Trinity:Dbg_Search():Choix fonction [1/2]:")
+         if user_input == "1":
+            user_input = "F_search_history"
+            break
+         elif user_input == "2":
+             user_input = "F_search_web"
+             break
+    txt_input = input("\n-Trinity:Dbg_Search():Phrase à verifier:")
+    output = Isolate_Search(txt_input, user_input)
+    print("\n-Trinity:Dbg_Search():Output:%s"%output)
+    return Dbg_Search()
+
+
+
+
 def Dbg_Input():
     PRINT("\n-Trinity:Dans la fonction Dbg_Input()")
     user_input = input("\n-Trinity:Dbg_Input():Comment puis-je vous aider ?:")
@@ -2943,12 +2964,7 @@ def Google(to_search, rnbr=50,wiki_failed=False):  # ,tstmode = True):
 
     original_search = to_search
 
-    triggers = Check_Ambiguity(to_search, to_get="F_search_web")
-
-    if triggers:
-         to_search = Isolate_Search_Request(to_search, triggers["F_search_web"][1])
-    else:
-         PRINT("\n-Trinity:Google():Isolate_Search_Request():Failed")
+    to_search = Isolate_Search(to_search,"F_search_web")
 
     PRINT("\n-Trinity:Google():to_search:%s"%to_search)
     PRINT("\n-Trinity:Google():wiki_failed:%s"%wiki_failed)
@@ -3574,11 +3590,8 @@ def Wikipedia(to_search, Title=None, FULL=None):
 
     original_search = to_search
 
-    triggers = Check_Ambiguity(to_search, to_get="F_search_web")
-    if triggers:
-        to_search = Isolate_Search_Request(to_search, triggers["F_search_web"][1])
-    else:
-        PRINT("\n-Trinity:Wikipedia():Isolate_Search_Request():Failed")
+    to_search = Isolate_Search(to_search,"F_search_web")
+
 
     PRINT("\n-Trinity:Dans la fonction Wikipedia.")
     PRINT("\n-Trinity:to_search:", to_search)
@@ -3890,27 +3903,11 @@ def Repeat(txt):
         else:
             os.system("aplay -q %s" % SCRIPT_PATH + "/local_sounds/ok/1.wav")
 
-            cmd = Commandes(txt)
-            if cmd:
-                if cmd == "prompt":
-                    return Prompt()
-                elif cmd == "random":
-                    rnd = str(random.randint(1, 2))
-                    ouinon = SCRIPT_PATH + "/local_sounds/ouinon/" + rnd + ".wav"
-                    os.system("aplay -q %s" % ouinon)
-            else:
-                return To_Gpt(txt)
+            return Commandes(txt)
     else:
 
         os.system("aplay -q %s" % SCRIPT_PATH + "/local_sounds/ok/1.wav")
-        # go_to_function.put("Speech_To_Text")
-        cmd = Commandes(txt)
-        if cmd:
-            if cmd == "prompt":
-                return Prompt()
-        else:
-            return To_Gpt(txt)
-
+        return Commandes(txt)
 
 def Bad_Stt(txt):
     PRINT("\n-Trinity:Dans la fonction Bad_Stt")
@@ -4550,44 +4547,80 @@ def Standing_By(self_launched=False):
             pa.terminate()
 
 
-def Isolate_Search_Request(txt, triggers):
+def Isolate_Search(txt, function_name):
 
-    PRINT("\n-Trinity:Isolate_Search_Request():%s" % txt)
+    triggers = Check_Ambiguity(txt, to_get=function_name)
+    try:
+         if triggers:
+              triggers = triggers[function_name][0][1]
+         else:
+              PRINT("\n-Trinity:Isolate_Search():Failed")
+              return(txt)
+
+    except Exception as e: 
+         PRINT("\n-Trinity:Isolate_Search():Failed:Error:\n%s"%str(e))
+         return(txt)
+
+
+    PRINT("\n-Trinity:Isolate_Search():txt:%s" % txt)
+    PRINT("\n-Trinity:Isolate_Search():function:%s" % function_name)
+    PRINT("\n-Trinity:Isolate_Search()triggers:%s" % triggers)
 
     def check_artifact(to_check, original):
         originalst = original.lower().split(" ")
         to_check_lst = to_check.split(" ")
         trigger_words = []
         artifacts = []
-        fixed = []
-
+        fixed_lst = []
+        
         for trigger in triggers:
             for word in trigger.split(" "):
                 if word not in trigger_words:
                     trigger_words.append(word)
 
-        for word in to_check_lst:
+        print("\ntrigger_words:",trigger_words)
+        print("\nto_check_lst:",to_check_lst)
+        print("\noriginalst:",originalst)
+        for n,word in enumerate(to_check_lst):
             iwasthere = False
             for orig_word in originalst:
                 if orig_word == word:
                     iwasthere = True
 
             if not iwasthere:
-                artifacts.append(word)
+                artifacts.append((n,word))
 
-        for bad_word in artifacts:
-            PRINT("\n-Trinity:check_artifact:artifact:%s" % word)
-            for orig_word in originalst:
-                if orig_word not in trigger_words:
-                    if orig_word in bad_word:
-                        fixed.append(orig_word)
 
-        if fixed:
-            fixed = " ".join(fixed)
-            PRINT("\n-Trinity:check_artifact:fixed:%s" % fixed)
-            return fixed
+        if artifacts:
+             print("artifacts:",artifacts)
+             for art_obj in artifacts:
+                 index = art_obj[0]
+                 bad_word = art_obj[1]
+
+                 PRINT("\n-Trinity:check_artifact at index %s :%s"%(str(index),str(bad_word)))
+
+                 for orig_word in originalst:
+     #                print("for orig_word in originalst:%s"%orig_word)
+                     if orig_word not in trigger_words:
+     #                    print("if orig_word not in trigger_words:%s"%orig_word)
+                         if bad_word.startswith(orig_word) or bad_word.endswith(orig_word):
+     #                        print("if orig_word in bad_word:%s"%orig_word)
+                             fixed_lst.append((index,orig_word))
+                             break
+
+        if fixed_lst:
+            for f_obj in fixed_lst:
+                index = f_obj[0]
+                fixed = f_obj[1]
+                to_check_lst[index] = fixed
+
+            to_search = " ".join(to_check_lst)
+            PRINT("\n-Trinity:check_artifact:fixed:%s" % to_search)
+            return to_search
         else:
-            return to_check
+            to_search = to_check
+            return to_search
+
 
     def clean(to_clean):
         abc = """ &abcdefghijklmnopqrstuvwxyz0123456789-_"'/+."""
@@ -4662,14 +4695,18 @@ def Isolate_Search_Request(txt, triggers):
         txt = txt.replace(f, " ")
 
     txt = clean(txt)
+    PRINT("\n-Trinity:Isolate_Search():after clean:%s"%txt)
 
     txt = remove(txt, Loaded_Actions_Words_Requests)
+    PRINT("\n-Trinity:Isolate_Search():after remove action:%s"%txt)
 
     txt = remove(txt, triggers)
+    PRINT("\n-Trinity:Isolate_Search():after remove triggers:%s"%txt)
 
     txt = check_artifact(txt, orig_txt)
+    PRINT("\n-Trinity:Isolate_Search():after artifact:%s"%txt)
 
-    PRINT("\n-Trinity:Isolate_Search_Request():output:%s" % txt)
+    PRINT("\n-Trinity:Isolate_Search():output:%s" % txt)
     return txt
 
 
@@ -4685,7 +4722,19 @@ def Show_History():
         os.system("aplay -q %s" % SCRIPT_PATH + "/local_sounds/errors/err_no_history.wav")
         return ()
 
-    history_sort_asc = sorted(Loaded_History_List, key=lambda x: x[4])
+
+#    history_sort_asc = sorted(Loaded_History_List, key=lambda x: x[4])
+
+    history_sort_asc = []
+    for n,hitem in enumerate(Loaded_History_List):
+        try:
+            float(hitem[4])
+            history_sort_asc.append(hitem)
+        except Exception as e:
+            print("\n-Trinity:Show_History():Error Loaded_History_List[%s][4] != float:"%n)
+            print("\n-Trinity:Loaded_History_List[%s]:\n%s"%(n,hitem))
+
+    history_sort_asc = sorted(history_sort_asc, key=lambda x: x[4])
     history_sort_dsc = history_sort_asc[::-1]
 
     os.system("aplay -q %s" % SCRIPT_PATH + "/local_sounds/history/show_history.wav")
@@ -4725,12 +4774,7 @@ def Search_History(to_search):
 
     original_search = to_search
 
-    triggers = Check_Ambiguity(to_search, to_get="F_search_history")
-
-    if triggers:
-         to_search = Isolate_Search_Request(to_search, triggers["F_search_history"][1])
-    else:
-         PRINT("\n-Trinity:Google():Isolate_Search_Request():Failed")
+    to_search = Isolate_Search(to_search,"F_search_history")
 
     PRINT("\n-Trinity:Dans la fonction SearchHistory to_search %s in history." % to_search)
 
@@ -5740,6 +5784,7 @@ def GetConf():
     global CHECK_UPDATE
     global CMD_DBG
     global SYNTAX_DBG
+    global SEARCH_DBG
 
     options = [
         "DEBUG",
@@ -5750,6 +5795,7 @@ def GetConf():
         "CHECK_UPDATE",
         "CMD_DBG",
         "SYNTAX_DBG",
+        "SEARCH_DBG",
     ]
     folder = False
     conf = False
@@ -5860,6 +5906,15 @@ def GetConf():
                 else:
                     print("-Trinity:Error CMD_DBG has to be either True or False.")
 
+            elif option == "SEARCH_DBG":
+                if conf.lower() == "true":
+                    SEARCH_DBG = True
+                elif conf.lower() == "false":
+                    SEARCH_DBG = False
+                else:
+                    print("-Trinity:Error SEARCH_DBG has to be either True or False.")
+
+
             elif option == "DEBUG":
                 if conf.lower() == "true":
                     DEBUG = True
@@ -5881,17 +5936,19 @@ def GetConf():
             data = """SAVED_ANSWER = default
 GPT4FREE_SERVERS_STATUS = Active #Active or Unknown or All or None
 GPT4FREE_SERVERS_AUTH = False #True or False or All
-CHECK_UPDATE = True
+CHECK_UPDATE = True #Check update for Trinity or g4f
 DEBUG = False #Print debug stuffs
 CMD_DBG = False #Print commands results only for testing purpose
 SYNTAX_DBG = False #Print output of Special syntax found in database at launch
-XCB_ERROR_FIX = False"""
+SEARCH_DBG = False #Test output from Isolate_Search only .
+XCB_ERROR_FIX = False #Fix Xcb error from popping due to DISPLAY env variable."""
             f.write(data)
 
         DEBUG = False
         CMD_DBG = False
         SYNTAX_DBG = False
         CHECK_UPDATE = True
+        SEARCH_DBG = False
         SAVED_ANSWER = SCRIPT_PATH + "/local_sounds/saved_answer/"
         GPT4FREE_SERVERS_STATUS = "Active"
         GPT4FREE_SERVERS_AUTH = False
@@ -5989,7 +6046,7 @@ if __name__ == "__main__":
     if SCRIPT_PATH.endswith("."):
         SCRIPT_PATH = SCRIPT_PATH[:-1]
 
-    LAST_SHA = "70c9171303c9144c6d5d46532e244bf47f8c0ef2"
+    LAST_SHA = "5fe410dc3f00ac677eeace8b803d1d5b24b2cea9"
     DISPLAY = ""
     Providers_To_Use = []
     GPT4FREE_SERVERS_STATUS = "Active"
@@ -5998,6 +6055,7 @@ if __name__ == "__main__":
     DEBUG = False
     CMD_DBG = False
     SYNTAX_DBG = False
+    SEARCH_DBG = False
     XCB_ERROR_FIX = False
     SAVED_ANSWER = SCRIPT_PATH + "/local_sounds/saved_answer/"
 
@@ -6061,13 +6119,14 @@ if __name__ == "__main__":
     if XCB_ERROR_FIX:
         Xcb_Fix("unset")
 
-    os.system("aplay -q %s" % SCRIPT_PATH + "local_sounds/boot/psx.wav")
+#    os.system("aplay -q %s" % SCRIPT_PATH + "local_sounds/boot/psx.wav")
     signal.signal(signal.SIGINT, signal_handler)
 
     PRINT("\n-Trinity:CHECK_UPDATE:%s" % CHECK_UPDATE)
     PRINT("-Trinity:DEBUG:%s" % DEBUG)
     PRINT("-Trinity:CMD_DBG:%s" % CMD_DBG)
-    PRINT("-Trinity:CMD_DBG:%s" % SYNTAX_DBG)
+    PRINT("-Trinity:SYNTAX_DBG:%s" % SYNTAX_DBG)
+    PRINT("-Trinity:SEARCH_DBG:%s" % SEARCH_DBG)
     PRINT("-Trinity:GPT4FREE_SERVERS_STATUS:%s" % GPT4FREE_SERVERS_STATUS)
     PRINT("-Trinity:GPT4FREE_SERVERS_AUTH:%s" % GPT4FREE_SERVERS_AUTH)
     PRINT("-Trinity:XCB_ERROR_FIX:%s" % XCB_ERROR_FIX)
@@ -6078,8 +6137,12 @@ if __name__ == "__main__":
         PRINT("-Trinity:Free Gpt servers to use:")
         for i in Providers_To_Use:
             PRINT("\t", i)
+
     if CHECK_UPDATE:
         Check_Update()
+
+    if SEARCH_DBG:
+       Dbg_Search()
 
     if CMD_DBG:
         Dbg_Input()
