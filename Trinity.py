@@ -6046,7 +6046,7 @@ if __name__ == "__main__":
     if SCRIPT_PATH.endswith("."):
         SCRIPT_PATH = SCRIPT_PATH[:-1]
 
-    LAST_SHA = "8193971c6be8e970e7ef1d92e528676dd797d7ed"
+    LAST_SHA = "683b2079b5db1d318ce135576e290058782d9fd8"
     DISPLAY = ""
     Providers_To_Use = []
     GPT4FREE_SERVERS_STATUS = "Active"
@@ -6119,7 +6119,7 @@ if __name__ == "__main__":
     if XCB_ERROR_FIX:
         Xcb_Fix("unset")
 
-#    os.system("aplay -q %s" % SCRIPT_PATH + "local_sounds/boot/psx.wav")
+    os.system("aplay -q %s" % SCRIPT_PATH + "local_sounds/boot/psx.wav")
     signal.signal(signal.SIGINT, signal_handler)
 
     PRINT("\n-Trinity:CHECK_UPDATE:%s" % CHECK_UPDATE)
