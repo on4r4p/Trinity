@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import g4f, pyaudio, pvporcupine, os, time, sys, struct, random, webrtcvad, subprocess, re, csv, string, googlesearch, requests, signal, inspect, sox #,wikipedia
+import g4f, pyaudio, pvporcupine, os, time, sys, struct, random, webrtcvad, re, csv, string, googlesearch, requests, signal, inspect, sox #,wikipedia
 import google.cloud.texttospeech as tts
 
 from nltk.corpus import stopwords
@@ -6046,7 +6046,7 @@ if __name__ == "__main__":
     if SCRIPT_PATH.endswith("."):
         SCRIPT_PATH = SCRIPT_PATH[:-1]
 
-    LAST_SHA = "5fe410dc3f00ac677eeace8b803d1d5b24b2cea9"
+    LAST_SHA = "8193971c6be8e970e7ef1d92e528676dd797d7ed"
     DISPLAY = ""
     Providers_To_Use = []
     GPT4FREE_SERVERS_STATUS = "Active"
