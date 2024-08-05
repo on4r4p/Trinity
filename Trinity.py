@@ -1,13 +1,23 @@
 #!/usr/bin/python3
 
-import g4f, pyaudio, pvporcupine, os, time, sys, struct, random, webrtcvad, re, csv, string, googlesearch, requests, signal, inspect, sox #,wikipedia
+import g4f, pyaudio, pvporcupine, os, time, sys, struct, random, webrtcvad, re, csv, string, googlesearch, requests, signal, inspect, sox ,spacy
+#,wikipedia
+
+import g4f.debug
+g4f.debug.logging = True
+
 import google.cloud.texttospeech as tts
+
+from g4f.cookies import set_cookies_dir, read_cookie_files
+
 
 from nltk.corpus import stopwords
 from nltk.corpus import wordnet
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 from nltk import pos_tag
+
+from urlextract import URLExtract
 
 from difflib import SequenceMatcher
 
@@ -299,8 +309,30 @@ def Check_Free_Servers():
 def FreeGpt(input):
     PRINT("\n-Trinity:Dans la fonction FreeGpt")
 
+    global LAST_DIALOG
     global Current_Provider_Id
     global Blacklisted
+
+    def minitts(tx, fname):
+
+            try:
+
+                client = tts.TextToSpeechClient()
+                audio_config = tts.AudioConfig(audio_encoding=tts.AudioEncoding.LINEAR16)
+
+                text_input = tts.SynthesisInput(text=tx)
+                voice_params = tts.VoiceSelectionParams(language_code="fr-FR", name="fr-FR-Neural2-A")
+
+                response = client.synthesize_speech(input=text_input, voice=voice_params, audio_config=audio_config)
+                audio_response = response.audio_content
+                try:
+                    with open(fname, "wb") as out:
+                        out.write(audio_response)
+                except Exception as e:
+                    PRINT("\n-Trinity:Error:%s" % str(e))
+            except Exception as e:
+                PRINT("\n-Trinity:Error:%s" % str(e))
+
 
     def save_blacklist(server, err):
         err_file = str(SAVED_ANSWER + "/saved_error/g4f_providers.errors").replace("//", "/")
@@ -364,6 +396,9 @@ def FreeGpt(input):
             print("\n-Trinity:No answer from :", Providers_To_Use[Current_Provider_Id])
             provider_name = Providers_To_Use[Current_Provider_Id].replace("g4f.Provider.", "")
             wait = SCRIPT_PATH + "/local_sounds/providers/" + str(provider_name) + ".wav"
+            if not os.path.exists(wait):
+                err_txt = "Le serveur %s n'a pas répondu , je vais essayer le suivant"%provider_name
+                minitts(err_txt, wait)
             os.system("aplay -q %s" % wait)
             save_blacklist(Providers_To_Use[Current_Provider_Id], str(e))
             Blacklisted.append(Providers_To_Use[Current_Provider_Id])
@@ -372,12 +407,12 @@ def FreeGpt(input):
 
     if len(response) < 1:
         os.system("aplay -q " + SCRIPT_PATH + "local_sounds/errors/err_no_respons_allprovider.wav")
-        return ()
+        return(Quit())
     else:
         PRINT("\n-Trinity:Le server %s à répondu." % (Providers_To_Use[Current_Provider_Id]))
         Current_Provider_Id += 1
-        return Text_To_Speech(str(response), stayawake=False, savehistory=True)
-
+        ##checktime
+        return Text_To_Speech(str(response), stayawake=False)
 
 def wake_up():
     PRINT("\n-Trinity:Dans la fonction Wakeup")
@@ -398,8 +433,11 @@ def wake_up():
             keyword_paths=[word_key, word_key2, word_key3, word_key4],
             sensitivities=[1, 1, 1, 1],
         )
+#        print("hey")
         with ignoreStderr():
             pa = pyaudio.PyAudio()
+#        pa = pyaudio.PyAudio()
+#        print("hey2")
         audio_stream = pa.open(
             rate=porcupine.sample_rate,
             channels=1,
@@ -1083,6 +1121,7 @@ def Load_Csv():
     global Loaded_Trinity_Help_Requests
     global Loaded_Prompt_Requests
     global Loaded_Rnd_Requests
+    global Loaded_Read_Results
     global Loaded_Repeat_Requests
     global Loaded_Show_History_Requests
     global Loaded_Search_History_Requests
@@ -1090,6 +1129,8 @@ def Load_Csv():
     global Loaded_Play_Audio_File_Requests
     global Loaded_Search_Web_Requests
     global Loaded_Wait_Words_Requests
+    global Loaded_Quit_Words_Requests
+    global Loaded_Sort_Results_Requests
     global Loaded_Actions_Words_Requests
     global Loaded_Add_Triggers_Requests
     global Loaded_Mix_Actions_Functions
@@ -1109,10 +1150,13 @@ def Load_Csv():
     Loaded_Repeat_Requests = []
     Loaded_Show_History_Requests = []
     Loaded_Search_History_Requests = []
+    Loaded_Read_Results = []
     Loaded_Read_Link_Requests = []
     Loaded_Play_Audio_File_Requests = []
     Loaded_Search_Web_Requests = []
     Loaded_Wait_Words_Requests = []
+    Loaded_Quit_Words_Requests = []
+    Loaded_Sort_Results_Requests = []
     Loaded_Add_Triggers_Requests = []
     Loaded_Actions_Words_Requests = []
     Loaded_Mix_Actions_Functions = []
@@ -1135,25 +1179,32 @@ def Load_Csv():
                         try:
                             hist_file = row["hist_file"]
                             hist_cats = row["hist_cats"]
-                            hist_txt = row["hist_txt"]
-                            hist_answer = row["hist_answer"]
+                            hist_input_full = row["hist_input_full"]
+                            hist_input_short = row["hist_input_short"]
+                            hist_input_wav = row["hist_input_wav"]
+                            hist_output = row["hist_output"]
+                            hist_output_wav = row["hist_output_wav"]
+                            hist_urls = row["hist_urls"]
                             hist_epok = row["hist_epok"]
                             hist_tstamp = row["hist_tstamp"]
-                            hist_wav = row["hist_wav"]
                             Loaded_History_List.append(
-                                (
-                                    hist_file,
-                                    hist_cats,
-                                    hist_txt,
-                                    hist_answer,
-                                    hist_epok,
-                                    hist_tstamp,
-                                    hist_wav,
-                                )
+                                {
+                                    "hist_file":hist_file,
+                                    "hist_cats":hist_cats,
+                                    "hist_input_full":hist_input_full,
+                                    "hist_input_short":hist_input_short,
+                                    "hist_input_wav":hist_input_wav,
+                                    "hist_output":hist_output,
+                                    "hist_output_wav":hist_output_wav,
+                                    "hist_urls":hist_urls,
+                                    "hist_epok":hist_epok,
+                                    "hist_tstamp":hist_tstamp,
+                                }
                             )
+
+
                         except Exception as e:
                             print("\n-Trinity:Error:loadcsv:file:%s %s" % (filepath, str(e)))
-#                            input("stopeu")
             #                      print("\nhist_file:\n",hist_file)
             #                      print("hist_cats:\n",hist_cats)
             #                      print("hist_txt:\n",hist_txt)
@@ -1164,7 +1215,7 @@ def Load_Csv():
             except Exception as e:
                 print("\n-Trinity:Error:loadcsv:file:%s %s" % (filepath, str(e)))
 
-#                input("stop")
+    PRINT("\n-Trinity:Loaded_History_List Loaded")
 
     if os.path.exists(SYNFILE):
         with open(SYNFILE, newline="") as f:
@@ -1183,6 +1234,8 @@ def Load_Csv():
         print("\n-Trinity:Error:%s not found." % SYNFILE)
         sys.exit()
 
+    PRINT("\n-Trinity:Loaded_Synonyms_Words_List Loaded")
+
     if os.path.exists(TRIFILE):
         with open(TRIFILE, newline="") as csvfile:
             reader = csv.DictReader(csvfile)
@@ -1199,6 +1252,7 @@ def Load_Csv():
         print("\n-Trinity:Error:%s not found." % TRIFILE)
         sys.exit()
 
+    PRINT("\n-Trinity:Loaded_Alternatives_Triggers Loaded")
     if os.path.exists(CMDFILE):
         with open(CMDFILE, newline="") as csvfile:
             reader = csv.DictReader(csvfile)
@@ -1266,6 +1320,16 @@ def Load_Csv():
                                     Loaded_Rnd_Requests.append(t)
                             else:
                                 Loaded_Rnd_Requests.append(trigger)
+
+                    elif function =="F_read_results":
+                        check_trigger = Special_Syntax(trigger, CMDFILE, line)
+                        if check_trigger:
+                            if isinstance(check_trigger, list):
+                                for t in check_trigger:
+                                    Loaded_Read_Results.append(t)
+                            else:
+                                Loaded_Read_Results.append(trigger)
+
                     elif function == "F_repeat":
                         check_trigger = Special_Syntax(trigger, CMDFILE, line)
                         if check_trigger:
@@ -1323,6 +1387,25 @@ def Load_Csv():
                                     Loaded_Wait_Words_Requests.append(t)
                             else:
                                 Loaded_Wait_Words_Requests.append(trigger)
+
+                    elif function == "F_quit":
+                        check_trigger = Special_Syntax(trigger, CMDFILE, line)
+                        if check_trigger:
+                            if isinstance(check_trigger, list):
+                                for t in check_trigger:
+                                    Loaded_Quit_Words_Requests.append(t)
+                            else:
+                                Loaded_Quit_Words_Requests.append(trigger)
+
+                    elif function == "F_sort_results":
+                        check_trigger = Special_Syntax(trigger, CMDFILE, line)
+                        if check_trigger:
+                            if isinstance(check_trigger, list):
+                                for t in check_trigger:
+                                    Loaded_Sort_Results_Requests.append(t)
+                            else:
+                                Loaded_Sort_Results_Requests.append(trigger)
+
                     elif function == "F_add_trigger":
                         check_trigger = Special_Syntax(trigger, CMDFILE, line)
                         if check_trigger:
@@ -1335,7 +1418,10 @@ def Load_Csv():
 
         print("\n-Trinity:Error:%s not found." % CMDFILE)
         sys.exit()
-
+    PRINT("\n-Trinity:CMDFILE Loaded")
+    #print("Loaded_Read_Results:",Loaded_Read_Results)
+    #if len(Loaded_Read_Results) == 0:
+    #    exit()
     if os.path.exists(ACTFILE) and os.path.exists(PREFILE):
         with open(ACTFILE, newline="") as csvfile:
             reader = csv.DictReader(csvfile)
@@ -1665,10 +1751,13 @@ def Load_Csv():
         print("\n-Trinity:Error:%s not found." % ACTFILE)
         sys.exit()
 
+    PRINT("\n-Trinity:ACTFILE Loaded")
+
     if os.path.exists(ALTFILE):
         with open(ALTFILE, newline="") as csvfile:
             reader = csv.DictReader(csvfile)
-            for row in reader:
+            for line, row in enumerate(reader):
+                line = line + 2
 
                 if "function" in row:
                     function = row["function"]
@@ -1679,7 +1768,7 @@ def Load_Csv():
                     trigger = row["trigger"]
 
                     if function == "F_trinity_name":
-                        check_trigger = Special_Syntax(trigger, CMDFILE, line)
+                        check_trigger = Special_Syntax(trigger, ALTFILE, line)
                         if check_trigger:
                             if isinstance(check_trigger, list):
                                 for t in check_trigger:
@@ -1687,7 +1776,7 @@ def Load_Csv():
                             else:
                                 Loaded_Trinity_Name_Requests.append(trigger)
                     elif function == "F_trinity_mean":
-                        check_trigger = Special_Syntax(trigger, CMDFILE, line)
+                        check_trigger = Special_Syntax(trigger, ALTFILE, line)
                         if check_trigger:
                             if isinstance(check_trigger, list):
                                 for t in check_trigger:
@@ -1695,7 +1784,7 @@ def Load_Csv():
                             else:
                                 Loaded_Trinity_Mean_Requests.append(trigger)
                     elif function == "F_trinity_dev":
-                        check_trigger = Special_Syntax(trigger, CMDFILE, line)
+                        check_trigger = Special_Syntax(trigger, ALTFILE, line)
                         if check_trigger:
                             if isinstance(check_trigger, list):
                                 for t in check_trigger:
@@ -1703,7 +1792,7 @@ def Load_Csv():
                             else:
                                 Loaded_Trinity_Dev_Requests.append(trigger)
                     elif function == "F_trinity_script":
-                        check_trigger = Special_Syntax(trigger, CMDFILE, line)
+                        check_trigger = Special_Syntax(trigger, ALTFILE, line)
                         if check_trigger:
                             if isinstance(check_trigger, list):
                                 for t in check_trigger:
@@ -1711,7 +1800,7 @@ def Load_Csv():
                             else:
                                 Loaded_Trinity_Script_Requests.append(trigger)
                     elif function == "F_trinity_help":
-                        check_trigger = Special_Syntax(trigger, CMDFILE, line)
+                        check_trigger = Special_Syntax(trigger, ALTFILE, line)
                         if check_trigger:
                             if isinstance(check_trigger, list):
                                 for t in check_trigger:
@@ -1719,7 +1808,7 @@ def Load_Csv():
                             else:
                                 Loaded_Trinity_Help_Requests.append(trigger)
                     elif function == "F_prompt":
-                        check_trigger = Special_Syntax(trigger, CMDFILE, line)
+                        check_trigger = Special_Syntax(trigger, ALTFILE, line)
                         if check_trigger:
                             if isinstance(check_trigger, list):
                                 for t in check_trigger:
@@ -1727,7 +1816,7 @@ def Load_Csv():
                             else:
                                 Loaded_Prompt_Requests.append(trigger)
                     elif function == "F_rnd":
-                        check_trigger = Special_Syntax(trigger, CMDFILE, line)
+                        check_trigger = Special_Syntax(trigger, ALTFILE, line)
                         if check_trigger:
                             if isinstance(check_trigger, list):
                                 for t in check_trigger:
@@ -1735,7 +1824,7 @@ def Load_Csv():
                             else:
                                 Loaded_Rnd_Requests.append(trigger)
                     elif function == "F_repeat":
-                        check_trigger = Special_Syntax(trigger, CMDFILE, line)
+                        check_trigger = Special_Syntax(trigger, ALTFILE, line)
                         if check_trigger:
                             if isinstance(check_trigger, list):
                                 for t in check_trigger:
@@ -1743,7 +1832,7 @@ def Load_Csv():
                             else:
                                 Loaded_Repeat_Requests.append(trigger)
                     elif function == "F_show_history":
-                        check_trigger = Special_Syntax(trigger, CMDFILE, line)
+                        check_trigger = Special_Syntax(trigger, ALTFILE, line)
                         if check_trigger:
                             if isinstance(check_trigger, list):
                                 for t in check_trigger:
@@ -1752,7 +1841,7 @@ def Load_Csv():
                                 Loaded_Show_History_Requests.append(trigger)
 
                     elif function == "F_search_history":
-                        check_trigger = Special_Syntax(trigger, CMDFILE, line)
+                        check_trigger = Special_Syntax(trigger, ALTFILE, line)
                         if check_trigger:
                             if isinstance(check_trigger, list):
                                 for t in check_trigger:
@@ -1760,7 +1849,7 @@ def Load_Csv():
                             else:
                                 Loaded_Search_History_Requests.append(trigger)
                     elif function == "F_read_link":
-                        check_trigger = Special_Syntax(trigger, CMDFILE, line)
+                        check_trigger = Special_Syntax(trigger, ALTFILE, line)
                         if check_trigger:
                             if isinstance(check_trigger, list):
                                 for t in check_trigger:
@@ -1768,8 +1857,17 @@ def Load_Csv():
                             else:
                                 Loaded_Read_Link_Requests.append(trigger)
 
+                    elif function == "F_read_results":
+                        check_trigger = Special_Syntax(trigger, ALTFILE, line)
+                        if check_trigger:
+                            if isinstance(check_trigger, list):
+                                for t in check_trigger:
+                                    Loaded_Read_Results.append(t)
+                            else:
+                                Loaded_Read_Results.append(trigger)
+
                     elif function == "F_play_audio":
-                        check_trigger = Special_Syntax(trigger, CMDFILE, line)
+                        check_trigger = Special_Syntax(trigger, ALTFILE, line)
                         if check_trigger:
                             if isinstance(check_trigger, list):
                                 for t in check_trigger:
@@ -1777,7 +1875,7 @@ def Load_Csv():
                             else:
                                 Loaded_Play_Audio_File_Requests.append(trigger)
                     elif function == "F_search_web":
-                        check_trigger = Special_Syntax(trigger, CMDFILE, line)
+                        check_trigger = Special_Syntax(trigger, ALTFILE, line)
                         if check_trigger:
                             if isinstance(check_trigger, list):
                                 for t in check_trigger:
@@ -1785,16 +1883,35 @@ def Load_Csv():
                             else:
                                 Loaded_Search_Web_Requests.append(trigger)
                     elif function == "F_wait":
-                        check_trigger = Special_Syntax(trigger, CMDFILE, line)
+                        check_trigger = Special_Syntax(trigger, ALTFILE, line)
                         if check_trigger:
                             if isinstance(check_trigger, list):
                                 for t in check_trigger:
                                     Loaded_Wait_Words_Requests.append(t)
                             else:
                                 Loaded_Wait_Words_Requests.append(trigger)
+                    elif function == "F_quit":
+                        check_trigger = Special_Syntax(trigger, ALTFILE, line)
+                        if check_trigger:
+                            if isinstance(check_trigger, list):
+                                for t in check_trigger:
+                                    Loaded_Quit_Words_Requests.append(t)
+                            else:
+                                Loaded_Quit_Words_Requests.append(trigger)
+
+
+
+                    elif function == "F_sort_results":
+                        check_trigger = Special_Syntax(trigger, ALTFILE, line)
+                        if check_trigger:
+                            if isinstance(check_trigger, list):
+                                for t in check_trigger:
+                                    Loaded_Sort_Results_Requests.append(t)
+                            else:
+                                Loaded_Sort_Results_Requests.append(trigger)
 
                     elif function == "F_add_trigger":
-                        check_trigger = Special_Syntax(trigger, CMDFILE, line)
+                        check_trigger = Special_Syntax(trigger, ALTFILE, line)
                         if check_trigger:
                             if isinstance(check_trigger, list):
                                 for t in check_trigger:
@@ -1806,7 +1923,9 @@ def Load_Csv():
         print("\n-Trinity:Error %s not found." % ALTFILE)
         sys.exit()
 
-
+    PRINT("\n-Trinity:ALTFILE Loaded")
+#    for his in Loaded_History_List:
+#        print(his)       
 #        if action_trigger:
 #            goto = PostProd(txt,func_name_toadd,specific_trigger=must_contain,main_trigger=action_trigger)
 #        else:
@@ -1932,6 +2051,15 @@ def Add_Trigger(trigger_input=None, func_name_to_add=None, specific_trigger=None
                 "F_read_link",
             ),
             (
+                "Read_Results()",
+                "pour lire les résultats d'une recherche",
+                "Dis-moi ce que tu as trouvé dans les résultats",
+                "dis-moi * trouvé * les résultats",
+                "[{lis/dis}{ moi/-moi/}] [ce qu'il y a/ce que {tu as/vous avez} trouv{é/ez}] dans les résultats]",
+                Loaded_Read_Results_Requests,
+                "F_read_link",
+            ),
+            (
                 "Play_Audio()",
                 "Pour lire un fichier audio",
                 "Tu peux me jouer ce fichier audio s'il te plaît?",
@@ -1958,6 +2086,16 @@ def Add_Trigger(trigger_input=None, func_name_to_add=None, specific_trigger=None
                 Loaded_Wait_Words_Requests,
                 "F_wait",
             ),
+            (
+                "Quit()",
+                "Pour demander à Trinity de quitter le programme ou la fonction en cours",
+                "Non c'est bon tu peux quitter Trinity.",
+                "tu * quitter Trinity",
+                "[{tu peux /vous pouvez} {quitter/partir} Trinit{y/i/ie}]",
+                Loaded_Quit_Words_Requests,
+                "F_quit",
+            ),
+
             (
                 "Add_Trigger()",
                 "Pour ajouter un nouveau déclencheur de fonction",
@@ -2502,7 +2640,7 @@ def Disambiguify(ambiguities, txt):
         return False
 
 
-def Check_Ambiguity(txt_input, to_match=None, to_get=None):
+def Check_Ambiguity(txt_input,allowed_functions=None, to_match=None, to_get=None,from_function=None):
 
     new_ambiguity = {}
     main_check = False
@@ -2515,6 +2653,8 @@ def Check_Ambiguity(txt_input, to_match=None, to_get=None):
         Triggers = [txt_input]
 
     for trigger in Triggers:
+
+        PRINT("\n-Trinity:Check_Ambiguity():vérification de:%s"%trigger) 
 
         found_actions_triggers = SeeknReturn(trigger, Loaded_Actions_Words_Requests)  ##
         found_alt_triggers = SeeknReturn(trigger, Loaded_Alternatives_Triggers)  ##
@@ -2537,6 +2677,8 @@ def Check_Ambiguity(txt_input, to_match=None, to_get=None):
 
         found_repeat = ("F_repeat", SeeknReturn(trigger, Loaded_Repeat_Requests))
 
+        found_read_results = ("F_read_results",SeeknReturn(trigger, Loaded_Read_Results))
+
         found_show_history = ("F_show_history",SeeknReturn(trigger, Loaded_Show_History_Requests))
 
         found_search_history = ("F_search_history",SeeknReturn(trigger, Loaded_Search_History_Requests))
@@ -2549,22 +2691,64 @@ def Check_Ambiguity(txt_input, to_match=None, to_get=None):
 
         found_wait = ("F_wait", SeeknReturn(trigger, Loaded_Wait_Words_Requests))
 
-        Found_Lists = [
-            found_add_trigger,
-            found_trinity_name,
-            found_trinity_mean,
-            found_trinity_dev,
-            found_trinity_help,
-            found_prompt,
-            found_rnd,
-            found_repeat,
-            found_show_history,
-            found_search_history,
-            found_search_web,
-            found_read_link,
-            found_play_audio,
-            found_wait,
-        ]
+        found_quit = ("F_quit", SeeknReturn(trigger, Loaded_Quit_Words_Requests))
+
+        found_sort = ("F_sort_results", SeeknReturn(trigger, Loaded_Sort_Results_Requests))
+
+        print("found_quit:",found_quit)
+
+        if allowed_functions:
+             allowed_functions.append("F_wait")
+             allowed_functions.append("F_quit")
+             Tmp_Found_Lists = [
+                 found_add_trigger,
+                 found_trinity_name,
+                 found_trinity_mean,
+                 found_trinity_dev,
+                 found_trinity_help,
+                 found_prompt,
+                 found_rnd,
+                 found_repeat,
+                 found_show_history,
+                 found_search_history,
+                 found_search_web,
+                 found_read_link,
+                 found_play_audio,
+                 found_wait,
+                 found_sort,
+                 found_read_results,
+             ]
+
+#             Found_List = [f for f in Tmp_Found_Lists if f[0] in allowed_functions]
+             Found_Lists = []
+             for f in Tmp_Found_Lists:
+                 if f[0] in allowed_functions:
+#                      print("f[0] in allowed_functions::",f[0])
+                      try:
+                          if f[1]:
+                              Found_Lists.append(f)
+                      except Exception as e:
+                          PRINT("\n-Trinity:Check_Ambiguity():failed:Found_Lists:", str(e))
+             print("Found_List:",Found_Lists)
+        else:
+             Found_Lists = [
+                 found_add_trigger,
+                 found_trinity_name,
+                 found_trinity_mean,
+                 found_trinity_dev,
+                 found_trinity_help,
+                 found_prompt,
+                 found_rnd,
+                 found_repeat,
+                 found_show_history,
+                 found_search_history,
+                 found_search_web,
+                 found_read_link,
+                 found_play_audio,
+                 found_wait,
+                 found_quit,
+                 found_sort,
+             ]
 
         if found_actions_triggers or found_alt_triggers:
 
@@ -2574,6 +2758,8 @@ def Check_Ambiguity(txt_input, to_match=None, to_get=None):
 
                 function_name = seek_tuple[0]
                 triggers_found = seek_tuple[1]
+
+                PRINT("function_name:%s triggers_found:%s"%(function_name,triggers_found))
 
                 if to_match:
                     if triggers_found and to_match != function_name:
@@ -2597,10 +2783,15 @@ def Check_Ambiguity(txt_input, to_match=None, to_get=None):
 
     if main_check or to_get: # or to_match
         if len(new_ambiguity) > 0:
+            PRINT("\n-Trinity:Check_Ambiguity():main_check or to_get:new_ambiguity:\n%s"%new_ambiguity)
             return new_ambiguity
         else:
+
+            PRINT("\n-Trinity:Check_Ambiguity():main_check or to_get:failed:found_actions_triggers:\n%s"%found_actions_triggers)
+            PRINT("\n-Trinity:Check_Ambiguity():main_check or to_get:failed:found_alt_triggers:\n%s"%found_alt_triggers)
             return False
     else:
+        PRINT("\n-Trinity:Check_Ambiguity():main_check:%s or to_get:%s"%(main_check,to_get))
         return None
 
 
@@ -2642,7 +2833,7 @@ def Dbg_Input():
         print("\n-Trinity:Dbg_Input():Pas d'input")
         return Dbg_Input()
 
-def Commandes(txt):
+def Commandes(txt=None,allowed_functions=None,from_function=None):
 
     decoded = unidecode(
              txt.lower()
@@ -2656,8 +2847,10 @@ def Commandes(txt):
     #    filter = ["s'il te plait","si te plait","sil te plait","merci"," stp "]
     #    to_remove = [" fais ","estce"," peux faire "," recherche ","faismoi"," fais ","peux ","fais recherche "," parle ","s'il te plait"," stp "," svp"," sur ","sil plait"]
     #    decoded = SeeknDestroy(filter, decoded)
-
-    ambiguity = Check_Ambiguity(decoded)
+    if allowed_functions:
+        ambiguity = Check_Ambiguity(decoded,allowed_functions)
+    else:
+        ambiguity = Check_Ambiguity(decoded)
     goto = None
 
     if ambiguity is None:
@@ -2680,16 +2873,27 @@ def Commandes(txt):
        PRINT("%s"%ambiguity)
        return(goto)
 
+
+    if from_function:
+       print("from_function:",from_function)
+       if goto:
+          print("goto:",goto)
+       print("txt:",txt)
+       print("allowed_functions:",allowed_functions)
+
     if goto:
 
         PRINT("\n-Trinity:Commandes():Va dans la fonction :%s" % goto)
+
+        #Commandes(txt, allowed_functions, "Results_Hub")
+
 
         if goto == "F_add_trigger":
             Add_Trigger()
             return True
 
         if goto == "F_wait":
-            Standing_By()
+            Wait()
             return True
 
         elif goto == "F_trinity_name":
@@ -2969,496 +3173,6 @@ def Google(to_search, rnbr=50,wiki_failed=False):  # ,tstmode = True):
     PRINT("\n-Trinity:Google():to_search:%s"%to_search)
     PRINT("\n-Trinity:Google():wiki_failed:%s"%wiki_failed)
 
-    def readlist(reslist, nbrlimit):
-        PRINT("\n-Trinity:nbrlimit:", nbrlimit)
-        PRINT("\n-Trinity:len(reslist):", len(reslist))
-
-        for n, result in enumerate(reslist[:nbrlimit]):
-
-            try:
-
-                title = result[0]
-                description = result[1]
-                url = result[2]
-                print("\n-Résultat %s\nTitle:%s\nDescription:%s\nUrl:%s\n" % (n + 1, title, description, url))
-
-            #                totts = "Catégories:%s Texte utilisateur synthétisé:%s Score:%s"%(hist_cats,hist_txt,hist_bingo)
-            #                Text_To_Speech(totts,stayawake=True,savehistory=False)
-
-            except Exception as e:
-                PRINT("\n-Trinity:Error read list:", str(e))
-                continue
-
-        Standing_By(self_launched=True)
-
-    def readres(reslist, resnbr):
-
-        PRINT("\n-Trinity:readres resnbr:%s", resnbr)
-        result = reslist[resnbr + 1]
-
-        try:
-
-            title = result[0]
-            description = result[1]
-            url = result[2]
-            print("\n-Résultat %s\nTitle:%s\nDescription:%s\nUrl:%s\n" % (resnbr, title, description, url))
-
-        #                totts = "Catégories:%s Texte utilisateur synthétisé:%s Score:%s"%(hist_cats,hist_txt,hist_bingo)
-        #                Text_To_Speech(totts,stayawake=True,savehistory=False)
-
-        except Exception as e:
-            PRINT("\n-Trinity:Error read list:", str(e))
-
-        while True:
-            time.sleep(0.5)
-
-            os.system("aplay -q  " + SCRIPT_PATH + "local_sounds/question/search_history_cmd.wav")
-            os.system("aplay -q  " + SCRIPT_PATH + "local_sounds/question/do_i_read_link.wav")
-
-            Start_Thread_Record()
-
-            if Wait_for("audio"):
-                audio = audio_datas.get()
-                (
-                    transcripts,
-                    transcripts_confidence,
-                    words,
-                    words_confidence,
-                    Err_msg,
-                ) = Speech_To_Text(audio)
-                txt, fconf = Check_Transcript(
-                    transcripts,
-                    transcripts_confidence,
-                    words,
-                    words_confidence,
-                    Err_msg,
-                )
-                txt = unidecode(txt.lower())
-                exit_words = [
-                    "rien",
-                    "quitte",
-                    "c'est bon",
-                    "sors",
-                    "sortir",
-                    "partir",
-                    "veille",
-                    "laisse tomber",
-                    "tant pis",
-                    "c'est tout",
-                    "fonction",
-                ]
-                ask_to_exit = any(element in txt for element in exit_words)
-                if ask_to_exit:
-                    return True
-
-                if "non" in txt and not "oui" in txt:
-                    os.system("aplay -q %s" % SCRIPT_PATH + "/local_sounds/ok/1.wav")
-                    return False
-                elif "oui" in txt and not "non" in txt:
-                    os.system("aplay -q %s" % SCRIPT_PATH + "/local_sounds/ok/1.wav")
-                    return [description, title, url]
-
-                if len(txt) > 0:
-                    Question(txt)
-                    Wait_for("question")
-                else:
-                    score_sentiment.put(False)
-
-                opinion = score_sentiment.get()
-
-                if opinion == None:
-                    os.system("aplay -q %s" % SCRIPT_PATH + "/local_sounds/question/repeat.wav")
-                elif opinion == False:
-                    os.system("aplay -q %s" % SCRIPT_PATH + "/local_sounds/ok/1.wav")
-                    return False
-                elif opinion == True:
-                    os.system("aplay -q %s" % SCRIPT_PATH + "/local_sounds/ok/1.wav")
-                    return [description, title, url]
-
-    def miniprompt(full):
-        os.system("aplay -q %s" % SCRIPT_PATH + "/local_sounds/prompt/2.wav")
-        user_input = input("Que voulez vous faire avec les résultats? :")
-        if len(str(user_input)) > 2:
-
-            Exit = minicmd(user_input, full)
-            if Exit:
-                return True
-        else:
-            miniprompt(full)
-
-    def minicmd(txt_input, full):
-        global Exit
-        txt_input = unidecode(txt_input.lower())
-
-        PRINT("\n-Trinity:minicmd:", txt_input)
-
-        exit_words = [
-            "rien",
-            "quitte",
-            "c'est bon",
-            "sors",
-            "sortir",
-            "partir",
-            "veille",
-            "laisse tomber",
-            "tant pis",
-            "c'est tout",
-            "fonction",
-        ]
-
-        Loaded_Wait_Words_Requests = [
-            "attends",
-            "attendre",
-            "laisse moi",
-            "pause",
-            "minute",
-            "seconde",
-            "arrete",
-        ]
-
-        number_words = {
-            "plus important": 0,
-            "le meilleur": 0,
-            "le premier": 0,
-            "le deuxieme": 1,
-            "le troisieme": 2,
-            "le quatrieme": 3,
-            "le cinquieme": 4,
-            "le sixieme": 5,
-            "le septieme": 6,
-            "le huitieme": 7,
-            "le neuvieme": 8,
-            "le dixieme": 9,
-            "le onzieme": 10,
-            "le douzieme": 11,
-            "le treizieme": 12,
-            "le quatorzieme": 13,
-            "le quinzieme": 14,
-            "le seizieme": 15,
-            "le dix-septieme": 16,
-            "le dix-huitieme": 17,
-            "le dix-neuvieme": 18,
-            "le vingtieme": 19,
-            "le vingt et unieme": 20,
-            "le vingt-deuxieme": 21,
-            "le vingt-troisieme": 22,
-            "le vingt-quatrieme": 23,
-            "le vingt-cinquieme": 24,
-            "le vingt-sixieme": 25,
-            "le vingt-septieme": 26,
-            "le vingt-huitieme": 27,
-            "le vingt-neuvieme": 28,
-            "le trentieme": 29,
-            "le trente et unieme": 30,
-            "le trente-deuxieme": 31,
-            "le trente-troisieme": 32,
-            "le trente-quatrieme": 33,
-            "le trente-cinquieme": 34,
-            "le trente-sixieme": 35,
-            "le trente-septieme": 36,
-            "le trente-huitieme": 37,
-            "le trente-neuvieme": 38,
-            "le quarantieme": 39,
-            "le quarante et unieme": 40,
-            "le quarante-deuxieme": 41,
-            "le quarante-troisieme": 42,
-            "le quarante-quatrieme": 43,
-            "le quarante-cinquieme": 44,
-            "le quarante-sixieme": 45,
-            "le quarante-septieme": 46,
-            "le quarante-huitieme": 47,
-            "le quarante-neuvieme": 48,
-            "le cinquantieme": 49,
-            "le cinquante et unieme": 50,
-            "le cinquante-deuxieme": 51,
-            "le cinquante-troisieme": 52,
-            "le cinquante-quatrieme": 53,
-            "le cinquante-cinquieme": 54,
-            "le cinquante-sixieme": 55,
-            "le cinquante-septieme": 56,
-            "le cinquante-huitieme": 57,
-            "le cinquante-neuvieme": 58,
-            "le soixantieme": 59,
-            "le soixante et unieme": 60,
-            "le soixante-deuxieme": 61,
-            "le soixante-troisieme": 62,
-            "le soixante-quatrieme": 63,
-            "le soixante-cinquieme": 64,
-            "le soixante-sixieme": 65,
-            "le soixante-septieme": 66,
-            "le soixante-huitieme": 67,
-            "le soixante-neuvieme": 68,
-            "le soixante-dixieme": 69,
-            "le soixante et onzieme": 70,
-            "le soixante-douzieme": 71,
-            "le soixante-treizieme": 72,
-            "le soixante-quatorzieme": 73,
-            "le soixante-quinzieme": 74,
-            "le soixante-seizieme": 75,
-            "le soixante-dix-septieme": 76,
-            "le soixante-dix-huitieme": 77,
-            "le soixante-dix-neuvieme": 78,
-            "le quatre-vingtieme": 79,
-            "le quatre-vingt-unieme": 80,
-            "le quatre-vingt-deuxieme": 81,
-            "le quatre-vingt-troisieme": 82,
-            "le quatre-vingt-quatrieme": 83,
-            "le quatre-vingt-cinquieme": 84,
-            "le quatre-vingt-sixieme": 85,
-            "le quatre-vingt-septieme": 86,
-            "le quatre-vingt-huitieme": 87,
-            "le quatre-vingt-neuvieme": 88,
-            "le quatre-vingt-dixieme": 89,
-            "le quatre-vingt-onzieme": 90,
-            "le quatre-vingt-douzieme": 91,
-            "le quatre-vingt-treizieme": 92,
-            "le quatre-vingt-quatorzieme": 93,
-            "le quatre-vingt-quinzieme": 94,
-            "le quatre-vingt-seizieme": 95,
-            "le quatre-vingt-dix-septieme": 96,
-            "le quatre-vingt-dix-huitieme": 97,
-            "le quatre-vingt-dix-neuvieme": 98,
-            "le centieme": 99,
-            "1e": 0,
-            "2e": 1,
-            "3e": 2,
-            "4e": 3,
-            "5e": 4,
-            "6e": 5,
-            "7e": 6,
-            "8e": 7,
-            "9e": 8,
-            "10e": 9,
-            "11e": 10,
-            "12e": 11,
-            "13e": 12,
-            "14e": 13,
-            "15e": 14,
-            "16e": 15,
-            "17e": 16,
-            "18e": 17,
-            "19e": 18,
-            "20e": 19,
-            "21e": 20,
-            "22e": 21,
-            "23e": 22,
-            "24e": 23,
-            "25e": 24,
-            "26e": 25,
-            "27e": 26,
-            "28e": 27,
-            "29e": 28,
-            "30e": 29,
-            "31e": 30,
-            "32e": 31,
-            "33e": 32,
-            "34e": 33,
-            "35e": 34,
-            "36e": 35,
-            "37e": 36,
-            "38e": 37,
-            "39e": 38,
-            "40e": 39,
-            "41e": 40,
-            "42e": 41,
-            "43e": 42,
-            "44e": 43,
-            "45e": 44,
-            "46e": 45,
-            "47e": 46,
-            "48e": 47,
-            "49e": 48,
-            "50e": 49,
-            "51e": 50,
-            "52e": 51,
-            "53e": 52,
-            "54e": 53,
-            "55e": 54,
-            "56e": 55,
-            "57e": 56,
-            "58e": 57,
-            "59e": 58,
-            "60e": 59,
-            "61e": 60,
-            "62e": 61,
-            "63e": 62,
-            "64e": 63,
-            "65e": 64,
-            "66e": 65,
-            "67e": 66,
-            "68e": 67,
-            "69e": 68,
-            "70e": 69,
-            "71e": 70,
-            "72e": 71,
-            "73e": 72,
-            "74e": 73,
-            "75e": 74,
-            "76e": 75,
-            "77e": 76,
-            "78e": 77,
-            "79e": 78,
-            "80e": 79,
-            "81e": 80,
-            "82e": 81,
-            "83e": 82,
-            "84e": 83,
-            "85e": 84,
-            "86e": 85,
-            "87e": 86,
-            "88e": 87,
-            "89e": 88,
-            "90e": 89,
-            "91e": 90,
-            "92e": 91,
-            "93e": 92,
-            "94e": 93,
-            "95e": 94,
-            "96e": 95,
-            "97e": 96,
-            "98e": 97,
-            "99e": 98,
-            "100e": 99,
-            "hasard": "",
-            "pif": "",
-            "importe": "",
-            "premiers": "",
-        }
-
-        Loaded_Prompt_Requests = [
-            "moi le prompt",
-            "que je t'ecrive",
-            " t'ecrire ",
-            "je te l'ecris",
-            "vais l'ecrire",
-            "va l'ecrire",
-            "va te l'ecrire",
-            "vais te l'ecrire",
-            "affiche le prompt",
-            "ouvre le prompt",
-            "active le prompt",
-            "moi l'invite de commande",
-            "affiche l'invite de commande",
-            "active l'invite de commande",
-            "ouvre l'invite de commande",
-            "moi le clavier",
-            "affiche le clavier",
-            "ouvre le clavier",
-            "j'ai besoin de t'ecrire",
-            "tu peux m'ouvrir le clavier",
-            "interprete",
-        ]
-
-        read_request = [
-            "moi",
-            "lire",
-            "lis",
-            "dire",
-            "dis",
-            "list",
-            "decrire",
-            "décris",
-            "resultat",
-            "affiche",
-            "afficher",
-            "selectionne",
-            "selectionner",
-        ]
-
-        found_wait = any(element in txt_input.lower() for element in Loaded_Wait_Words_Requests)
-
-        ask_to_exit = any(element in txt_input.lower() for element in exit_words)
-
-        ask_to_read_results = any(element in txt_input.lower() for element in read_request)
-
-        found_prompt = any(element in txt_input.lower() for element in Loaded_Prompt_Requests)
-
-        if found_wait:
-            for element in Loaded_Prompt_Requests:
-                if element in txt_input.lower():
-                    PRINT("\n-Trinity:Found wait match cmd :", element)
-
-            Standing_By()
-            return False
-
-        if found_prompt:
-            for element in Loaded_Prompt_Requests:
-                if element in txt_input.lower():
-                    PRINT("\n-Trinity:Found prompt match cmd :", element)
-            return miniprompt(full)
-
-        if ask_to_exit:
-            for element in exit_words:
-                if element in txt_input:
-                    PRINT("\n-Trinity:Found exit match cmd :", element)
-            os.system("aplay -q %s" % SCRIPT_PATH + "/local_sounds/ok/1.wav")
-            return True
-
-        if ask_to_read_results:
-            for element in read_request:
-                if element in txt_input:
-                    PRINT("\n-Trinity:Found read match cmd :", element)
-            chosen_one = False
-
-            lst_all = [
-                " cent",
-                "100",
-                "complete",
-                "tout les",
-                "en entier",
-                "au total",
-                "en tout",
-                "combien",
-                "le reste",
-            ]
-            if any(element in txt_input.lower() for element in lst_all):
-                os.system("aplay -q %s" % SCRIPT_PATH + "/local_sounds/ok/google_full.wav")
-                readlist(full, 100)
-                return False
-
-            if "premiers" in txt_input:
-
-                for word in txt_input.split(" "):
-                    try:
-                        chosen_one = int(word)
-                        break
-                    except:
-                        continue
-
-                if chosen_one:
-                    os.system("aplay -q %s" % SCRIPT_PATH + "/local_sounds/ok/custom_google.wav")
-                    readlist(full, chosen_one)
-                    return False
-
-            for word, nbr in number_words.items():
-                if word in txt_input:
-                    chosen_one = nbr
-                    break
-
-            if chosen_one:
-                os.system("aplay -q %s" % SCRIPT_PATH + "/local_sounds/ok/printed_google.wav")
-                quit = readres(full, chosen_one)
-                return quit
-            else:
-                for word in txt_input.split(" "):
-                    try:
-                        chosen_one = int(word)
-                        break
-                    except:
-                        continue
-            if chosen_one:
-                os.system("aplay -q %s" % SCRIPT_PATH + "/local_sounds/ok/printed_google.wav")
-                quit = readres(full, chosen_one)
-                return quit
-            else:
-                os.system("aplay -q %s" % SCRIPT_PATH + "/local_sounds/errors/err_number_notfound.wav")
-                return False
-
-        if not found_wait and not ask_to_exit and not ask_to_read_results and not found_prompt:
-
-            os.system("aplay -q %s" % SCRIPT_PATH + "/local_sounds/history/err_cmd.wav")
-            return False
-
     if len(GOOGLE_KEY) != 0 and len(GOOGLE_ENGINE) != 0:
 
         PRINT("\n-Trinity:Using Custom Search Google Api.")
@@ -3505,7 +3219,7 @@ def Google(to_search, rnbr=50,wiki_failed=False):  # ,tstmode = True):
                             description = "no description"
                     url = result.get("link")
 
-                    google_result.append((title, description, url))
+                    google_result.append({"google_title":title,"google_description":description, "google_url":url})
 
             except Exception as e:
                 os.system("aplay -q %s" % SCRIPT_PATH + "local_sounds/errors/err_Google.wav")
@@ -3528,9 +3242,11 @@ def Google(to_search, rnbr=50,wiki_failed=False):  # ,tstmode = True):
                 title = result.title
                 description = result.description
                 url = result.url
-                if wiki_failed:
-                   if "wikipedia" in url:
-                       google_result.append((title, description, url))
+                google_result.append({"google_title":title,"google_description":description, "google_url":url})
+
+#                if wiki_failed:
+#                   if "wikipedia" in url:
+#                       google_result.append((title, description, url))
 
             if len(google_result) == 0:
                 PRINT("\n-Trinity:-Google() no result from google")
@@ -3542,45 +3258,9 @@ def Google(to_search, rnbr=50,wiki_failed=False):  # ,tstmode = True):
             PRINT("\n-Trinity:Googlesearch Error:", str(e))
             return ()
 
-    os.system("aplay -q %s" % SCRIPT_PATH + "local_sounds/ok/googleres.wav")
+    top20 = google_result[:20]
 
-    full = google_result[:100]
-
-    PRINT("\n-Trinity:full\n:", full)
-
-    for n, result in enumerate(full[:20]):
-        title = result[0]
-        description = result[1]
-        url = result[2]
-        print("\n-Résultat %s\nTitle:%s\nDescription:%s\nUrl:%s" % (n + 1, title, description, url))
-
-    Standing_By(self_launched=True)
-
-    while True:
-        time.sleep(0.5)
-
-        os.system("aplay -q  " + SCRIPT_PATH + "local_sounds/question/search_history_cmds.wav")
-
-        Start_Thread_Record()
-
-        if Wait_for("audio"):
-            audio = audio_datas.get()
-            transcripts, transcripts_confidence, words, words_confidence, Err_msg = Speech_To_Text(audio)
-            txt, fconf = Check_Transcript(transcripts, transcripts_confidence, words, words_confidence, Err_msg)
-            txt = unidecode(txt.lower())
-            Exit = minicmd(txt, full)
-
-        if Exit:
-            Go_Back_To_Sleep(go_trinity=False)
-            break
-        else:
-            Go_Back_To_Sleep(go_trinity=False)
-
-    if type(Exit) == list:
-        return ReadLink(txtinput=Exit[0], titleinput=Exit[1], urlinput=Exit[2])
-
-    Go_Back_To_Sleep(go_trinity=True)
-    return
+    return(Results_Hub(google_result,top20,from_function="Google"))
 
 
 def Wikipedia(to_search, Title=None, FULL=None):
@@ -3704,7 +3384,8 @@ def Wikipedia(to_search, Title=None, FULL=None):
                                 os.system("aplay -q %s" % SCRIPT_PATH + "local_sounds/errors/err_wiki.wav")
                                 return(Google(original_search,wiki_failed=True))
 
-                    last_sentence.put(to_search)
+#                    last_sentence.put(to_search)
+                    last_sentence.put(original_search)
                     Text_To_Speech(summary, stayawake=True)
                     return ()
 
@@ -3743,7 +3424,8 @@ def Wikipedia(to_search, Title=None, FULL=None):
                         content = content.replace("== ", " ")
 
                     if len(content) > 0:
-                        last_sentence.put(to_search)
+                        #last_sentence.put(to_search)
+                        last_sentence.put(original_search)
                         Text_To_Speech(content, stayawake=True)
                         return ()
 
@@ -3763,18 +3445,26 @@ def Wikipedia(to_search, Title=None, FULL=None):
         return(Google(original_search,wiki_failed=True))
 
 
-def Prompt():
+def Prompt(allowed_functions=None,from_function=None):
     PRINT("\n-Trinity:Dans la fonction Prompt")
+    if from_function == "Results_Hub":
+        os.system("aplay -q  " + SCRIPT_PATH + "local_sounds/question/search_history_cmds.wav")
     os.system("aplay -q %s" % SCRIPT_PATH + "/local_sounds/prompt/2.wav")
     #    while True:
     if 1 == 1:
         user_input = input("\n-Trinity:Comment puis-je vous aider ?:")
         if len(str(user_input)) > 2:
 
-            cmd = Commandes(user_input)
-            if not cmd:
+            cmd = Commandes(user_input,allowed_functions=allowed_functions,from_function=from_function)
+            if not cmd and not from_function:
                 PRINT("\n-Trinity:Prompt():pas de cmd")
                 return To_Gpt(str(user_input))
+            elif not cmd and from_function:
+                PRINT("\n-Trinity:Prompt():pas de cmd mais from_function:%s"%from_function)
+                return("no cmd")
+            elif cmd and from_function:
+                PRINT("\n-Trinity:Prompt():cmd:%s  from_function:%s"%(cmd,from_function))
+                return(cmd)
             else:
                 Go_Back_To_Sleep()
 
@@ -4481,7 +4171,7 @@ def get_wordnet_pos(treebank_tag):
         return wordnet.NOUN
 
 
-def preprocess(txt):
+def preprocess(txt,Isolate_Search=False):
     sentence = unidecode(txt)
     sentence = sentence.lower()
     sentence = "".join(char for char in sentence if char not in string.punctuation)
@@ -4492,12 +4182,31 @@ def preprocess(txt):
     tokens = [lemmatizer.lemmatize(word, get_wordnet_pos(tag)) for word, tag in pos_tag(tokens)]
     return " ".join(tokens)
 
+def Quit(from_function=None):
 
-def Standing_By(self_launched=False):
+
+    if from_function:
+        os.system("aplay -q %s" % SCRIPT_PATH + "local_sounds/quit/quit_fnc.wav")
+    else:
+        hour = datetime.now().hour
+        if hour > 20 and hour < 8:
+            os.system("aplay -q %s" % SCRIPT_PATH + "local_sounds/quit/quit_night.wav")
+        elif hour >= 8 and hour < 13:
+            os.system("aplay -q %s" % SCRIPT_PATH + "local_sounds/quit/quit_day.wav")
+        elif hour >= 13 and hour < 18:
+            os.system("aplay -q %s" % SCRIPT_PATH + "local_sounds/quit/quit_evening.wav")
+        elif hour >= 18 and hour <=20:
+            os.system("aplay -q %s" % SCRIPT_PATH + "local_sounds/quit/quit_afternoon.wav")
+
+        os.system("aplay -q %s" % SCRIPT_PATH + "local_sounds/boot/psx.wav")
+        sys.exit(0)
+
+def Wait(self_launched=False,allowed_functions=None,from_function=None):
     PRINT("\n-Trinity:Dans la fonction Standing_By")
 
     #    word_key = SCRIPT_PATH+"/models/Trinity_en_linux_v2_2_0.ppn"
     word_key = SCRIPT_PATH + "/models/trinity_fr_raspberry-pi_v3_0_0.ppn"
+    word_key2 = SCRIPT_PATH + "/models/interpreteur_fr_raspberry-pi_v3_0_0.ppn"
     pvfr = SCRIPT_PATH + "/models/porcupine_params_fr.pv"
     porcupine = None
     keyword_index = None
@@ -4512,8 +4221,8 @@ def Standing_By(self_launched=False):
         porcupine = pvporcupine.create(
             access_key=PICO_KEY,
             model_path=pvfr,
-            keyword_paths=[word_key],
-            sensitivities=[1],
+            keyword_paths=[word_key,word_key2],
+            sensitivities=[1,1],
         )
         with ignoreStderr():
             pa = pyaudio.PyAudio()
@@ -4536,7 +4245,8 @@ def Standing_By(self_launched=False):
                 wake_sound = SCRIPT_PATH + "/local_sounds/wakesounds/" + rnd + ".wav"
                 os.system("aplay -q %s" % wake_sound)
                 break
-
+            if keyword_index == 1:
+                break
     finally:
         PRINT("\n-Trinity:Awake.")
         if porcupine is not None:
@@ -4545,169 +4255,149 @@ def Standing_By(self_launched=False):
             audio_stream.close()
         if pa is not None:
             pa.terminate()
+        if keyword_index == 1:
+            return Prompt(allowed_functions,from_function)
 
 
 def Isolate_Search(txt, function_name):
+
+    def rm_trigger(trigtok,isolated_tokens,full_tokens):
+
+       Forbiden_Id = []
+
+       for trig in trigtok:
+           bucket_name = []
+           bucket_id = []
+           starlock = False
+           idx = 0
+           for token in full_tokens:
+               PRINT(f"\n-Trinity:rm_trigger:Texte: {token.text}, Hash: {token.orth} i:{token.i} idx:{token.idx}")
+               if idx >= len(trig):
+                  print("\n-Trinity:rm_trigger:Break: idx %s > len(trig) %s"%( idx,len(trig)) )
+                  break
+               elif trig[idx] == "*":
+                  idx += 1
+                  starlock = True
+               elif trig[idx] == token.text:
+                    print(f"\n-Trinity:rm_trigger:trig[idx]:{trig[idx]} == token:{token.text}")
+                    bucket_id.append(token.i)
+                    bucket_name.append(token.text)
+                    idx += 1
+                    PRINT("\n-Trinity:rm_trigger:bucket_name:",bucket_name)
+                    PRINT("\n-Trinity:rm_trigger:bucket_id:",bucket_id)
+                    if starlock:
+                       starlock = False
+               elif starlock :
+                       continue
+               else:
+                       bucket_id = []
+                       bucket_name = []
+                       starlock = False
+                       idx =  0
+                       PRINT("\n-Trinity:rm_trigger:starlock reset bucket reset")
+
+           for id in bucket_id:
+              if id not in Forbiden_Id:
+                  Forbiden_Id.append(id)
+
+
+       clean_request = []
+       for it in isolated_tokens:
+            print(f"\n-Trinity:rm_trigger:it.txt {it.text} it.i {it.i} it.i in bucket_id:{it.i in bucket_id}")
+            if not it.i in Forbiden_Id:
+                clean_request.append(it.text)
+
+       PRINT("\n-Trinity:Isolate_Search():rm_trigger:txt:",txt)
+       PRINT("\n-Trinity:Isolate_Search():rm_trigger:function_name:%s" % function_name)
+       PRINT("\n-Trinity:rm_trigger:trigtok:",trigtok)
+       PRINT("\n-Trinity:rm_trigger:Isolated_token:%s\n"%[tok.text for tok in isolated_tokens])
+       PRINT("\n-Trinity:rm_trigger:clean_request:",clean_request)
+       return(" ".join(clean_request))
+
+
+    orig_txt = txt
+    nlp = spacy.load("fr_dep_news_trf")
+    doc = nlp(txt)
+    tokenizer = nlp.tokenizer
+
+    trigtok = []
+    isolated_wanabe = []
+
+    for n,token in enumerate(doc):
+        if token.text == ".":
+              if token.is_punct and token.head.pos_ == "VERB" and len(isolated_wanabe) > 0:
+                  print("\nBreakpoint")
+                  break
+
+        elif any(dep in token.dep_ for dep in ["obj", "obl"]) and token.dep_ not in ["iobj"] and token.head.pos_ == "VERB":
+
+              PRINT(f"\nIsolate_Search:Texte: {token.text}")
+              PRINT(f"Isolate_Search:Lemme: {token.lemma_}")
+              PRINT(f"Isolate_Search:Token len: {len(token.text)}")
+              PRINT(f"Isolate_Search:Token type (POS): {token.pos_}")
+              PRINT(f"Isolate_Search:Tag de POS détaillé: {token.tag_}")
+              PRINT(f"Isolate_Search:Dépendance: {token.dep_} - {spacy.explain(token.dep_)}")
+              PRINT(f"Isolate_Search:Token principal (head): {token.head.text}")
+              PRINT(f"Isolate_Search:token.head.pos_: {token.head.pos_}")
+              PRINT(f"Isolate_Search:Entité nommée: {token.ent_type_}")
+              PRINT(f"Isolate_Search:Est un stop word ? {token.is_stop}")
+              PRINT(f"Isolate_Search:Est alphabétique ? {token.is_alpha}")
+              PRINT(f"Isolate_Search:Est en minuscule ? {token.is_lower}")
+              PRINT(f"Isolate_Search:Est en majuscule ? {token.is_upper}")
+              PRINT(f"Isolate_Search:Est un nombre ? {token.like_num}")
+              PRINT(f"Isolate_Search:Est une ponctuation ? {token.is_punct}")
+              PRINT(f"Isolate_Search:Est un espace ? {token.is_space}")
+              PRINT(f"Isolate_Search:Forme originale : {token.shape_}")
+
+              PRINT(f"Isolate_Search:subtree: {[t.text for t in token.subtree]}")
+              PRINT(f"Isolate_Search:Ancetres: {[t.text for t in token.ancestors]}")
+
+              PRINT(f"Isolate_Search:left_edge: {token.left_edge}")
+              PRINT(f"Isolate_Search:right_edge: {token.right_edge}")
+
+              PRINT("Isolate_Search:Enfants du token :")
+              for child in token.children:
+                  PRINT(f"  Enfant : {child.text}, Dépendance : {child.dep_}")
+
+              PRINT("Isolate_Search:Tokens à gauche :")
+              for left in token.lefts:
+                  PRINT(f"  Gauche : {left.text}, Dépendance : {left.dep_}")
+
+              PRINT("Isolate_Search:Tokens à droite :")
+              for right in token.rights:
+                  PRINT(f"  Droite : {right.text}, Dépendance : {right.dep_}")
+
+              PRINT("-------------------------------")
+
+
+              if not token in isolated_wanabe:
+                  for st in token.subtree:
+                      if not st in isolated_wanabe:
+                             isolated_wanabe.append(st)
+                      else:
+                            PRINT(f"Isolate_Search:token subtree {st.text} already in isolated_wanabe")
+              else:
+                  PRINT(f"Isolate_Search:token {token.text} already in isolated_wanabe")
+
 
     triggers = Check_Ambiguity(txt, to_get=function_name)
     try:
          if triggers:
               triggers = triggers[function_name][0][1]
+              for trig in triggers:
+                  trigtok.append([token.text for token in tokenizer(trig)])
          else:
-              PRINT("\n-Trinity:Isolate_Search():Failed")
-              return(txt)
-
+              PRINT("\n-Trinity:Isolate_Search():Failed at triggers")
+              return(" ".join([iw.text for iw in isolated_wanabe]))
     except Exception as e: 
          PRINT("\n-Trinity:Isolate_Search():Failed:Error:\n%s"%str(e))
          return(txt)
 
 
-    PRINT("\n-Trinity:Isolate_Search():txt:%s" % txt)
-    PRINT("\n-Trinity:Isolate_Search():function:%s" % function_name)
-    PRINT("\n-Trinity:Isolate_Search()triggers:%s" % triggers)
 
-    def check_artifact(to_check, original):
-        originalst = original.lower().split(" ")
-        to_check_lst = to_check.split(" ")
-        trigger_words = []
-        artifacts = []
-        fixed_lst = []
-        
-        for trigger in triggers:
-            for word in trigger.split(" "):
-                if word not in trigger_words:
-                    trigger_words.append(word)
-
-        print("\ntrigger_words:",trigger_words)
-        print("\nto_check_lst:",to_check_lst)
-        print("\noriginalst:",originalst)
-        for n,word in enumerate(to_check_lst):
-            iwasthere = False
-            for orig_word in originalst:
-                if orig_word == word:
-                    iwasthere = True
-
-            if not iwasthere:
-                artifacts.append((n,word))
+    return rm_trigger(trigtok,isolated_wanabe,doc)
 
 
-        if artifacts:
-             print("artifacts:",artifacts)
-             for art_obj in artifacts:
-                 index = art_obj[0]
-                 bad_word = art_obj[1]
-
-                 PRINT("\n-Trinity:check_artifact at index %s :%s"%(str(index),str(bad_word)))
-
-                 for orig_word in originalst:
-     #                print("for orig_word in originalst:%s"%orig_word)
-                     if orig_word not in trigger_words:
-     #                    print("if orig_word not in trigger_words:%s"%orig_word)
-                         if bad_word.startswith(orig_word) or bad_word.endswith(orig_word):
-     #                        print("if orig_word in bad_word:%s"%orig_word)
-                             fixed_lst.append((index,orig_word))
-                             break
-
-        if fixed_lst:
-            for f_obj in fixed_lst:
-                index = f_obj[0]
-                fixed = f_obj[1]
-                to_check_lst[index] = fixed
-
-            to_search = " ".join(to_check_lst)
-            PRINT("\n-Trinity:check_artifact:fixed:%s" % to_search)
-            return to_search
-        else:
-            to_search = to_check
-            return to_search
-
-
-    def clean(to_clean):
-        abc = """ &abcdefghijklmnopqrstuvwxyz0123456789-_"'/+."""
-        cleaned = ""
-        while True:
-            if to_clean.endswith(" "):
-                to_clean = to_clean[:-1]
-                continue
-            elif to_clean.startswith(" "):
-                to_clean = to_clean[1:]
-                continue
-            elif "  " in to_clean:
-                to_clean = to_clean.replace("  ", " ")
-                continue
-            else:
-                break
-
-        for c in to_clean:  # ??
-            if c in abc:
-                cleaned += c
-
-        return cleaned
-
-    def remove(to_clean, remove_lst):
-
-        for to_rm in remove_lst:
-            pos = 0
-            bucket = ""
-            to_rm_lst = []
-            while True:
-                if to_rm[pos] != "*":
-                    bucket += to_rm[pos]
-                else:
-                    if pos > 0:
-                        if to_rm[pos - 1] not in (" ", "*"):
-                            bucket += " "
-                            to_rm_lst.append(bucket)
-                            bucket = ""
-                        else:
-                            to_rm_lst.append(bucket)
-                            bucket = ""
-                    else:
-                        bucket += " "
-                        to_rm_lst.append(bucket)
-                        bucket = ""
-                pos += 1
-                if pos >= len(to_rm):
-                    to_rm_lst.append(bucket)
-                    break
-            to_rm_lst = [rm.replace("  ", " ") for rm in to_rm_lst]
-
-            #              print("\nto_rm_lst:")
-
-            for rm in to_rm_lst:
-                #                  print("'%s'"%rm)
-                #                  to_clean = to_clean.replace(rm," ")
-                #                  to_clean = " ".join([word for word in to_clean.split() if word != rm])
-                pos_rm = to_clean.find(rm)
-                while pos_rm != -1:
-                    to_clean = to_clean[:pos_rm] + to_clean[pos_rm + len(rm) :]
-                    pos_rm = to_clean.find(rm)
-
-        return clean(to_clean)
-
-    filter = ["s'il te plait", "si te plait", "sil te plait", "merci"]
-
-    orig_txt = txt
-
-    txt = unidecode(txt.lower())
-
-    for f in filter:
-        txt = txt.replace(f, " ")
-
-    txt = clean(txt)
-    PRINT("\n-Trinity:Isolate_Search():after clean:%s"%txt)
-
-    txt = remove(txt, Loaded_Actions_Words_Requests)
-    PRINT("\n-Trinity:Isolate_Search():after remove action:%s"%txt)
-
-    txt = remove(txt, triggers)
-    PRINT("\n-Trinity:Isolate_Search():after remove triggers:%s"%txt)
-
-    txt = check_artifact(txt, orig_txt)
-    PRINT("\n-Trinity:Isolate_Search():after artifact:%s"%txt)
-
-    PRINT("\n-Trinity:Isolate_Search():output:%s" % txt)
-    return txt
 
 
 def Reducto(txt):
@@ -4716,61 +4406,197 @@ def Reducto(txt):
     return txt
 
 
+def NbrToTts(number=None,timestamp=None):
+    def nbrtowav(n):
+         pathwav = []
+         if n >= 1000:
+             milliers_part = n // 1000
+             n = n % 1000
+             pathwav.append("./dates/milliers/"+milliers[milliers_part - 1].replace(" ","_")+".wav")
+         if n >= 100:
+             centaines_part = n // 100
+             n = n % 100
+             pathwav.append("./dates/centaines/"+centaines[centaines_part - 1].replace(" ","_")+".wav")
+         if n > 0:
+             pathwav.append("./dates/nombres/"+nombres[n - 1].replace(" ","_")+".wav")
+         return(" ".join(pathwav))
+
+    wavs = []
+    if number and not timestamp:
+        wavs = nbrtowav(number)
+    elif timestamp and not number:
+         dobject = datetime.fromtimestamp(timestamp)
+         fdate = dobject.strftime("%A %d %B %Y")
+         print("fdate:",fdate)
+
+         daystr = dobject.strftime("%A")
+         daynbr = dobject.day
+         wavday = nbrtowav(daynbr)
+         mnthstr = dobject.strftime("%B")
+         yearnbr = dobject.year
+         wavyear = nbrtowav(yearnbr)
+
+         wavs.append("./dates/jours/"+daystr+".wav")
+         wavs.append(wavday)
+         wavs.append("./dates/mois/"+mnthstr+".wav")
+         wavs.append(wavyear)
+
+         print("wavs:",wavs)   
+
+         aplay_cmd = " ".join(wavs)
+         print("aplay_cmd:",aplay_cmd)
+         os.system("aplay -q %s" % aplay_cmd)
+
+
+def Read_Results(object):
+
+   PRINT("\n-Trinity:Read_Results:object:%s"%object)
+   pass
+
+
+def Results_Hub(original_result,topx_res=None,from_function=None):
+
+    Exit = False
+
+    normalised_results = []
+    fnc_rhub = []
+    keys_to_function = {
+                       "hist_input_full":["F_read_results"],
+                       "hist_input_short":["F_read_results"],
+                       "hist_input_wav":["F_play_audio"],
+                       "hist_output_wav":["F_play_audio"],
+                       "hist_urls":["F_read_link"],
+                       "google_title":["F_read_results"],
+                       "google_description":["F_read_results"],
+                       "google_url":["F_read_link"],
+                       }
+
+#google_result.append({"google_title":title,"google_description":description, "google_url":url})
+
+    if topx_res:
+        PRINT("\n-Trinity:Results_Hub(original_result items nbr=%s,topx_res items nbr:%s,from_function=%s)\n"%(len(original_result),len(topx_res),str(from_function)))
+        results_list = topx_res
+    else:
+        PRINT("\n-Trinity:Results_Hub(original_result items nbr=%s,from_function=%s)\n"%(len(original_result),str(from_function)))
+        results_list = original_result
+
+
+    if from_function == "Show_History":
+          os.system("aplay -q %s" % SCRIPT_PATH + "/local_sounds/history/show_history.wav")
+
+    elif from_function == "Search_History":
+
+         if len(results_list) == 1:
+             os.system("aplay -q  " + SCRIPT_PATH + "local_sounds/history/found_one.wav")
+         elif len(results_list) == 2:
+             os.system("aplay -q  " + SCRIPT_PATH + "local_sounds/history/found_two.wav")
+         elif len(results_list) == 3:
+             os.system("aplay -q  " + SCRIPT_PATH + "local_sounds/history/found_three.wav")
+         elif len(results_list) == 4:
+             os.system("aplay -q  " + SCRIPT_PATH + "local_sounds/history/found_four.wav")
+         elif len(results_list) >= 5 and topx_res:
+             os.system("aplay -q  " + SCRIPT_PATH + "local_sounds/history/found_five.wav")
+         elif len(results_list) >= 5 and not topx_res:
+             os.system("aplay -q  " + SCRIPT_PATH + "local_sounds/history/found_all.wav")
+         else:
+             os.system("aplay -q  " + SCRIPT_PATH + "local_sounds/history/no_result.wav")
+             return ()
+
+    elif from_function == "Google":
+         os.system("aplay -q %s" % SCRIPT_PATH + "local_sounds/ok/googleres.wav")
+
+    for n,res in enumerate(results_list,start=1):
+
+       print("\n\n==Résultat: %s==\n"%str(n))
+
+       bucket = {}
+
+       for k,v in res.items():
+           if k in keys_to_function:
+               if v:
+                   print("keys_to_function[%s]:%s v=%s"%(k,keys_to_function[k],v))
+                   if type(keys_to_function[k]) == list:
+                      for fnc in keys_to_function[k]:
+                          tmpbucket = []
+                          if fnc not in fnc_rhub:
+                              fnc_rhub.append(fnc)
+                              tmpbucket.append(fnc)
+                          bucket[k] = tmpbucket
+                   else:
+                      if keys_to_function[k] not in fnc_rhub:
+                         fnc_rhub.append(keys_to_function[k])
+                         bucket[k]=keys_to_function[k]
+
+#           print("-%s: %s"%(k,v))
+
+       if bucket:
+          bucket = {'r_nbr': n, **bucket}
+          normalised_results.append(bucket)
+
+    print("\nfnc_rhub:",fnc_rhub)
+#    print("\nnormalised_results:")
+
+    for n in normalised_results:
+        print(n)
+
+##
+##
+    cmd_from_prompt = Wait(self_launched=True,allowed_functions=fnc_rhub,from_function="Results_Hub")
+##
+##
+    if cmd_from_prompt:
+         if cmd_from_prompt == "no cmd":
+              os.system("aplay -q %s" % SCRIPT_PATH + "/local_sounds/history/err_cmd.wav")
+         else:
+             print("wait cmd_from_prompt:",cmd_from_prompt)
+             input = input("wait")
+    while True:
+        time.sleep(0.5)
+
+        if len(results_list) > 1:
+            os.system("aplay -q  " + SCRIPT_PATH + "local_sounds/question/search_history_cmds.wav")
+        else:
+            os.system("aplay -q  " + SCRIPT_PATH + "local_sounds/question/search_history_cmd.wav")
+
+        Start_Thread_Record()
+
+        if Wait_for("audio"):
+            audio = audio_datas.get()
+            transcripts, transcripts_confidence, words, words_confidence, Err_msg = Speech_To_Text(audio)
+            txt, fconf = Check_Transcript(transcripts, transcripts_confidence, words, words_confidence, Err_msg)
+            Exit = Commandes(txt=txt,allowed_functions=fnc_rhub,from_function="Results_Hub")
+            #def Commandes(txt,allowed_functions=None,from_function=None)
+
+        if Exit:
+            Go_Back_To_Sleep(go_trinity=True)
+            return ()
+        else:
+            Go_Back_To_Sleep(go_trinity=False)
+            print("hey")
+
 def Show_History():
     PRINT("\n-Trinity:Show_History()")
     if len(Loaded_History_List) == 0:
         os.system("aplay -q %s" % SCRIPT_PATH + "/local_sounds/errors/err_no_history.wav")
         return ()
 
-
-#    history_sort_asc = sorted(Loaded_History_List, key=lambda x: x[4])
-
     history_sort_asc = []
+
     for n,hitem in enumerate(Loaded_History_List):
         try:
-            float(hitem[4])
+            float(hitem["hist_epok"])
             history_sort_asc.append(hitem)
         except Exception as e:
-            print("\n-Trinity:Show_History():Error Loaded_History_List[%s][4] != float:"%n)
+            print("\n-Trinity:Show_History():Error Loaded_History_List[%s]['epok'] != float:"%n)
             print("\n-Trinity:Loaded_History_List[%s]:\n%s"%(n,hitem))
 
-    history_sort_asc = sorted(history_sort_asc, key=lambda x: x[4])
-    history_sort_dsc = history_sort_asc[::-1]
 
-    os.system("aplay -q %s" % SCRIPT_PATH + "/local_sounds/history/show_history.wav")
-    for n, args in enumerate(history_sort_asc):
+    return( Results_Hub(history_sort_asc,from_function="Show_History") )
 
-        hist_file = args[0]
-        hist_cats = args[1]
-        hist_txt = args[2]
-        hist_answer = Reducto(args[3])
-        hist_epok = args[4]
-        hist_tstamp = args[5]
-        hist_wav = args[6]
-        catres = "\n\n==Résultat %s== Catégories:" % str(n + 1)
-        txtres = "\n==Résultat %s== Question synthétisé:\n" % str(n + 1)
-        ansres = "\n\n==Résultat %s== Réponse:\n\n" % str(n + 1)
-        datres = "\n\n==Résultat %s== Date:" % str(n + 1)
-        wavres = "\n==Résultat %s== Wav:" % str(n + 1)
-
-        print(
-            "%s%s%s%s%s%s%s%s"
-            % (
-                catres,
-                hist_cats,
-                txtres,
-                hist_txt,
-                ansres,
-                hist_answer,
-                datres,
-                hist_tstamp,
-            )
-        )
 
 
 def Search_History(to_search):
     Exit = False
-
 
     original_search = to_search
 
@@ -4778,535 +4604,21 @@ def Search_History(to_search):
 
     PRINT("\n-Trinity:Dans la fonction SearchHistory to_search %s in history." % to_search)
 
-    def SeeknDestroy(haystack, find):
-
-        lnhaystack = len(haystack)
-        lnfind = len(find)
-
-        needle1 = 0
-        needle2 = lnfind
-
-        txt = ""
-
-        while True:
-            if needle2 > lnhaystack:
-                return haystack
-            if haystack[needle1:needle2] == find:
-                txt = haystack[:needle1] + haystack[needle2:]
-                return txt
-            else:
-                needle1 += 1
-                needle2 += 1
-
-    def playlist(toplay):
-
-        PRINT("\n-Trinity:toplay:\n %s \n" % toplay)
-
-        nbrtoplay = len(toplay)
-        os.system("aplay -q %slocal_sounds/history/playlist_%s.wav" % (SCRIPT_PATH, str(nbrtoplay)))
-
-        for n, wavfile in enumerate(toplay):
-            os.system("aplay -q %slocal_sounds/history/play_%s.wav" % (SCRIPT_PATH, str(n + 1)))
-            if wavfile.endswith(".wav"):
-                os.system("aplay -q %s" % wavfile)
-            else:
-                hist_file = args[0]
-                hist_cats = args[1]
-                hist_txt = args[2]
-                hist_answer = args[3]
-                hist_epok = args[4]
-                hist_tstamp = args[5]
-                hist_wav = args[6]
-                hist_bingo = args[7]
-                os.system("aplay -q %s" % hist_wav)
-
-    def readlist(toread):
-        PRINT("\n-Trinity: toread:", toread)
-        for args in toread:
-
-            hist_file = args[0]
-            hist_cats = args[1]
-            hist_txt = args[2]
-            hist_answer = args[3]
-            hist_epok = args[4]
-            hist_tstamp = args[5]
-            hist_wav = args[6]
-            hist_bingo = args[7]
-
-            totts = "Catégories:%s Texte utilisateur synthétisé:%s Date:%s Score:%s" % (
-                hist_cats,
-                hist_txt,
-                hist_tstamp,
-                hist_bingo,
-            )
-
-            Text_To_Speech(totts, stayawake=True, savehistory=False)
-
-    def minicmd(txt_input, top5, full):
-        global Exit
-        txt_input = unidecode(txt_input.lower())
-
-        PRINT("\n-Trinity:minicmd:", txt_input)
-
-        exit_words = [
-            "rien",
-            "quitte",
-            "c'est bon",
-            "sors",
-            "sortir",
-            "partir",
-            "veille",
-            "laisse tomber",
-            "tant pis",
-            "c'est tout",
-            "fonction",
-        ]
-
-        Loaded_Wait_Words_Requests = [
-            "attends",
-            "attendre",
-            "laisse moi",
-            "pause",
-            "minute",
-            "seconde",
-            "arrete",
-        ]
-
-        audio_words = [
-            "audio",
-            "wav",
-            "sonor",
-            "ecouter",
-            "entendre",
-            "enregistrement",
-            "rejoue",
-            "rejouer",
-            "joue",
-            "jouer",
-            "fichier",
-        ]
-
-        number_words = {
-            "plus important": "0:1",
-            "le meilleur": "0:1",
-            "le premier": "0:1",
-            "deux premier": "0:2",
-            "trois premier": "0:3",
-            "quatre premier": "0:4",
-            "tout les": "0:5",
-            "les cinq": "0:5",
-            "numero un": "0:1",
-            "numero deux": "1:2",
-            "numero trois": "2:3",
-            "numero quatre": "3:4",
-            "numero cinq": "4:5",
-            "numero 1 ": "0:1",
-            "numero 2": "1:2",
-            "numero 3": "2:3",
-            "numero 4": "3:4",
-            "numero 5": "4:5",
-            "le second": "1:2",
-            "le deuxieme": "1:2",
-            "le troisieme": "2:3",
-            "le quatrieme": "3:4",
-            "le cinquieme": "4:5",
-            "hasard": "",
-            "pif": "",
-            "importe": "",
-            "et un": "0:1",
-            "et deux": "1:2",
-            "et trois": "2:3",
-            "et quatre": "3:4",
-            "et cinq": "4:5",
-            "et 1": "1:2",
-            "et 2": "1:2",
-            "et 3": "2:3",
-            "et 4": "3:4",
-            "et 5": "4:5",
-            "fichier 1": "0:1",
-            "fichier 2": "1:2",
-            "fichier 3": "2:3",
-            "fichier 4": "3:4",
-            "fichier 5": "4:5",
-            "audio 1 ": "0:1",
-            "audio 2": "1:2",
-            "audio 3": "2:3",
-            "audio 4": "3:4",
-            "audio 5": "4:5",
-            "fichier un ": "0:1",
-            "fichier deux": "1:2",
-            "fichier trois": "2:3",
-            "fichier quatre": "3:4",
-            "fichier cinq": "4:5",
-            "audio un ": "0:1",
-            "audio deux": "1:2",
-            "audio trois": "2:3",
-            "audio quatre": "3:4",
-            "audio cinq": "4:5",
-            " un": "0:1",
-            " deux": "1:2",
-            " trois": "2:3",
-            " quatre": "3:4",
-            " cinq": "4:5",
-            "1 et ": "0:1",
-            "2 et": "1:2",
-            "3 et": "2:3",
-            "4 et": "3:4",
-            "5 et": "4:5",
-            "1": "0:1",
-            "2": "1:2",
-            "3": "2:3",
-            "4": "3:4",
-            "5": "4:5",
-        }
-
-        Loaded_Prompt_Requests = [
-            "moi le prompt",
-            "que je t'ecrive",
-            " t'ecrire ",
-            "je te l'ecris",
-            "vais l'ecrire",
-            "va l'ecrire",
-            "va te l'ecrire",
-            "vais te l'ecrire",
-            "affiche le prompt",
-            "ouvre le prompt",
-            "active le prompt",
-            "moi l'invite de commande",
-            "affiche l'invite de commande",
-            "active l'invite de commande",
-            "ouvre l'invite de commande",
-            "moi le clavier",
-            "affiche le clavier",
-            "ouvre le clavier",
-            "j'ai besoin de t'ecrire",
-            "tu peux m'ouvrir le clavier",
-            "interprete",
-        ]
-
-        read_request = [
-            "moi",
-            "lire",
-            "lis",
-            "dire",
-            "dis",
-            "list",
-            "décrire",
-            "décris",
-            "résultat",
-            "affiche",
-            "afficher",
-            "combien en tout",
-            "combien de résulat",
-        ]
-
-        Loaded_Search_History_Requests = [
-            "tu peux afficher",
-            "tu peux m'afficher",
-            "affiche moi",
-            "affiche-moi",
-            "montre moi",
-            "montre-moi",
-            "recherche historique",
-            "que tu me fasse",
-            "fais une recherche",
-            "tu peux chercher",
-            "tu peux rechercher",
-            "faire une recherche",
-            "rechercher sur",
-            "rechercher dans",
-            "recherche sur",
-            "regarder sur",
-            "regarder dans",
-            "cherche moi",
-            "cherche-moi",
-            "regarde dans",
-            "regarde sur",
-            "trouver sur",
-            "contenant",
-            "concernant",
-            "trouver dans",
-            "me trouver",
-            "trouve sur",
-            "trouve moi",
-            "trouve-moi",
-            "une page qui concerne",
-            "une entree parlant",
-            "une entree concernant",
-            "une entree parlant",
-            "une entree qui parle ",
-            "une entree sur",
-            "infos qui parles",
-            "info qui parle",
-            "infos parlant",
-            "infos sur",
-            "info sur",
-            "infos concernant",
-            "info concernant",
-            "infos qui concernent",
-            "info qui concerne",
-            "infos qui parlent",
-            "info qui parle",
-            "parle moi",
-            "parle-moi",
-            "quelque chose sur",
-            "quelque chose concernant",
-            "quelque chose qui concerne",
-            "quelque chose qui parle",
-            "quelque chose parlant",
-            "truc qui parle",
-            "trucs qui parlent",
-            "truc parlant",
-            "truc concernant",
-            "trucs concernant",
-            "truc qui concerne",
-            "trucs qui concernent",
-            "en rapport",
-            "si il y a",
-            "si il ya",
-            "si ya",
-            "l'historique",
-            "fais une",
-            "autre",
-            "encore",
-        ]
-
-        ask_to_search = any(element in txt_input.lower() for element in Loaded_Search_History_Requests)
-
-        ask_to_play = any(element in txt_input.lower() for element in audio_words)
-
-        found_wait = any(element in txt_input.lower() for element in Loaded_Wait_Words_Requests)
-
-        ask_to_exit = any(element in txt_input.lower() for element in exit_words)
-
-        ask_to_read_results = any(element in txt_input.lower() for element in read_request)
-
-        found_prompt = any(element in txt_input.lower() for element in Loaded_Prompt_Requests)
-
-        if found_wait:
-            for element in Loaded_Prompt_Requests:
-                if element in txt_input.lower():
-                    PRINT("\n-Trinity:Found wait match cmd :", element)
-
-            Standing_By()
-            return ()
-
-        if found_prompt:
-            for element in Loaded_Prompt_Requests:
-                if element in txt_input.lower():
-                    PRINT("\n-Trinity:Found prompt match cmd :", element)
-            return miniprompt(top5, full)
-
-        if ask_to_search:
-            if "historique" in txt_input.lower() and not "resultat" in txt_input.lower():
-                for element in Loaded_Search_History_Requests:
-                    if element in txt_input:
-                        txt_input = txt_input.replace(element, " ")
-                        PRINT("\n-Trinity:Found search match cmd :", element)
-                Exit = True
-                return Search_History(txt_input)
-
-        if ask_to_exit:
-            for element in exit_words:
-                if element in txt_input:
-                    PRINT("\n-Trinity:Found exit match cmd :", element)
-            os.system("aplay -q %s" % SCRIPT_PATH + "/local_sounds/ok/1.wav")
-            return True
-
-        if ask_to_play:
-            to_play_lst = []
-            found_nbr_lst = []
-            copy_txt_input = txt_input
-            for word, nbr in number_words.items():
-                if word in copy_txt_input:
-
-                    if not word in ["hasard", "pif", "importe"]:
-                        found_nbr_lst.append(nbr)
-                        copy_txt_input = SeeknDestroy(copy_txt_input, word)
-                    else:
-                        rnd_nbr = random.randint(0, 4)
-                        chosen_line = top5[rnd_nbr]
-
-                        args = [a for a in chosen_line]
-
-                        hist_file = args[0]
-                        hist_cats = args[1]
-                        hist_txt = args[2]
-                        hist_answer = args[3]
-                        hist_epok = args[4]
-                        hist_tstamp = args[5]
-                        hist_wav = args[6]
-                        hist_bingo = args[7]
-
-                        os.system(
-                            "aplay -q  " + SCRIPT_PATH + "local_sounds/history/choose_%s.wav" % (str(rnd_nbr + 1))
-                        )
-
-                        playlist([hist_wav])
-                        return True
-
-            if len(found_nbr_lst) > 0:
-                track_num = 0
-                res_to_show = []
-                for nums in found_nbr_lst:
-                    start = int(nums.split(":")[0])
-                    end = int(nums.split(":")[1])
-                    if (track_num <= 5) and (track_num < len(top5)):
-                        track_num += end - start
-                        res_to_show.append("".join(top5[start:end]))
-                    else:
-                        break
-
-                if len(res_to_show) > 0:
-                    playlist(res_to_show)
-                else:
-                    playlist([top5[0]])
-            else:
-                playlist([top5[0]])
-
-            return True
-
-        if ask_to_read_results:
-            for element in read_request:
-                if element in txt_input:
-                    PRINT("\n-Trinity:Found read match cmd :", element)
-
-            if ("combien" and "tout" in txt_input) or ("combien" and "total" in txt_input):
-
-                total_res = len(full)
-                answer = "Il y a %s résultats en tout correspondant à votre recherche . Les voici:" % total_res
-                Text_To_Speech(answer, stayawake=True, savehistory=False)
-
-                for n, args in enumerate(full):
-                    hist_file = args[0]
-                    hist_cats = args[1]
-                    hist_txt = args[2]
-                    hist_answer = Reducto(args[3])
-                    hist_epok = args[4]
-                    hist_tstamp = args[5]
-                    hist_wav = args[6]
-                    hist_bingo = args[7]
-                    catres = "\n\n==Résultat %s== Catégories:" % str(n + 1)
-                    txtres = "\n==Résultat %s== Question synthétisé:\n" % str(n + 1)
-                    ansres = "\n\n==Résultat %s== Réponse:\n\n" % str(n + 1)
-                    datres = "\n\n==Résultat %s== Date:" % str(n + 1)
-                    wavres = "\n==Résultat %s== Wav:" % str(n + 1)
-                    binres = "\n==Résultat %s== Score:" % str(n + 1)
-
-                    print(
-                        "%s%s%s%s%s%s%s%s%s%s%s%s"
-                        % (
-                            catres,
-                            hist_cats,
-                            txtres,
-                            hist_txt,
-                            ansres,
-                            hist_answer,
-                            datres,
-                            hist_tstamp,
-                            wavres,
-                            hist_wav,
-                            binres,
-                            hist_bingo,
-                        )
-                    )
-
-                return ()
-
-            found_nbr_lst = []
-            copy_txt_input = txt_input
-            for word, nbr in number_words.items():
-                if word in copy_txt_input:
-
-                    if not word in ["hasard", "pif", "importe"]:
-                        found_nbr_lst.append(nbr)
-                        copy_txt_input = SeeknDestroy(copy_txt_input, word)
-                    else:
-                        rnd_nbr = random.randint(0, 4)
-                        chosen_line = top5[rnd_nbr]
-                        args = [a for a in chosen_line]
-                        hist_file = args[0]
-                        hist_cats = args[1]
-                        hist_txt = args[2]
-                        hist_answer = Reducto(args[3])
-                        hist_epok = args[4]
-                        hist_tstamp = args[5]
-                        hist_wav = args[6]
-                        hist_bingo = args[7]
-
-                        res_str = (
-                            "\n-(Résultat numéro %s)\n    \n-Catégories:\n%s\n    \n-Texte utilisateur synthétisé:\n%s\n     \n-Réponse:\n%s\n   -Date:%s\n    Score:%s"
-                            % (
-                                str(n + 1),
-                                hist_cats,
-                                hist_txt,
-                                hist_answer,
-                                hist_tstamp,
-                                hist_bingo,
-                            )
-                        )
-
-                        os.system(
-                            "aplay -q  " + SCRIPT_PATH + "local_sounds/history/choose_%s.wav" % (str(rnd_nbr + 1))
-                        )
-                        Text_To_Speech(res_str, stayawake=True, savehistory=False)
-                        return ()
-
-            if len(found_nbr_lst) > 0:
-                track_num = 0
-                res_to_show = []
-                for nums in found_nbr_lst:
-                    start = int(nums.split(":")[0])
-                    end = int(nums.split(":")[1])
-                    if (track_num <= 5) and (track_num < len(top5)):
-                        track_num += end - start
-                        res_to_show.append(" ".join(top5[start:end]))
-                    else:
-                        break
-                if len(res_to_show) > 0:
-                    readlist(res_to_show)
-                else:
-                    readlist(top5)
-            else:
-                readlist(top5)
-
-        if (
-            not ask_to_search
-            and not ask_to_play
-            and not found_wait
-            and not ask_to_exit
-            and not ask_to_read_results
-            and not found_prompt
-        ):
-
-            os.system("aplay -q %s" % SCRIPT_PATH + "/local_sounds/history/err_cmd.wav")
-            return ()
-
-    def miniprompt(top5, full):
-        os.system("aplay -q %s" % SCRIPT_PATH + "/local_sounds/prompt/2.wav")
-        user_input = input("Que voulez vous faire avec l'historique? :")
-        if len(str(user_input)) > 2:
-
-            Exit = minicmd(user_input, top5, full)
-            if Exit:
-                return True
-        else:
-            miniprompt(top5, full)
-
-    ####
-
     MatchResults = []
 
     PRINT("\n-Trinity:Search_History:%s" % to_search)
     for args in Loaded_History_List:
 
-        hist_file = args[0]
-        hist_cats = args[1]
-        hist_txt = args[2]
-        hist_answer = args[3]
-        hist_epok = args[4]
-        hist_tstamp = args[5]
-        hist_wav = args[6]
+        hist_file = args["hist_file"]
+        hist_catws = args["hist_cats"]
+        hist_input_full = args["hist_input_full"]
+        hist_input_short = args["hist_input_short"]
+        hist_input_wav = args["hist_input_wav"]
+        hist_output = args["hist_output"]
+        hist_output_wav = args["hist_output_wav"]
+        hist_urls = args["hist_urls"]
+        hist_epok = args["hist_epok"]
+        hist_tstamp = args["hist_tstamp"]
 
         bingoat = 0
         if " " in to_search:
@@ -5319,43 +4631,55 @@ def Search_History(to_search):
                 else:
                     word = " %s " % word
 
-                if word in hist_txt.lower():
-                    PRINT("\n-Trinity:Search_History:found partial result in hist_txt:[%s]" % word)
+                if word in hist_input_full.lower():
+                    PRINT("\n-Trinity:Search_History:found partial result in hist_input_full:[%s]" % word)
                     bingoat += 1
-                if word in hist_answer.lower():
-                    PRINT("\n-Trinity:Search_History:found partial result in hist_answer:[%s]" % word)
+                if word in hist_input_short.lower():
+                    PRINT("\n-Trinity:Search_History:found partial result in hist_input_short:[%s]" % word)
+                    bingoat += 1
+                if word in hist_ouput.lower():
+                    PRINT("\n-Trinity:Search_History:found partial result in hist_output:[%s]" % word)
                     bingoat += 1
 
-            if to_search in hist_txt.lower():
-                PRINT("\n-Trinity:Search_History:full match in hist_txt:[%s]" % to_search)
+            if to_search in hist_input_full.lower():
+                PRINT("\n-Trinity:Search_History:full match in hist_input_full:[%s]" % to_search)
                 bingoat += 5
-            if to_search in hist_answer.lower():
-                PRINT("\n-Trinity:Search_History:full match in hist_txt:[%s]" % to_search)
+            if to_search in hist_input_short.lower():
+                PRINT("\n-Trinity:Search_History:full match in hist_input_short:[%s]" % to_search)
+                bingoat += 5
+            if to_search in hist_output.lower():
+                PRINT("\n-Trinity:Search_History:full match in hist_output:[%s]" % to_search)
                 bingoat += 5
         else:
-            if to_search in hist_txt.lower():
-                PRINT("\n-Trinity:Search_History:full match in hist_txt:[%s]" % to_search)
+            if to_search in hist_input_full.lower():
+                PRINT("\n-Trinity:Search_History:full match in hist_input_full:[%s]" % to_search)
                 bingoat += 1
-            if to_search in hist_answer.lower():
-                PRINT("\n-Trinity:Search_History:full match in hist_txt:[%s]" % to_search)
+            if to_search in hist_input_short.lower():
+                PRINT("\n-Trinity:Search_History:full match in hist_input_short:[%s]" % to_search)
+                bingoat += 1
+            if to_search in hist_output.lower():
+                PRINT("\n-Trinity:Search_History:full match in hist_output:[%s]" % to_search)
                 bingoat += 1
 
         if bingoat > 0:
             MatchResults.append(
-                (
-                    hist_file,
-                    hist_cats,
-                    hist_txt,
-                    hist_answer,
-                    hist_epok,
-                    hist_tstamp,
-                    hist_wav,
-                    bingoat,
-                )
+            {
+                "hist_file":hist_file,
+                "hist_cats":hist_cats,
+                "hist_input_full":hist_input_full,
+                "hist_input_short":hist_input_short,
+                "hist_input_wav":hist_input_wav,
+                "hist_output":hist_output,
+                "hist_output_wav":hist_output_wav,
+                "hist_urls":hist_urls,
+                "hist_epok":hist_epok,
+                "hist_tstamp":hist_tstamp,
+                "hist_score":bingoat,
+            }
             )
 
     if len(MatchResults) > 0:
-        SortedMatched = sorted(MatchResults, key=lambda x: x[7], reverse=True)
+        SortedMatched = sorted(MatchResults, key=lambda x: x["hist_score"], reverse=True)
         MatchedNbr = len(SortedMatched)
     else:
         SortedMatched = []
@@ -5364,84 +4688,46 @@ def Search_History(to_search):
     if MatchedNbr > 5:
         MatchedNbr = 5
 
-    if len(SortedMatched) == 1:
-        os.system("aplay -q  " + SCRIPT_PATH + "local_sounds/history/found_one.wav")
-    elif len(SortedMatched) == 2:
-        os.system("aplay -q  " + SCRIPT_PATH + "local_sounds/history/found_two.wav")
-    elif len(SortedMatched) == 3:
-        os.system("aplay -q  " + SCRIPT_PATH + "local_sounds/history/found_three.wav")
-    elif len(SortedMatched) == 4:
-        os.system("aplay -q  " + SCRIPT_PATH + "local_sounds/history/found_four.wav")
-    elif len(SortedMatched) >= 5:
-        os.system("aplay -q  " + SCRIPT_PATH + "local_sounds/history/found_five.wav")
-    else:
-        os.system("aplay -q  " + SCRIPT_PATH + "local_sounds/history/no_result.wav")
-        return ()
-
     TopFive = SortedMatched[:MatchedNbr]
 
-    for n, args in enumerate(TopFive):
-        hist_file = args[0]
-        hist_cats = args[1]
-        hist_txt = args[2]
-        hist_answer = Reducto(args[3])
-        hist_epok = args[4]
-        hist_tstamp = args[5]
-        hist_wav = args[6]
-        hist_bingo = args[7]
-        catres = "\n\n==Résultat %s== Catégories:" % str(n + 1)
-        txtres = "\n==Résultat %s== Question synthétisé:\n" % str(n + 1)
-        ansres = "\n\n==Résultat %s== Réponse:\n\n" % str(n + 1)
-        datres = "\n\n==Résultat %s== Date:" % str(n + 1)
-        wavres = "\n==Résultat %s== Wav:" % str(n + 1)
-        binres = "\n==Résultat %s== Score:" % str(n + 1)
+    return(Results_Hub(SortedMatched,TopFive,from_function="Search_History"))
 
-        print(
-            "%s%s%s%s%s%s%s%s%s%s%s%s"
-            % (
-                catres,
-                hist_cats,
-                txtres,
-                hist_txt,
-                ansres,
-                hist_answer,
-                datres,
-                hist_tstamp,
-                wavres,
-                hist_wav,
-                binres,
-                hist_bingo,
-            )
-        )
 
-    Standing_By(self_launched=True)
+def Check_Time_Dialogue(time_to_substract=None,string=None):
+    global LAST_DIALOG
 
-    while True:
-        time.sleep(0.5)
+    if not REMEMBER_LAST_15M:
+        return string
 
-        if len(TopFive) > 1:
-            os.system("aplay -q  " + SCRIPT_PATH + "local_sounds/question/search_history_cmds.wav")
-        else:
-            os.system("aplay -q  " + SCRIPT_PATH + "local_sounds/question/search_history_cmd.wav")
+    if len(LAST_DIALOG) == 0:
+        return string
 
-        Start_Thread_Record()
 
-        if Wait_for("audio"):
-            audio = audio_datas.get()
-            transcripts, transcripts_confidence, words, words_confidence, Err_msg = Speech_To_Text(audio)
-            txt, fconf = Check_Transcript(transcripts, transcripts_confidence, words, words_confidence, Err_msg)
-            Exit = minicmd(txt.replace("-", " "), TopFive, SortedMatched)
-
-        if Exit:
-            Go_Back_To_Sleep(go_trinity=True)
-            return ()
-        else:
-            Go_Back_To_Sleep(go_trinity=False)
-
+    try:
+         last_string = LAST_DIALOG[0]
+         last_stamp = LAST_DIALOG[1]
+      
+         time_difference = (time_to_substract - last_stamp).total_seconds()
+         if time_difference > 1500:
+              LAST_DIALOG = ()
+              return string
+         else:
+              prompt = """La phrase commencant par "last_input=" représente la derniére phrase qu'un utilisateur t'a posé et tu y as dèja répondu même si tu ne t'en souviens pas.
+La phrase commencant par "new_input=" représente une nouvelle interaction du même utilisateur avec toi tu devras répondre à ce que contient "new_input=".
+La phrase commencant par "last_input=" peut n'avoir aucun rapport avec "new_input=" tu es donc libre de l'ignorer ou non en fonction de sa pertinence avec "new_input=".
+Ne fais aucune mention dans ta réponse de cette consigne.
+last_input='%s'
+new_input='%s'"""%(last_string,string)
+              return prompt
+    except Exception as e:
+         PRINT("\n-Trinity:Error:Check_Time_Dialogue:Error", str(e))
+         LAST_DIALOG = ()
+         return string
 
 def Save_History(answer, no_audio=False):
 
     global Loaded_History_List
+    global LAST_DIALOG
 
     PRINT("\n-Trinity:Dans la fonction History")
 
@@ -5496,6 +4782,8 @@ def Save_History(answer, no_audio=False):
     tformat = "%Y-%m-%d %H:%M:%S"
     now = datetime.now()
 
+    LAST_DIALOG = (txt,now)
+
     hist_epok = now.timestamp()
 
     hist_tstamp = time.strftime(tformat, time.localtime(hist_epok))
@@ -5507,40 +4795,49 @@ def Save_History(answer, no_audio=False):
             fieldnames = [
                 "hist_file",
                 "hist_cats",
-                "hist_txt",
-                "hist_answer",
+                "hist_input_full",
+                "hist_input_short",
+                "hist_input_wav",
+                "hist_output",
+                "hist_output_wav",
+                "hist_urls",
                 "hist_epok",
                 "hist_tstamp",
-                "hist_wav",
             ]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
             if csvfile.tell() == 0:
                 writer.writeheader()
-
             writer.writerow(
                 {
                     "hist_file": Cat_File,
                     "hist_cats": Cat_List,
-                    "hist_txt": Lemmatizer,
-                    "hist_answer": answer,
+                    "hist_input_full": txt,
+                    "hist_input_short": Lemmatizer,
+                    "hist_input_wav":"",
+                    "hist_output": answer,
+                    "hist_output_wav": new_wav,
+                    "hist_urls": URLExtract().find_urls(answer),
                     "hist_epok": hist_epok,
                     "hist_tstamp": hist_tstamp,
-                    "hist_wav": new_wav,
                 }
             )
 
             PRINT("\n-Trinity:wrote history to:%s" % (SCRIPT_PATH + "/history/" + Cat_File))
             Loaded_History_List.append(
-                (
-                    Cat_File,
-                    Cat_List,
-                    Lemmatizer,
-                    answer,
-                    hist_epok,
-                    hist_tstamp,
-                    new_wav,
-                )
+
+                {
+                    "hist_file": Cat_File,
+                    "hist_cats": Cat_List,
+                    "hist_input_full": txt,
+                    "hist_input_short": Lemmatizer,
+                    "hist_input_wav":"",
+                    "hist_output": answer,
+                    "hist_output_wav": new_wav,
+                    "hist_urls": URLExtract().find_urls(answer),
+                    "hist_epok": hist_epok,
+                    "hist_tstamp": hist_tstamp,
+                }
             )
             PRINT("\n-Trinity:Loaded_History_List updated:%s" % len(Loaded_History_List))
 
@@ -5583,42 +4880,56 @@ def Check_History(question):
 
     for args in Loaded_History_List:
 
-        hist_file = args[0]
-        hist_cats = args[1]
-        hist_txt = args[2]
-        hist_answer = args[3]
-        hist_epok = args[4]
-        hist_tstamp = args[5]
-        hist_wav = args[6]
+        hist_file = args["hist_file"]
+        hist_cats = args["hist_cats"]
+        hist_input_full = args["hist_input_full"]
+        hist_input_short = args["hist_input_short"]
+        hist_input_wav = args["hist_input_wav"]
+        hist_output = args["hist_output"]
+        hist_output_wav = args["hist_output_wav"]
+        hist_urls = args["hist_urls"]
+        hist_epok = args["hist_epok"]
+        hist_tstamp = args["hist_tstamp"]
+
+
 
         if Cat_File == hist_file:
             if hist_cats == Joined_Cat:
-                score = similar(lemmatized, hist_txt)
-                if "wikipedia" in hist_txt:
+                score = similar(lemmatized, hist_output)
+                if "wikipedia" in hist_output:
                     if score > 0.85:
 
                         PRINT("\n-Trinity:hist_cats:", hist_cats)
-                        PRINT("\n-Trinity:hist_txt:", hist_txt)
-                        PRINT("\n-Trinity:hist_answer:", hist_answer)
-                        PRINT("\n-Trinity:hist_wav:", hist_wav)
+                        PRINT("\n-Trinity:hist_input_full:", hist_input_full)
+                        PRINT("\n-Trinity:hist_input_short:", hist_input_short)
+                        PRINT("\n-Trinity:hist_answer:", hist_output)
+                        PRINT("\n-Trinity:hist_wav:", hist_output_wav)
                         PRINT("\n-Trinity:Score:", score)
 
                         Best_Score.append(score)
-                        Best_Txt.append(hist_txt)
-                        Best_Answer(hist_answer)
-                        Best_Wav.append(hist_wav)
+                        if len(hist_input_full) > 0:
+                            Best_Txt.append(hist_input_full)
+                        else:
+                            Best_Txt.append(hist_input_short)
+                        Best_Answer(hist_output)
+                        Best_Wav.append(hist_output_wav)
 
                 else:
                     if score > 0.5:
                         PRINT("\n-Trinity:hist_cats:", hist_cats)
-                        PRINT("\n-Trinity:hist_txt:", hist_txt)
-                        PRINT("\n-Trinity:hist_answer:", hist_answer)
-                        PRINT("\n-Trinity:hist_wav:", hist_wav)
+                        PRINT("\n-Trinity:hist_input_full:", hist_input_full)
+                        PRINT("\n-Trinity:hist_input_short:", hist_input_short)
+                        PRINT("\n-Trinity:hist_answer:", hist_output)
+                        PRINT("\n-Trinity:hist_wav:", hist_output_wav)
                         PRINT("\n-Trinity:Score:", score)
+
                         Best_Score.append(score)
-                        Best_Txt.append(hist_txt)
-                        Best_Answer(hist_answer)
-                        Best_Wav.append(hist_wav)
+                        if len(hist_input_full) > 0:
+                            Best_Txt.append(hist_input_full)
+                        else:
+                            Best_Txt.append(hist_input_short)
+                        Best_Answer(hist_output)
+                        Best_Wav.append(hist_output_wav)
 
     final_score = 0
     final_wav = ""
@@ -5629,6 +4940,9 @@ def Check_History(question):
     for s, t, w in zip(Best_Score, Best_Txt, Best_Answer, Best_Wav):
         if s == final_score:
             PRINT("\n-Trinity:Best matches :", t)
+            if w != SAVED_ANSWER :
+               print("DEBUG %s alors que %s"%(w,SAVED_ANSWER))
+               sys.exit(1)
             final_wav = w
 
     if len(final_wav) > 0:
@@ -5705,6 +5019,10 @@ def Trinity(fname="WakeMe"):
     PRINT("\n-Trinity:")
     PRINT("\n-Trinity:fname:", fname)
 
+    if INTERPRETOR:
+      PRINT("\n-Trinity:INTERPRETOR TRUE")
+      return Prompt()
+
     if fname == "WakeMe":
 
         wake_up()
@@ -5779,8 +5097,10 @@ def GetConf():
     global DEBUG
     global XCB_ERROR_FIX
     global SAVED_ANSWER
+    global GPT4FREE_SERVERS_LIST
     global GPT4FREE_SERVERS_STATUS
     global GPT4FREE_SERVERS_AUTH
+    global INTERPRETOR
     global CHECK_UPDATE
     global CMD_DBG
     global SYNTAX_DBG
@@ -5790,6 +5110,8 @@ def GetConf():
         "DEBUG",
         "XCB_ERROR_FIX",
         "SAVED_ANSWER",
+        "INTERPRETOR",
+        "GPT4FREE_SERVERS_LIST",
         "GPT4FREE_SERVERS_STATUS",
         "GPT4FREE_SERVERS_AUTH",
         "CHECK_UPDATE",
@@ -5799,6 +5121,8 @@ def GetConf():
     ]
     folder = False
     conf = False
+
+    PRINT("\n-Trinity:GetConf()")
 
     if os.path.exists(SCRIPT_PATH + "/datas/conf.trinity"):
         with open(SCRIPT_PATH + "/datas/conf.trinity", "r") as f:
@@ -5858,7 +5182,33 @@ def GetConf():
                             print("\n-Trinity:Error:Impossible de créer le dossier:%s :%s" % (saved_error, str(e)))
                             sys.exit()
 
-            elif option == "GPT4FREE_SERVERS_STATUS":
+            elif option == "INTERPRETOR":
+                 if conf.lower() == "true":
+                       INTERPRETOR = True
+                 else:
+                       INTERPRETOR = False
+
+            elif option == "GPT4FREE_SERVERS_LIST":
+                    if conf.lower() == "none":
+                       GPT4FREE_SERVERS_LIST = None
+                       continue
+                    try:
+                         if "[" in conf and "]" in conf:
+#                               serv_list_tmp = serv_list_tmp.replace("'","").replace('"',"").replace(" ","")
+                               serv_list_tmp = conf.split("]")[0].split("[")[1]
+                               if "," in serv_list_tmp:
+                                  serv_list_tmp = serv_list_tmp.split(",") 
+
+                         if type(serv_list_tmp) == list:
+                             GPT4FREE_SERVERS_LIST = [x for x in serv_list_tmp if "g4f.Provider." in x]
+                         else:
+                             if "g4f.Provider." in serv_list_tmp:
+                                 GPT4FREE_SERVERS_LIST = [serv_list_tmp]
+
+                    except Exception as e:
+                         PRINT("\n-Trinity:getcong():Error:", str(e))
+
+            elif option == "GPT4FREE_SERVERS_STATUS" and not GPT4FREE_SERVERS_LIST:
                 if conf.lower() == "all":
                     GPT4FREE_SERVERS_STATUS = "All"
                 elif conf.lower() == "active":
@@ -5934,8 +5284,10 @@ def GetConf():
     else:
         with open(SCRIPT_PATH + "conf.trinity", "w") as f:
             data = """SAVED_ANSWER = default
+GPT4FREE_SERVERS_LIST = [g4f.Provider.you] #[g4f.Provider.PROVIDERNAME1,g4f.Provider.PROVIDERNAME2] or None
 GPT4FREE_SERVERS_STATUS = Active #Active or Unknown or All or None
 GPT4FREE_SERVERS_AUTH = False #True or False or All
+INTERPRETOR = True # True or False
 CHECK_UPDATE = True #Check update for Trinity or g4f
 DEBUG = False #Print debug stuffs
 CMD_DBG = False #Print commands results only for testing purpose
@@ -5948,6 +5300,9 @@ XCB_ERROR_FIX = False #Fix Xcb error from popping due to DISPLAY env variable.""
         CMD_DBG = False
         SYNTAX_DBG = False
         CHECK_UPDATE = True
+        SEARCH_DBG = False
+        INTERPRETOR = False
+        GPT4FREE_SERVERS_LIST = None
         SEARCH_DBG = False
         SAVED_ANSWER = SCRIPT_PATH + "/local_sounds/saved_answer/"
         GPT4FREE_SERVERS_STATUS = "Active"
@@ -6046,9 +5401,47 @@ if __name__ == "__main__":
     if SCRIPT_PATH.endswith("."):
         SCRIPT_PATH = SCRIPT_PATH[:-1]
 
-    LAST_SHA = "683b2079b5db1d318ce135576e290058782d9fd8"
+    LAST_SHA = "0e12f07c5ec29a924174c6339f332de44e017dae"
+
+    NOMBRES = [
+         "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf", "dix",
+         "onze", "douze", "treize", "quatorze", "quinze", "seize", "dix-sept", "dix-huit", "dix-neuf",
+         "vingt", "vingt et un", "vingt-deux", "vingt-trois", "vingt-quatre", "vingt-cinq", "vingt-six", "vingt-sept", "vingt-huit", "vingt-neuf",
+         "trente", "trente et un", "trente-deux", "trente-trois", "trente-quatre", "trente-cinq", "trente-six", "trente-sept", "trente-huit", "trente-neuf",
+         "quarante", "quarante et un", "quarante-deux", "quarante-trois", "quarante-quatre", "quarante-cinq", "quarante-six", "quarante-sept", "quarante-huit", "quarante-neuf",
+         "cinquante", "cinquante et un", "cinquante-deux", "cinquante-trois", "cinquante-quatre", "cinquante-cinq", "cinquante-six", "cinquante-sept", "cinquante-huit", "cinquante-neuf",
+         "soixante", "soixante et un", "soixante-deux", "soixante-trois", "soixante-quatre", "soixante-cinq", "soixante-six", "soixante-sept", "soixante-huit", "soixante-neuf",
+         "soixante-dix", "soixante et onze", "soixante-douze", "soixante-treize", "soixante-quatorze", "soixante-quinze", "soixante-seize", "soixante-dix-sept", "soixante-dix-huit", "soixante-dix-neuf",
+         "quatre-vingts", "quatre-vingt-un", "quatre-vingt-deux", "quatre-vingt-trois", "quatre-vingt-quatre", "quatre-vingt-cinq", "quatre-vingt-six", "quatre-vingt-sept", "quatre-vingt-huit", "quatre-vingt-neuf",
+         "quatre-vingt-dix", "quatre-vingt-onze", "quatre-vingt-douze", "quatre-vingt-treize", "quatre-vingt-quatorze", "quatre-vingt-quinze", "quatre-vingt-seize", "quatre-vingt-dix-sept", "quatre-vingt-dix-huit", "quatre-vingt-dix-neuf"
+]
+
+    CENTAINES = [
+         "cent", "deux cents", "trois cents", "quatre cents", "cinq cents", 
+         "six cents", "sept cents", "huit cents", "neuf cents"
+     ]
+
+    MILLIERS = [
+         "mille", "deux mille", "trois mille", "quatre mille", "cinq mille", 
+         "six mille", "sept mille", "huit mille", "neuf mille", "dix mille", 
+         "onze mille", "douze mille", "treize mille", "quatorze mille", "quinze mille", 
+         "seize mille", "dix-sept mille", "dix-huit mille", "dix-neuf mille", 
+         "vingt mille", "vingt-et-un mille", "vingt-deux mille", "vingt-trois mille"
+     ]
+
+    JOURS = ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"]
+
+
+    MOIS = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"]
+
+
     DISPLAY = ""
     Providers_To_Use = []
+    LAST_DIALOG = ()
+    REMEMBER_LAST_15M = False
+    INTERPRETOR = False
+    Providers_To_Use = None
+    GPT4FREE_SERVERS_LIST = None
     GPT4FREE_SERVERS_STATUS = "Active"
     GPT4FREE_SERVERS_AUTH = False
     CHECK_UPDATE = True
@@ -6061,8 +5454,12 @@ if __name__ == "__main__":
 
     GetConf()
 
-    if GPT4FREE_SERVERS_STATUS:
+
+    if GPT4FREE_SERVERS_STATUS and not GPT4FREE_SERVERS_LIST:
         Providers_To_Use = Check_Free_Servers()
+    if GPT4FREE_SERVERS_LIST:
+       Providers_To_Use = GPT4FREE_SERVERS_LIST
+
 
     FRAME_DURATION = 480
     FRAME_RATE = 16000
@@ -6092,6 +5489,7 @@ if __name__ == "__main__":
     Loaded_Trinity_Help_Requests = []
     Loaded_Prompt_Requests = []
     Loaded_Rnd_Requests = []
+    Loaded_Read_Results = []
     Loaded_Repeat_Requests = []
     Loaded_Show_History_Requests = []
     Loaded_Search_History_Requests = []
@@ -6099,6 +5497,8 @@ if __name__ == "__main__":
     Loaded_Play_Audio_File_Requests = []
     Loaded_Search_Web_Requests = []
     Loaded_Wait_Words_Requests = []
+    Loaded_Quit_Words_Requests = []
+    Loaded_Sort_Results_Requests = []
     Loaded_Add_Triggers_Requests = []
     Loaded_Actions_Words_Requests = []
     Loaded_Mix_Actions_Functions = []
@@ -6114,6 +5514,12 @@ if __name__ == "__main__":
     PREFILE = SCRIPT_PATH + "/datas/prefix.trinity"
     SYNFILE = SCRIPT_PATH + "/datas/synonym.trinity"
 
+
+    COOKIES = SCRIPT_PATH + "/datas/har_and_cookies"
+    set_cookies_dir(COOKIES)
+    read_cookie_files(COOKIES)
+
+
     Load_Csv()
 
     if XCB_ERROR_FIX:
@@ -6127,16 +5533,41 @@ if __name__ == "__main__":
     PRINT("-Trinity:CMD_DBG:%s" % CMD_DBG)
     PRINT("-Trinity:SYNTAX_DBG:%s" % SYNTAX_DBG)
     PRINT("-Trinity:SEARCH_DBG:%s" % SEARCH_DBG)
+    PRINT("-Trinity:INTERPRETOR:%s" % INTERPRETOR)
+    PRINT("-Trinity:GPT4FREE_SERVERS_LIST:%s" % GPT4FREE_SERVERS_LIST)
     PRINT("-Trinity:GPT4FREE_SERVERS_STATUS:%s" % GPT4FREE_SERVERS_STATUS)
     PRINT("-Trinity:GPT4FREE_SERVERS_AUTH:%s" % GPT4FREE_SERVERS_AUTH)
     PRINT("-Trinity:XCB_ERROR_FIX:%s" % XCB_ERROR_FIX)
     PRINT("-Trinity:SAVED_ANSWER:%s" % SAVED_ANSWER)
     PRINT("-Trinity:History categories loaded:%s" % len(Loaded_History_List))
 
-    if GPT4FREE_SERVERS_STATUS:
+
+    if Providers_To_Use:
         PRINT("-Trinity:Free Gpt servers to use:")
-        for i in Providers_To_Use:
-            PRINT("\t", i)
+        Tmp_Providers = Providers_To_Use
+        for i in Tmp_Providers:
+            if GPT4FREE_SERVERS_STATUS != "All":
+                try:
+                   eval_provider = eval(i+".working")
+                except Exception as e:
+                    PRINT("-Trinity:eval_provider:%s"%e)
+                    eval_provider = False
+                if not eval_provider:
+                    useit = input("-Trinity:Provider:%s does not seems to be working.Do you still want to use it?(Y/N):"%i)
+                    while True:
+                        if "y" not in useit.lower() and "n" not in useit.lower():
+                            useit = input("-Trinity:Provider:%s does not seems to be working.Do you still want to use it?(Y/N):"%i)
+                        else:
+                            break
+                    if "n" in useit.lower():
+                        Providers_To_Use.remove(i)
+                        PRINT("-Trinity:%s has been removed from servers to use"%i)
+                    else:
+                        PRINT("\t", i)
+                else:
+                     PRINT("\t%s is working."% i)
+            else:
+                    PRINT("\t", i)
 
     if CHECK_UPDATE:
         Check_Update()
@@ -6150,3 +5581,4 @@ if __name__ == "__main__":
 #####
         Trinity()
 #####
+

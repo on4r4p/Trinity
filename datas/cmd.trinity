@@ -99,34 +99,9 @@ F_repeat,qu'*que t*a* dis
 F_repeat,vous avez dit quoi
 F_repeat,qu'*que vous* dis
 F_show_history,affiche l'historique
-F_search_history,rappelle* si *historique
-F_search_history,souviens * si *historique
-F_search_history,un*qui concerne *historique
-F_search_history,des*qui concerne *historique
-F_search_history,un*parlant*historique
-F_search_history,des*parlant*historique
-F_search_history,un*concernant*historique
-F_search_history,des*concernant*historique
-F_search_history,un*qui parle*historique
-F_search_history,des*qui parle*historique
-F_search_history,resultat* sur *historique
-F_search_history,cherche* dans l'historique
-F_search_history,quelque*sur*historique
-F_search_history,quelque chose concernant*historique
-F_search_history,quelque chose qui concerne*historique
-F_search_history,quelque*chose qui parle*historique
-F_search_history,quelque*chose parlant*historique
-F_search_history,en rapport avec*historique
-F_search_history,en rapport au*historique
-F_search_history,associe*a*historique
-F_search_history,si*y*a*historique
-F_search_history,on*deja*parle de*avec toi*historique
-F_search_history,on*deja*parle de*avec vous*historique
-F_search_history,on*deja*parle*ensemble*historique
-F_search_history,si*je*ai*deja*parle*avec*toi*historique
-F_search_history,si*j'*ai*deja*parle*avec toi*historique
-F_search_history,si*je*ai*deja*parle*avec*vous*historique
-F_search_history,si*j'*ai*deja*parle*avec vous*historique
+F_search_history,[rappelle{s-tu/ toi/}/souviens{-tu/ toi/}/sais{-tu/}]*[deja {parle/discute}]*[avec toi/avec vous/ensemble/][ historique/] 
+F_search_history,[pag{e /es }/inf{o /os }/resultat{s /}]*[parl{e /ent /ant /eraient }/concern{e /ent /eraient }/en rapport ]*[ historique/]
+F_search_history,[cherche{r/z/-moi}/trouve{r/z/-moi}/regarde{r/z/-moi}/verifie{r/z/-moi}] * dans l'historique
 F_read_link,[ ce que contient / le contenu / ce qu*il*y*a{ dans / sur }/ ce qu*il*y*a{ dans / sur }/ ce qu*ya{ dans / sur }][*/ce /cette /un /une ] [*/page internet / page web / url/ site internet/ site web]
 F_read_link,l'interrieur
 F_play_audio,fichier*audio
@@ -137,16 +112,10 @@ F_play_audio,ce fichier
 F_play_audio,enregistrement
 F_play_audio,lecture*fichier
 F_search_web,[ avec / sur / dans ][*/][ wikipedia / google / internet ][un{e/} /des /][page{s/} /info{s/} /truc{s/} /article{s/} /][avec /sur /dans /][wikipedia/google/internet/]
-F_search_web,[pag{e /es }/inf{o /os }]*[parl{e /ent /ant /eraient }/concern{e /ent /eraient }/en rapport ]*[ wikipedia / google / internet ] 
-F_wait,attends
-F_wait,attendre
-F_wait,laisse-moi
-F_wait,laissez-moi
-F_wait,pause
-F_wait,minute
-F_wait,seconde
-F_wait,arrete
-F_wait,arretez
+F_search_web,[pag{e /es }/inf{o /os }]*[parl{e /ent /ant /eraient }/concern{e /ent /eraient }/en rapport ]*[ wikipedia / google / internet ]
+F_wait,[me laisser/laiss{e/ez}-moi/attend{s/ez}]*[second{e/es}/minut{e/es}/{un peu de/du/plus de} temps/un peu]
+F_wait,[{mets-/fous-/}toi en {veille/pause}/{mettez/foutez} vous en {veille/pause}/{tais-toi/taisez-vous/ferme-la/fermez-la}]
+F_quit,[{ferme/fermez/quitte/quittez/sors/sortez} {ton/le/la/de/du/ta/votre} {programme/scripte/fonction}]
 F_add_trigger,declencheur*ta base de donnee
 F_add_trigger,phrase*ta base de donnee
 F_add_trigger,declencheur*ta base de donnee
@@ -163,3 +132,5 @@ F_add_trigger,nouveau*declencheur
 F_add_trigger,activateur*fonction
 F_add_trigger,nouvel*activateur
 F_add_trigger,nouveau*trigger
+F_read_results,[lis{-moi/}/dis{-moi/}/parle{-moi/}] * [{des/les} resultats/ce que tu as trouve/tout ca/]
+F_sort_results,par ordre[ chronologique/ ant{é/i}chronologique]

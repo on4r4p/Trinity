@@ -1,9 +1,25 @@
-SAVED_ANSWER = default
-GPT4FREE_SERVERS_STATUS = Active #Active or Unknown or All or None
+SAVED_ANSWER = 
+GPT4FREE_SERVERS_LIST = None #[g4f.Provider.P1,g4f.Provider.P2] or None
+GPT4FREE_SERVERS_STATUS = Active #Active or Unknown or All or None (GPT4FREE_SERVERS_LIST must be None if set)
 GPT4FREE_SERVERS_AUTH = False #True or False or All
+INTERPRETOR = False #True or False - use keyboard instead of mic
 CHECK_UPDATE = True #Check update for Trinity or g4f
 DEBUG = False #Print debug stuffs
 CMD_DBG = False #Print commands results only for testing purpose
 SYNTAX_DBG = False #Print output of Special syntax found in database at launch
 SEARCH_DBG = False #Test output from Isolate_Search only .
 XCB_ERROR_FIX = True #Fix Xcb error from popping due to DISPLAY env variable.
+
+##known working GPT4FREE_SERVERS 08/25
+##g4f.Provider.you
+##g4f.Provider.FreeGpt (chinese)
+##g4f.Provider.PerplexityLabs (english)
+##g4f.Provider.Allyfy
+##g4f.Provider.ChatGot
+##g4f.Provider.ChatgptFree (english)
+##g4f.Provider.DDG
+##g4f.Provider.Koala
+##g4f.Provider.MagickPenChat
+##g4f.Provider.Pizzagpt
+##g4f.Provider.TeachAnything
+##g4f.Provider.Blackbox
