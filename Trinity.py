@@ -5361,7 +5361,7 @@ def Check_Update():
         repo_trinity = gitobj.get_repo("on4r4p/Trinity")
         commits_trinity = repo_trinity.get_commits()
         last_trinity = commits_trinity[1].sha
-        next_trinity = commits_trinity[0].sha
+        next_trinity = commits_trinity[0].wsha
 
         if last_trinity == LAST_SHA:
             Trinity_Is_Up = True
@@ -5405,7 +5405,7 @@ if __name__ == "__main__":
     if SCRIPT_PATH.endswith("."):
         SCRIPT_PATH = SCRIPT_PATH[:-1]
 
-    LAST_SHA = "0e12f07c5ec29a924174c6339f332de44e017dae"
+    LAST_SHA = "8a2250441591a7b563c2ac7cb60f831dd31eafac"
 
     NOMBRES = [
          "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf", "dix",
