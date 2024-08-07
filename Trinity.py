@@ -371,6 +371,9 @@ def FreeGpt(input):
             continue
 
         PRINT("\n-Trinity:Asking :", Providers_To_Use[Current_Provider_Id])
+        if Providers_To_Use[Current_Provider_Id] in ["g4f.Provider.PerplexityLabs","g4f.Provider.ChatgptFree"]: ##tmpfix
+             input = str(input) + ".Réponds en français."
+
         try:
             response = g4f.ChatCompletion.create(
                 model=g4f.models.default,
@@ -4558,6 +4561,7 @@ def Results_Hub(original_result,topx_res=None,from_function=None):
         else:
             os.system("aplay -q  " + SCRIPT_PATH + "local_sounds/question/search_history_cmd.wav")
 
+#        if not INTERPRETOR:
         Start_Thread_Record()
 
         if Wait_for("audio"):
