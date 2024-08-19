@@ -372,7 +372,8 @@ def FreeGpt(input):
 
         PRINT("\n-Trinity:Asking :", Providers_To_Use[Current_Provider_Id])
         if Providers_To_Use[Current_Provider_Id] in ["g4f.Provider.PerplexityLabs","g4f.Provider.ChatgptFree"]: ##tmpfix
-             input = str(input) + ".Réponds en français."
+             PRINT("\n-Trinity:Adding '. Réponds en français.':")
+             input = str(input) + " . Réponds en français."
 
         try:
             response = g4f.ChatCompletion.create(
@@ -5356,12 +5357,12 @@ def Check_Update():
         Gpt4free_Is_Up = True
 
     Trinity_Is_Up = False
-
+    next_trinity = ""
     try:
         repo_trinity = gitobj.get_repo("on4r4p/Trinity")
         commits_trinity = repo_trinity.get_commits()
         last_trinity = commits_trinity[1].sha
-        next_trinity = commits_trinity[0].wsha
+        next_trinity = commits_trinity[0].sha
 
         if last_trinity == LAST_SHA:
             Trinity_Is_Up = True
@@ -5405,7 +5406,7 @@ if __name__ == "__main__":
     if SCRIPT_PATH.endswith("."):
         SCRIPT_PATH = SCRIPT_PATH[:-1]
 
-    LAST_SHA = "8a2250441591a7b563c2ac7cb60f831dd31eafac"
+    LAST_SHA = "5964c38c056085aca27ecbfe1b28479c9e4ba15e"
 
     NOMBRES = [
          "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf", "dix",
