@@ -355,8 +355,8 @@ def FreeGpt(input):
     #    os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/server/gpt3.wav")
     rnd = str(random.randint(1, 10))
     wait = SCRIPT_PATH + "/local_sounds/wait/" + rnd + ".wav"
-    os.system("aplay -q %s" % wait)
-
+#    os.system("aplay -q %s" % wait)
+    print("wait:",wait)
     Err_msg = ""
     Err_cnt = 0
     response = ""
@@ -2964,6 +2964,7 @@ def Commandes(txt=None,allowed_functions=None,from_function=None):
         else:
             return False
     else:
+        print("return false")
         return False
 
 
@@ -5137,6 +5138,8 @@ def GetConf():
 
             if "=" not in l:
                 continue
+            if l.startswith("#"):
+               continue
 
             l = l.strip()
 
@@ -5145,7 +5148,7 @@ def GetConf():
 
             option = next((r for r in options if r in l), "")
 
-
+            #PRINT("L:",l)
             conf = l.split("=")[1]
 
             while conf.startswith(" "):
