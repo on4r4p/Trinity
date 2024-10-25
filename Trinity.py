@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import g4f, pyaudio, pvporcupine, os, time, sys, struct, random, webrtcvad, re, csv, string, googlesearch, requests, signal, inspect, sox ,spacy
+import g4f, pyaudio, pvporcupine, os, time, sys, struct, random, webrtcvad, re, csv, string, googlesearch, requests, signal, inspect, sox ,spacy,html
 #,wikipedia
 
 import g4f.debug
@@ -130,6 +130,8 @@ def GoogleLoadKeys():
 def parse_response(data):
 
     PRINT("\n-Trinity:Original Data before parse:\n", data)
+
+    data = html.unescape(data)
 
     emoj = re.compile(
         "["
