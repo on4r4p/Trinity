@@ -5475,7 +5475,7 @@ if __name__ == "__main__":
     if SCRIPT_PATH.endswith("."):
         SCRIPT_PATH = SCRIPT_PATH[:-1]
 
-    LAST_SHA = "e0c8cb2f655183911b9b1bd9dadf3dc6886e848d"
+    LAST_SHA = "6860b89fc2af9e1828eba457ada2924263dc7f8c"
 
     NOMBRES = [
          "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf", "dix",
