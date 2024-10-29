@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import g4f, pyaudio, pvporcupine, os, time, sys, struct, random, webrtcvad, re, csv, string, googlesearch, requests, signal, inspect, sox ,spacy,html
+import g4f, pyaudio, pvporcupine, os, time, sys, struct, random, webrtcvad, re, csv, string, googlesearch, requests, signal, inspect, sox ,spacy,html,detectlanguage
 #,wikipedia
 
 import g4f.debug
@@ -10,6 +10,7 @@ import google.cloud.texttospeech as tts
 
 from g4f.cookies import set_cookies_dir, read_cookie_files
 
+from deep_translator import GoogleTranslator
 
 from nltk.corpus import stopwords
 from nltk.corpus import wordnet
@@ -31,6 +32,7 @@ from github import Github
 
 from google.cloud import speech_v1p1beta1 as speech
 from google.cloud import language_v1
+from google.cloud import translate_v2
 from queue import Queue
 from threading import Thread
 from ctypes import *
@@ -95,12 +97,41 @@ def PicoLoadKeys():
         print("\n-Trinity:-%s/keys/pico.key doesn't exist." % SCRIPT_PATH)
         sys.exit()
 
+def DetectLanguageLoadKeys():
+    PRINT("\n-Trinity:Dans fonction DetectLanguageLoadKeys")
+    if os.path.exists(SCRIPT_PATH + "/keys/detectlanguage.key"):
+        with open(SCRIPT_PATH + "/keys/detectlanguage.key", "r") as k:
+            DLANG_KEY = k.read()
+            DLANG_KEY = DLANG_KEY.strip()
+        if not len(DLANG_KEY) == 32:
+            print("\n-Trinity:-Wrong DetectLanguage Api key.")
+            print(DLANG_KEY)
+            sys.exit()
+        else:
+            return DLANG_KEY
+    else:
+        print("\n-Trinity:-%s/keys/detectlanguage.key doesn't exist." % SCRIPT_PATH)
+        #sys.exit()
+        return None
 
 def GoogleLoadKeys():
     PRINT("\n-Trinity:Dans fonction GoogleLoadKeys")
 
     GOOGLE_KEY = ""
     GOOGLE_ENGINE = ""
+    GOOGLE_TRANSLATE = ""
+
+    if os.path.exists(SCRIPT_PATH + "/keys/google_translate.key"):
+        with open(SCRIPT_PATH + "/keys/google_translate.key", "r") as k:
+            GOOGLE_TRANSLATE = k.read()
+            GOOGLE_TRANSLATE = GOOGLE_TRANSLATE.strip()
+        if len(GOOGLE_TRANSLATE) != 39:
+            print("\n-Trinity:-Wrong Google Translate Api key (len).")
+            print(GOOGLE_TRANSLATE)
+            GOOGLE_TRANSLATE = ""
+    else:
+        print("\n-Trinity:-%s/keys/google_translate.key doesn't exist." % SCRIPT_PATH)
+
 
     if os.path.exists(SCRIPT_PATH + "/keys/google_search.key"):
         with open(SCRIPT_PATH + "/keys/google_search.key", "r") as k:
@@ -124,12 +155,14 @@ def GoogleLoadKeys():
     else:
         print("\n-Trinity:-%s/keys/google_search_engine.id doesn't exist." % SCRIPT_PATH)
 
-    return (GOOGLE_KEY, GOOGLE_ENGINE)
+    return (GOOGLE_KEY, GOOGLE_ENGINE,GOOGLE_TRANSLATE)
 
 
 def parse_response(data):
 
     PRINT("\n-Trinity:Original Data before parse:\n", data)
+
+    final_lang = None
 
     data = html.unescape(data)
 
@@ -193,6 +226,37 @@ def parse_response(data):
             final += "\n" + line
         else:
             final += line
+
+    final = final.replace("####", "")
+    if DLANG_KEY and GOOGLE_TRANSLATE:
+         try:
+             final_lang = detectlanguage.simple_detect(final)
+             PRINT("\n-Trinity:detectlanguage:final_lang set to :",final_lang)
+         except Exception as e:
+            PRINT("\n-Trinity:Error:detectlanguage.simple_detect:")
+            PRINT(e)
+
+    if GOOGLE_TRANSLATE:
+        if not final_lang:
+             try:
+                  client = translate_v2.Client()
+                  final_lang = client.detect_language(final)
+                  final_lang = final_lang['language']
+                  PRINT("\n-Trinity:google.detect_language:final_lang set to :",final_lang)
+             except Exception as e:
+                  PRINT("\n-Trinity:Error:client.detect_language:")
+                  PRINT(e)
+                  final_lang = "fr"
+
+        if final_lang != "fr":
+            try:
+               final_translated = GoogleTranslator(source=final_lang, target='fr').translate(text=text)
+               PRINT("\n-Trinity:GoogleTranslator:Translation successful.") 
+               return(final_translated)
+            except Exception as e:
+                  PRINT("\n-Trinity:Error:GoogleTranslator:")
+                  PRINT(e)
+
     return final.replace("####", "")
 
 
@@ -5479,7 +5543,10 @@ if __name__ == "__main__":
     Blacklisted = []
 
     PICO_KEY = PicoLoadKeys()
-    GOOGLE_KEY, GOOGLE_ENGINE = GoogleLoadKeys()
+    GOOGLE_KEY, GOOGLE_ENGINE,GOOGLE_TRANSLATE = GoogleLoadKeys()
+    DLANG_KEY = DetectLanguageLoadKeys()
+    if DLANG_KEY:
+        detectlanguage.configuration.api_key = DLANG_KEY
     record_on = Queue()
     chunks = Queue()
     last_sentence = Queue()
