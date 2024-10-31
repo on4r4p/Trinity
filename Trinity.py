@@ -251,6 +251,7 @@ def parse_response(data):
         if final_lang != "fr":
             try:
                final_translated = GoogleTranslator(source=final_lang, target='fr').translate(text=text)
+               os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/trad/traduction.wav")
                PRINT("\n-Trinity:GoogleTranslator:Translation successful.") 
                return(final_translated)
             except Exception as e:
@@ -5475,7 +5476,7 @@ if __name__ == "__main__":
     if SCRIPT_PATH.endswith("."):
         SCRIPT_PATH = SCRIPT_PATH[:-1]
 
-    LAST_SHA = "6860b89fc2af9e1828eba457ada2924263dc7f8c"
+    LAST_SHA = "388d43de6b0d0ab1888d10f57f5c6ddeb03e6a67"
 
     NOMBRES = [
          "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf", "dix",
