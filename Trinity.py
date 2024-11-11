@@ -192,12 +192,20 @@ def parse_response(data):
                data_translated = GoogleTranslator(source=input_lang, target='fr').translate(text=data)
                os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/trad/traduction.wav")
                PRINT("\n-Trinity:GoogleTranslator:Translation successful.") 
-               return(final_translated)
+               data = data_translated
             except Exception as e:
                   PRINT("\n-Trinity:Error:GoogleTranslator:")
                   PRINT(e)
-
-
+                  if "No support for the provided language" in str(e):
+                      PRINT("\n-Trinity:GoogleTranslator:Trying auto detect input language..")
+                      try:
+                         data_translated = GoogleTranslator(source="auto", target='fr').translate(text=data)
+                         os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/trad/traduction.wav")
+                         PRINT("\n-Trinity:GoogleTranslator:Translation successful.") 
+                         data = data_translated
+                      except Exception as e:
+                            PRINT("\n-Trinity:Error:GoogleTranslator:")
+                            PRINT(e)
 
 
 
@@ -5481,7 +5489,7 @@ if __name__ == "__main__":
     if SCRIPT_PATH.endswith("."):
         SCRIPT_PATH = SCRIPT_PATH[:-1]
 
-    LAST_SHA = "203ba996734bb9288b60bc7eef12615b2c4fba06"
+    LAST_SHA = "3b0dcfd397ebad73ec2a4f0f4267f74d2d0777a3"
 
     NOMBRES = [
          "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf", "dix",
