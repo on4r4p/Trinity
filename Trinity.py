@@ -162,9 +162,44 @@ def parse_response(data):
 
     PRINT("\n-Trinity:Original Data before parse:\n", data)
 
-    final_lang = None
+    input_lang = None
 
     data = html.unescape(data)
+
+
+    if DLANG_KEY and GOOGLE_TRANSLATE:
+         try:
+             input_lang = detectlanguage.simple_detect(data)
+             PRINT("\n-Trinity:detectlanguage:input_lang set to :",input_lang)
+         except Exception as e:
+            PRINT("\n-Trinity:Error:detectlanguage.simple_detect:")
+            PRINT(e)
+
+    if GOOGLE_TRANSLATE:
+        if not input_lang:
+             try:
+                  client = translate_v2.Client()
+                  input_lang = client.detect_language(data)
+                  input_lang = input_lang['language']
+                  PRINT("\n-Trinity:google.detect_language:input_lang set to :",input_lang)
+             except Exception as e:
+                  PRINT("\n-Trinity:Error:client.detect_language:")
+                  PRINT(e)
+                  input_lang = "fr"
+
+        if input_lang != "fr":
+            try:
+               data_translated = GoogleTranslator(source=input_lang, target='fr').translate(text=data)
+               os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/trad/traduction.wav")
+               PRINT("\n-Trinity:GoogleTranslator:Translation successful.") 
+               return(final_translated)
+            except Exception as e:
+                  PRINT("\n-Trinity:Error:GoogleTranslator:")
+                  PRINT(e)
+
+
+
+
 
     emoj = re.compile(
         "["
@@ -227,36 +262,6 @@ def parse_response(data):
         else:
             final += line
 
-    final = final.replace("####", "")
-    if DLANG_KEY and GOOGLE_TRANSLATE:
-         try:
-             final_lang = detectlanguage.simple_detect(final)
-             PRINT("\n-Trinity:detectlanguage:final_lang set to :",final_lang)
-         except Exception as e:
-            PRINT("\n-Trinity:Error:detectlanguage.simple_detect:")
-            PRINT(e)
-
-    if GOOGLE_TRANSLATE:
-        if not final_lang:
-             try:
-                  client = translate_v2.Client()
-                  final_lang = client.detect_language(final)
-                  final_lang = final_lang['language']
-                  PRINT("\n-Trinity:google.detect_language:final_lang set to :",final_lang)
-             except Exception as e:
-                  PRINT("\n-Trinity:Error:client.detect_language:")
-                  PRINT(e)
-                  final_lang = "fr"
-
-        if final_lang != "fr":
-            try:
-               final_translated = GoogleTranslator(source=final_lang, target='fr').translate(text=text)
-               os.system("aplay -q %s"%SCRIPT_PATH+"local_sounds/trad/traduction.wav")
-               PRINT("\n-Trinity:GoogleTranslator:Translation successful.") 
-               return(final_translated)
-            except Exception as e:
-                  PRINT("\n-Trinity:Error:GoogleTranslator:")
-                  PRINT(e)
 
     return final.replace("####", "")
 
@@ -5476,7 +5481,7 @@ if __name__ == "__main__":
     if SCRIPT_PATH.endswith("."):
         SCRIPT_PATH = SCRIPT_PATH[:-1]
 
-    LAST_SHA = "388d43de6b0d0ab1888d10f57f5c6ddeb03e6a67"
+    LAST_SHA = "203ba996734bb9288b60bc7eef12615b2c4fba06"
 
     NOMBRES = [
          "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf", "dix",
