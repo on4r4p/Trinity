@@ -64,6 +64,9 @@ def signal_handler(sig, frame):
     Xcb_Fix("set")
     sys.exit(0)
 
+def signal_ctrlc(sig, frame):
+    return Quit()
+
 
 def PRINT(txt, other=None):
     tmp_txt = txt
@@ -4323,8 +4326,8 @@ def Quit(from_function=None):
             os.system("aplay -q %s" % SCRIPT_PATH + "local_sounds/quit/quit_evening.wav")
         elif hour >= 18 and hour <=20:
             os.system("aplay -q %s" % SCRIPT_PATH + "local_sounds/quit/quit_afternoon.wav")
-
-        os.system("aplay -q %s" % SCRIPT_PATH + "local_sounds/boot/psx.wav")
+        PRINT("\n-Trinity:Quit():local_sounds/boot/xspx.wav")
+        os.system("aplay -q %s" % SCRIPT_PATH + "local_sounds/boot/xspx.wav")
         sys.exit(0)
 
 def Wait(self_launched=False,allowed_functions=None,from_function=None):
@@ -5530,7 +5533,7 @@ if __name__ == "__main__":
     if SCRIPT_PATH.endswith("."):
         SCRIPT_PATH = SCRIPT_PATH[:-1]
 
-    LAST_SHA = "edc1de11efa83a6d006a08bcb611b2c282847c64"
+    LAST_SHA = "095fbce4bf025b213e53cf9f2a8578b0f971ecb5"
 
     NOMBRES = [
          "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf", "dix",
@@ -5659,7 +5662,7 @@ if __name__ == "__main__":
 
     os.system("aplay -q %s" % SCRIPT_PATH + "local_sounds/boot/psx.wav")
     signal.signal(signal.SIGINT, signal_handler)
-
+    signal.signal(signal.SIGINT, signal_ctrlc)
     PRINT("\n-Trinity:CHECK_UPDATE:%s" % CHECK_UPDATE)
     PRINT("-Trinity:DEBUG:%s" % DEBUG)
     PRINT("-Trinity:CMD_DBG:%s" % CMD_DBG)
