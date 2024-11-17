@@ -1,18 +1,15 @@
 SAVED_ANSWER = default
-GPT4FREE_SERVERS_LIST = [g4f.Provider.AIChatFree,g4f.Provider.Ai4Chat,g4f.Provider.AiMathGPT,g4f.Provider.AmigoChat,g4f.Provider.Blackbox,g4f.Provider.DarkAI,g4f.Provider.Editee,g4f.Provider.RubiksAI,g4f.Provider.ChatGot,g4f.Provider.DDG,g4f.Provider.Koala,g4f.Provider.Pizzagpt,g4f.Provider.TeachAnything]
+GPT4FREE_SERVERS_LIST = [g4f.Provider.PerplexityLabs,g4f.Provider.FreeGpt,g4f.Provider.Blackbox,g4f.Provider.DarkAI,g4f.Provider.DDG,g4f.Provider.Pizzagpt,g4f.Provider.TeachAnything]
 #GPT4FREE_SERVERS_LIST = [g4f.Provider.P1,g4f.Provider.P2] or None
 GPT4FREE_SERVERS_STATUS = Active #Active or Unknown or All or None (GPT4FREE_SERVERS_LIST must be None if set)
 GPT4FREE_SERVERS_AUTH = False #True or False or All
 INTERPRETOR = False #True or False - use keyboard instead of mic
 CHECK_UPDATE = True #Check update for Trinity or g4f
-DEBUG = False #Print debug stuffs
+DEBUG = True #Print debug stuffs
 CMD_DBG = False #Print commands results only for testing purpose
 SYNTAX_DBG = False #Print output of Special syntax found in database at launch
 SEARCH_DBG = False #Test output from Isolate_Search only .
 XCB_ERROR_FIX = True #Fix Xcb error from popping due to DISPLAY env variable.
 
-##known working GPT4FREE_SERVERS 10/25
-##g4f.Provider.FreeGpt (chinese)
-##g4f.Provider.PerplexityLabs (english)
-##g4f.Provider.ChatgptFree (english)
-##[g4f.Provider.AIChatFree,g4f.Provider.Ai4Chat,g4f.Provider.AiMathGPT,g4f.Provider.AmigoChat,g4f.Provider.Blackbox,g4f.Provider.DarkAI,g4f.Provider.Editee,g4f.Provider.RubiksAI]
+##known working GPT4FREE_SERVERS 11/17/24
+##GPT4FREE_SERVERS_LIST = [g4f.Provider.PerplexityLabs,g4f.Provider.FreeGpt,g4f.Provider.Blackbox,g4f.Provider.DarkAI,g4f.Provider.DDG,g4f.Provider.Pizzagpt,g4f.Provider.TeachAnything]

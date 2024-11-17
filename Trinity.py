@@ -2572,6 +2572,7 @@ def Get_Line():
 
 def SeeknReturn(var_to_check, list_elements):
     #          PRINT("\n-Trinity:Dans la fonction seeknreturn")
+    final_found = []
     found_lst = []
     for element in list_elements:
         if "*" in element:
@@ -2583,7 +2584,27 @@ def SeeknReturn(var_to_check, list_elements):
                 found_lst.append(element)
         if element in var_to_check:
             found_lst.append(element)
-    return found_lst
+    if found_lst:
+#          print("list_elements:",list_elements)
+#          print("found_lst:",found_lst)
+          for found in found_lst:
+               orig_found = found
+#               print("orig_found:",orig_found)
+               found = re.split(r'\W+', found)
+               found = [f for f in found if f]
+#               print("found after split:",found)
+               bingo = []
+               for word in re.split(r'\W+', var_to_check):
+                   for f in found:
+                       if f == word:
+                          bingo.append(f)
+#               print("bingo:",bingo)
+#               print("found:",found)
+
+               if any(bingo[i:i+len(found)] == found for i in range(len(bingo) - len(found) + 1)):
+                    final_found.append(orig_found)
+
+    return final_found
 
 
 def Disambiguify(ambiguities, txt):
@@ -5509,7 +5530,7 @@ if __name__ == "__main__":
     if SCRIPT_PATH.endswith("."):
         SCRIPT_PATH = SCRIPT_PATH[:-1]
 
-    LAST_SHA = "1becbb6e55d37766eeae16426dc65fb5240082a4"
+    LAST_SHA = "edc1de11efa83a6d006a08bcb611b2c282847c64"
 
     NOMBRES = [
          "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf", "dix",
