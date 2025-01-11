@@ -4913,6 +4913,8 @@ def Save_History(answer, no_audio=False):
 
         os.system("cp %s %s" % (current_wav, new_wav))
 
+    print("\n-Trinity:Save_History:wav saved at: %s\n"%new_wav)
+
     tformat = "%Y-%m-%d %H:%M:%S"
     now = datetime.now()
 
@@ -5537,7 +5539,7 @@ if __name__ == "__main__":
     if SCRIPT_PATH.endswith("."):
         SCRIPT_PATH = SCRIPT_PATH[:-1]
 
-    LAST_SHA = "ef433c1e1e2303e7c474fa05f664e488329d3972"
+    LAST_SHA = "111f4b1a5b762be13ccef068c2ac858fa999600b"
 
     NOMBRES = [
          "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf", "dix",
