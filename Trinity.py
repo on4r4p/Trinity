@@ -259,6 +259,8 @@ def parse_response(data):
             data = data[index + len(to_find) :]
 
     data = data.replace("**", "")
+    data = data.replace("* ","")
+    data = data.replace(" *","")
     no_link = re.sub(r'\[\d+\]:\s*https?://[^\s]+ "[^"]*"\n?', "", data)
     no_emoj = re.sub(emoj, "", no_link)
     no_brak = re.sub(r"\[[^\]]+\]", "", no_emoj)
@@ -266,6 +268,8 @@ def parse_response(data):
 
     final = ""
     for line in no_brak2.splitlines():
+#        if line.startswith("* "):
+#            data = data.replace("* ", "")
         if "http" in line:
             httpos = line.find("http")
             to_replace = line[httpos : line.find(" ")]
@@ -5663,7 +5667,8 @@ if __name__ == "__main__":
     os.system("aplay -q %s" % SCRIPT_PATH + "local_sounds/boot/psx.wav")
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGINT, signal_ctrlc)
-    PRINT("\n-Trinity:CHECK_UPDATE:%s" % CHECK_UPDATE)
+    PRINT("\n-Trinity:Python Version:%s"% sys.version)
+    PRINT("-Trinity:CHECK_UPDATE:%s" % CHECK_UPDATE)
     PRINT("-Trinity:DEBUG:%s" % DEBUG)
     PRINT("-Trinity:CMD_DBG:%s" % CMD_DBG)
     PRINT("-Trinity:SYNTAX_DBG:%s" % SYNTAX_DBG)
