@@ -1,5 +1,5 @@
-SAVED_ANSWER = /media/0087-A3EE/Trinity/
-GPT4FREE_SERVERS_LIST = [g4f.Provider.GizAI,g4f.Provider.FreeGpt,g4f.Provider.Blackbox,g4f.Provider.DarkAI,g4f.Provider.DDG,g4f.Provider.Pizzagpt,g4f.Provider.TeachAnything]
+SAVED_ANSWER = default
+GPT4FREE_SERVERS_LIST = [g4f.Provider.ChatGLM,g4f.Provider.ChatGptt,g4f.Provider.Free2GPT,g4f.Provider.Yqcloud,g4f.Provider.PollinationsAI,g4f.Provider.GizAI,g4f.Provider.FreeGpt,g4f.Provider.Blackbox,g4f.Provider.DarkAI,g4f.Provider.DDG,g4f.Provider.Pizzagpt,g4f.Provider.TeachAnything]
 #GPT4FREE_SERVERS_LIST = [g4f.Provider.P1,g4f.Provider.P2] or None
 GPT4FREE_SERVERS_STATUS = Active #Active or Unknown or All or None (GPT4FREE_SERVERS_LIST must be None if set)
 GPT4FREE_SERVERS_AUTH = False #True or False or All
@@ -11,7 +11,7 @@ SYNTAX_DBG = False #Print output of Special syntax found in database at launch
 SEARCH_DBG = False #Test output from Isolate_Search only .
 XCB_ERROR_FIX = True #Fix Xcb error from popping due to DISPLAY env variable.
 
-##known working GPT4FREE_SERVERS 11/17/24
+##known working GPT4FREE_SERVERS 31/01/25
 ##g4f.Provider.HuggingChat need auth
 ##g4f.Provider.RubiksAI cloudfare detected err 403 
-##GPT4FREE_SERVERS_LIST = [g4f.Provider.AmigoChat,g4f.Provider.HuggingChat,g4f.Provider.Mhystical,g4f.Provider.ChatGptEs,g4f.Provider.PerplexityLabs,g4f.Provider.FreeGpt,g4f.Provider.Blackbox,g4f.Provider.DarkAI,g4f.Provider.DDG,g4f.Provider.Pizzagpt,g4f.Provider.TeachAnything]
+##GPT4FREE_SERVERS_LIST = [g4f.Provider.ChatGLM,g4f.Provider.ChatGptt,g4f.Provider.Free2GPT,g4f.Provider.Yqcloud,g4f.Provider.PollinationsAI,g4f.Provider.GizAI,g4f.Provider.FreeGpt,g4f.Provider.Blackbox,g4f.Provider.DarkAI,g4f.Provider.DDG,g4f.Provider.Pizzagpt,g4f.Provider.TeachAnything]
